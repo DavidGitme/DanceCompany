@@ -1,0 +1,17 @@
+# Sustituir los marcadores por usuarios reales de GitHub al crear el repositorio.
+# Persona 1 — Usuarios y seguridad: @David
+/frontend/src/modulos/seguridad/ @David
+/frontend/src/modulos/autenticacion/ @David
+/backend/app/presentacion/rutas/auth.py @David
+/backend/app/presentacion/rutas/seguridad.py @David
+/frontend/src/modulos/estudiantes/ @Yonier
+/frontend/src/modulos/instructores/ @Yonier
+/frontend/src/modulos/matriculas/ @Yonier
+/frontend/src/modulos/grupos/ @Brahian
+/frontend/src/modulos/pagos/ @Brahian
+/frontend/src/modulos/talleres/ @Brahian
+/frontend/src/modulos/sedes/ @Brahian
+/frontend/src/modulos/reportes/ @Yonier
+/frontend/src/modulos/landing/ @Brahian
+/frontend/src/compartido/ @David @Yonier @Brahian
+/backend/app/dominio/ @David @Yonier @Brahian
