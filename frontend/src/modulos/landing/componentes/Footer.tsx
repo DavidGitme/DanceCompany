@@ -1,44 +1,10 @@
 import logoFna from "@/recursos/logo-fna.png"
 
 const columns = [
-  {
-    title: "Compañía",
-    links: [
-      "Nosotros",
-      "Historia",
-      "Instructores",
-      "Prensa",
-      "Trabaja con nosotros",
-    ],
-  },
-  {
-    title: "Servicios",
-    links: [
-      "Clases de Hip Hop",
-      "Breaking",
-      "Popping & Locking",
-      "Freestyle",
-      "Alquiler de aulas",
-    ],
-  },
-  {
-    title: "Ayuda",
-    links: [
-      "Preguntas frecuentes",
-      "Políticas de cancelación",
-      "Términos y condiciones",
-      "Privacidad",
-    ],
-  },
-  {
-    title: "Contacto",
-    links: [
-      "info@fandadance.co",
-      "+57 300 123 4567",
-      "Bello, Antioquia",
-      "Copacabana, Antioquia",
-    ],
-  },
+  { title: "Compañía", links: ["Nosotros", "Historia", "Instructores", "Prensa", "Trabaja con nosotros"] },
+  { title: "Servicios", links: ["Clases de Hip Hop", "Breaking", "Popping & Locking", "Freestyle", "Alquiler de aulas"] },
+  { title: "Ayuda", links: ["Preguntas frecuentes", "Políticas de cancelación", "Términos y condiciones", "Privacidad"] },
+  { title: "Contacto", links: ["info@fandadance.co", "+57 300 123 4567", "Bello, Antioquia", "Copacabana, Antioquia"] },
 ]
 
 const socials = [
@@ -82,23 +48,15 @@ const socials = [
 
 export default function Footer() {
   return (
-    <footer className="bg-page border-t border-border">
-      <div className="max-w-7xl mx-auto px-6 pt-16 pb-8">
-        {/* Top */}
+    <footer className="relative bg-page border-t border-border overflow-hidden">
+      <div className="max-w-[88rem] mx-auto px-6 pt-16 pb-8 relative z-10">
         <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-12 mb-16">
-          {/* Brand */}
           <div className="lg:col-span-2">
-            <img
-              src={logoFna}
-              alt="F&A Dance Company"
-              className="h-12 w-auto object-contain mb-4"
-            />
-            <p className="font-body text-sm text-text-muted leading-relaxed max-w-xs">
-              La academia de Hip Hop urbano más auténtica de Antioquia.
-              Movimiento, cultura y comunidad desde 2016.
+            <img src={logoFna} alt="F&A Dance Company" className="h-12 w-auto object-contain mb-4" />
+            <p className="font-body text-sm text-text-soft leading-relaxed max-w-xs">
+              La academia de Hip Hop urbano más auténtica de Antioquia. Movimiento, cultura y comunidad desde 2016.
             </p>
-            {/* Socials */}
-            <div className="flex gap-4 mt-6">
+            <div className="flex gap-3 mt-6">
               {socials.map((s) => (
                 <a
                   key={s.name}
@@ -106,7 +64,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.name}
-                  className="text-text-muted hover:text-accent transition-colors duration-200"
+                  className="grid h-10 w-10 place-items-center rounded-full border border-border text-text-soft hover:text-accent hover:border-accent transition-colors duration-200"
                 >
                   {s.icon}
                 </a>
@@ -114,19 +72,15 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Links */}
-          {columns.map((col) => (
+          {columns.map((col, ci) => (
             <div key={col.title}>
-              <h4 className="font-condensed font-700 text-xs uppercase tracking-[0.2em] text-accent mb-4">
-                {col.title}
+              <h4 className="font-condensed font-bold text-xs uppercase tracking-[0.2em] text-accent mb-4">
+                ({String(ci + 1).padStart(2, "0")}) {col.title}
               </h4>
               <ul className="flex flex-col gap-2.5">
                 {col.links.map((link) => (
                   <li key={link}>
-                    <a
-                      href="#"
-                      className="font-body text-sm text-text-muted hover:text-accent transition-colors duration-200"
-                    >
+                    <a href="#" className="font-body text-sm text-text-soft hover:text-accent transition-colors duration-200">
                       {link}
                     </a>
                   </li>
@@ -136,23 +90,21 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Bottom */}
         <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between gap-4 items-center">
-          <p className="font-body text-xs text-text-muted">
-            © 2025 F&A Dance Company. Todos los derechos reservados.
-          </p>
+          <p className="font-body text-xs text-text-soft">© 2025 F&A Dance Company. Todos los derechos reservados.</p>
           <div className="flex gap-6">
             {["Privacidad", "Términos", "Cookies"].map((link) => (
-              <a
-                key={link}
-                href="#"
-                className="font-body text-xs text-text-muted hover:text-accent transition-colors"
-              >
+              <a key={link} href="#" className="font-body text-xs text-text-soft hover:text-accent transition-colors">
                 {link}
               </a>
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Wordmark decorativo */}
+      <div aria-hidden="true" className="display stroke-text select-none text-center leading-[0.8] text-[clamp(6rem,24vw,24rem)] opacity-40 -mb-[0.12em]">
+        F&amp;A
       </div>
     </footer>
   )

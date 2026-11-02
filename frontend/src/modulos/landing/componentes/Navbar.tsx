@@ -7,6 +7,7 @@ interface NavbarProps {
   isDark: boolean;
   onToggleTheme: () => void;
   onLoginClick: () => void;
+  onRegisterClick?: () => void;
 }
 
 const navLinks = [
@@ -18,130 +19,114 @@ const navLinks = [
   { label: 'Alquila un aula', href: '#alquiler' },
 ];
 
-export default function Navbar({ isDark, onToggleTheme, onLoginClick }: NavbarProps) {
+export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegisterClick }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', onScroll);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
+
   const scrollTo = (href: string) => {
     setMenuOpen(false);
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const register = () => (onRegisterClick ? onRegisterClick() : scrollTo('#alquiler'));
+
+  // Sobre la imagen del hero el texto es siempre claro; al hacer scroll usa los tokens del tema
+  const tone = scrolled || menuOpen ? 'text-text-soft' : 'text-purple-50';
+
   return (
-    <nav
-      className={[
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
-        scrolled
-          ? 'bg-page/95 backdrop-blur-md border-b border-border'
-          : 'bg-transparent',
-      ].join(' ')}
-    >
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        {/* Logo */}
-        <button onClick={() => scrollTo('#inicio')} className="flex items-center gap-3 cursor-pointer">
-          <img
-            src={logoFna}
-            alt="F&A Dance Company"
-            className="h-10 w-auto object-contain"
-          />
-        </button>
-
-        {/* Desktop nav */}
-        <div className="hidden lg:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <button
-              key={link.href}
-              onClick={() => scrollTo(link.href)}
-              className="font-condensed font-600 text-sm uppercase tracking-widest text-text-soft hover:text-accent transition-colors duration-200 cursor-pointer"
-            >
-              {link.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Right controls */}
-        <div className="hidden lg:flex items-center gap-4">
-          <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
-          <button
-            onClick={onLoginClick}
-            className="font-condensed font-600 text-sm uppercase tracking-widest text-text-soft hover:text-accent transition-colors duration-200 cursor-pointer"
-          >
-            Iniciar sesión
-          </button>
-          <Button size="sm" onClick={() => scrollTo('#alquiler')}>
-            Regístrate
-          </Button>
-        </div>
-
-        {/* Mobile hamburger */}
-        <div className="lg:hidden flex items-center gap-3">
-          <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="text-text p-2 cursor-pointer"
-            aria-label="Menu"
-          >
-            <div className="flex flex-col gap-1.5">
-              <span
-                className={[
-                  'block w-6 h-0.5 bg-accent transition-all duration-300',
-                  menuOpen ? 'rotate-45 translate-y-2' : '',
-                ].join(' ')}
-              />
-              <span
-                className={[
-                  'block w-6 h-0.5 bg-accent transition-all duration-300',
-                  menuOpen ? 'opacity-0' : '',
-                ].join(' ')}
-              />
-              <span
-                className={[
-                  'block w-6 h-0.5 bg-accent transition-all duration-300',
-                  menuOpen ? '-rotate-45 -translate-y-2' : '',
-                ].join(' ')}
-              />
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile menu */}
-      <div
+    <>
+      <nav
         className={[
-          'lg:hidden overflow-hidden transition-all duration-300 bg-page/98 backdrop-blur-md border-b border-border',
-          menuOpen ? 'max-h-screen py-6' : 'max-h-0',
+          'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
+          scrolled && !menuOpen ? 'bg-page/85 backdrop-blur-md border-b border-border' : 'bg-transparent',
         ].join(' ')}
       >
-        <div className="flex flex-col px-6 gap-4">
-          {navLinks.map((link) => (
-            <button
-              key={link.href}
-              onClick={() => scrollTo(link.href)}
-              className="font-condensed font-700 text-xl uppercase tracking-widest text-text-soft hover:text-accent text-left transition-colors cursor-pointer"
-            >
-              {link.label}
-            </button>
-          ))}
-          <div className="flex gap-3 mt-4">
+        <div className="max-w-[88rem] mx-auto px-6 h-20 grid grid-cols-[auto_1fr_auto] items-center gap-8">
+          <button onClick={() => scrollTo('#inicio')} className="flex items-center cursor-pointer" aria-label="Ir al inicio">
+            <img src={logoFna} alt="F&A Dance Company" className="h-10 w-auto object-contain" />
+          </button>
+
+          <div className={`hidden lg:flex items-center justify-center gap-9 ${tone}`}>
+            {navLinks.map((link) => (
+              <button
+                key={link.href}
+                onClick={() => scrollTo(link.href)}
+                className="group relative font-condensed font-semibold text-sm uppercase tracking-[0.18em] hover:text-accent transition-colors cursor-pointer"
+              >
+                {link.label}
+                <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+              </button>
+            ))}
+          </div>
+
+          <div className={`flex items-center justify-end gap-4 ${tone}`}>
+            <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
             <button
               onClick={onLoginClick}
-              className="flex-1 font-condensed font-600 text-sm uppercase tracking-widest border border-accent/40 text-accent py-3 hover:bg-accent/10 transition-colors cursor-pointer"
+              className="hidden lg:block font-condensed font-semibold text-sm uppercase tracking-[0.18em] hover:text-accent transition-colors cursor-pointer"
             >
               Iniciar sesión
             </button>
-            <Button size="md" className="flex-1" onClick={() => scrollTo('#alquiler')}>
+            <span className="hidden lg:block">
+              <Button size="sm" onClick={register}>Regístrate</Button>
+            </span>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-expanded={menuOpen}
+              className="lg:hidden font-condensed font-bold text-base uppercase tracking-[0.18em] cursor-pointer"
+            >
+              {menuOpen ? 'Cerrar' : 'Menú'}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Menú móvil a pantalla completa */}
+      <div
+        className={[
+          'fixed inset-0 z-40 lg:hidden bg-page grid-lines transition-all duration-500',
+          menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+        ].join(' ')}
+      >
+        <div className="h-full flex flex-col justify-between px-6 pt-28 pb-10">
+          <ul className="flex flex-col">
+            {navLinks.map((link, i) => (
+              <li key={link.href} className="border-b border-border">
+                <button
+                  onClick={() => scrollTo(link.href)}
+                  className="w-full flex items-baseline gap-4 py-4 text-left cursor-pointer"
+                >
+                  <span className="font-condensed text-sm text-text-muted">({String(i + 1).padStart(2, '0')})</span>
+                  <span className="display text-4xl text-text">{link.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-3">
+            <button
+              onClick={() => { setMenuOpen(false); onLoginClick(); }}
+              className="flex-1 rounded-full border border-accent text-accent py-3 font-condensed font-semibold text-sm uppercase tracking-widest cursor-pointer"
+            >
+              Iniciar sesión
+            </button>
+            <Button size="md" className="flex-1" onClick={() => { setMenuOpen(false); register(); }}>
               Regístrate
             </Button>
           </div>
         </div>
       </div>
-    </nav>
+    </>
   );
 }

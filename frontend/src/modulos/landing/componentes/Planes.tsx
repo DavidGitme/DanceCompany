@@ -1,4 +1,5 @@
 import Button from '@/compartido/ui/Button';
+import Reveal, { MaskLine } from '@/compartido/ui/Reveal';
 
 const plans = [
   {
@@ -39,90 +40,69 @@ const plans = [
 export default function Plans() {
   return (
     <section id="planes" className="relative py-28 bg-surface-alt overflow-hidden">
-      {/* Diagonal accent */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-5"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(-45deg, #6E3482 0px, #6E3482 1px, transparent 1px, transparent 40px)',
-        }}
-      />
-
-      <div className="relative max-w-7xl mx-auto px-6">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <span className="font-condensed text-sm uppercase tracking-[0.3em] text-accent font-600">
-            Membresías
-          </span>
-          <h2 className="font-display text-[clamp(3rem,6vw,5rem)] leading-none uppercase text-text mt-3">
-            ELIGE TU <span className="text-accent">RITMO</span>
-          </h2>
-          <p className="font-body text-text-soft mt-4 max-w-md mx-auto">
-            Sin excusas. Elige el plan que se adapta a tu estilo de vida y empieza a bailar hoy.
-          </p>
+      <div className="relative max-w-[88rem] mx-auto px-6">
+        <div className="mb-16 grid lg:grid-cols-[1.4fr_1fr] gap-8 items-end">
+          <div>
+            <Reveal>
+              <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(04) Membresías</span>
+            </Reveal>
+            <Reveal variant="mask" as="h2" className="display text-[clamp(3rem,9vw,8rem)] text-text mt-4">
+              <MaskLine>Elige tu</MaskLine>
+              <MaskLine delay={150}><span className="text-blush">ritmo</span></MaskLine>
+            </Reveal>
+          </div>
+          <Reveal delay={200}>
+            <p className="font-body text-text-soft text-lg leading-relaxed">
+              Sin excusas. Elige el plan que se adapta a tu estilo de vida y empieza a bailar hoy.
+            </p>
+          </Reveal>
         </div>
 
-        {/* Plans */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={[
-                'relative flex flex-col p-8 border transition-all duration-300 hover:translate-y-[-4px]',
-                plan.recommended
-                  ? 'border-accent bg-purple-700/10'
-                  : 'border-border bg-surface hover:border-accent/60',
-              ].join(' ')}
-            >
-              {/* Recommended badge */}
-              {plan.recommended && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-accent text-on-accent font-condensed font-700 text-xs uppercase tracking-widest px-4 py-1">
-                    Recomendado
-                  </span>
-                </div>
-              )}
-
-              {/* Plan name */}
-              <div className="mb-6">
-                <div className="font-condensed text-xs uppercase tracking-[0.3em] text-accent mb-2">
-                  {plan.tagline}
-                </div>
-                <h3 className="font-display text-4xl text-text leading-none">{plan.name}</h3>
-              </div>
-
-              {/* Description */}
-              <p className="font-body text-sm text-text-soft leading-relaxed mb-8">
-                {plan.description}
-              </p>
-
-              {/* Benefits */}
-              <ul className="flex flex-col gap-3 mb-10 flex-1">
-                {plan.benefits.map((b, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="w-4 h-4 rounded-full border border-accent flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="w-2 h-2 rounded-full bg-accent" />
-                    </span>
-                    <span className="font-body text-sm text-text-soft">{b}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <Button
-                size="lg"
-                variant={plan.recommended ? 'primary' : 'outline'}
-                fullWidth
-                onClick={() => document.querySelector('#alquiler')?.scrollIntoView({ behavior: 'smooth' })}
+        <div className="grid md:grid-cols-2 gap-6">
+          {plans.map((plan, i) => (
+            <Reveal key={plan.id} delay={i * 120}>
+              <div
+                className={[
+                  'relative flex h-full flex-col p-8 md:p-10 border transition-all duration-500 hover:-translate-y-1',
+                  plan.recommended ? 'border-accent bg-surface' : 'border-border bg-page hover:border-accent/60',
+                ].join(' ')}
               >
-                {plan.cta}
-              </Button>
-            </div>
+                <div className="flex items-start justify-between mb-8">
+                  <span className="font-condensed text-sm text-text-muted">({String(i + 1).padStart(2, '0')})</span>
+                  {plan.recommended && (
+                    <span className="bg-accent text-on-accent font-condensed font-bold text-xs uppercase tracking-widest px-3 py-1">
+                      Recomendado
+                    </span>
+                  )}
+                </div>
+
+                <div className="font-condensed text-sm uppercase tracking-[0.25em] text-accent mb-2">{plan.tagline}</div>
+                <h3 className="display text-6xl md:text-7xl text-text mb-6">{plan.name}</h3>
+                <p className="font-body text-base text-text-soft leading-relaxed mb-8">{plan.description}</p>
+
+                <ul className="flex flex-col mb-10 flex-1 border-t border-border">
+                  {plan.benefits.map((b) => (
+                    <li key={b} className="flex items-start gap-4 py-3 border-b border-border">
+                      <span className="font-condensed text-accent leading-6" aria-hidden="true">+</span>
+                      <span className="font-body text-sm text-text-soft">{b}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  size="lg"
+                  variant={plan.recommended ? 'primary' : 'outline'}
+                  fullWidth
+                  onClick={() => document.querySelector('#alquiler')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  {plan.cta}
+                </Button>
+              </div>
+            </Reveal>
           ))}
         </div>
 
-        {/* Note */}
-        <p className="text-center font-body text-xs text-text-muted mt-8">
+        <p className="mt-8 font-body text-xs text-text-soft">
           Consulta disponibilidad y condiciones en cada sede. Los planes incluyen acceso a clases regulares de lunes a sábado.
         </p>
       </div>
