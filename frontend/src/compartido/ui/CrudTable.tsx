@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { ModuleConfig } from '@/app/admin/tipos';
 import FilterBar from "./FilterBar";
+import Paginacion from "./Paginacion";
+import { usePaginacion } from "./usePaginacion";
 
 interface CrudTableProps {
   config: ModuleConfig;
@@ -12,22 +14,15 @@ interface CrudTableProps {
   loading?: boolean;
 }
 
-/* ─── AVATAR INITIALS ─── */
 function Avatar({ name }: { name: string }) {
-  const initials = name
-    .split(' ')
-    .slice(0, 2)
-    .map(w => w[0])
-    .join('')
-    .toUpperCase();
+  const initials = name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
   return (
-    <div className="w-8 h-8 rounded-full bg-purple-700/30 border border-purple-700/40 flex items-center justify-center flex-shrink-0">
-      <span className="font-condensed font-700 text-xs text-purple-400">{initials}</span>
+    <div className="w-8 h-8 rounded-full bg-purple-700/30 border border-purple-400/30 flex items-center justify-center flex-shrink-0">
+      <span className="font-condensed font-bold text-xs text-purple-400">{initials}</span>
     </div>
   );
 }
 
-/* ─── ACTION ICONS ─── */
 const ViewIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4">
     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -55,6 +50,9 @@ const PlusIcon = () => (
   </svg>
 );
 
+const actionBtn =
+  "w-8 h-8 rounded-full flex items-center justify-center text-text-soft transition-all cursor-pointer";
+
 export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelete, loading = false }: CrudTableProps) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -71,15 +69,21 @@ export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelet
     });
   }, [config.filters, data, filters, search]);
 
+  const pag = usePaginacion(filtered, 10, [search, filters]);
+  const offset = (pag.controles.pagina - 1) * pag.controles.tamano;
+  const extraCols = 2 + (config.avatarKey ? 1 : 0);
+
   return (
-    <div className="flex flex-col gap-5 h-full">
+    <div className="flex flex-col gap-6 h-full">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="font-display text-3xl uppercase text-text leading-none">
-          {config.title}
-        </h1>
-        <div className="flex items-center gap-3">
-          {/* Search */}
+      <div className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <p className="font-condensed text-xs uppercase tracking-[0.22em] text-text-soft mb-2">
+            ({String(data.length).padStart(2, '0')}) registros
+          </p>
+          <h1 className="display text-4xl md:text-5xl text-text">{config.title}</h1>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
               <SearchIcon />
@@ -87,21 +91,22 @@ export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelet
             <input
               type="text"
               placeholder="Buscar..."
+              aria-label="Buscar"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 rounded-full bg-surface border border-border text-text text-sm placeholder:text-text-muted focus:outline-none focus:border-purple-400 transition-colors w-48"
+              className="pl-9 pr-4 py-2 rounded-full bg-surface border border-border text-text text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors w-52"
             />
           </div>
-          {/* Add button */}
           <button
             onClick={onAdd}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-700 text-white font-condensed font-600 text-sm uppercase tracking-wider hover:bg-purple-900 active:scale-95 transition-all duration-150 cursor-pointer shadow-lg shadow-purple-700/20"
+            className="flex items-center gap-2 px-5 py-2 rounded-full bg-accent text-on-accent font-condensed font-semibold text-sm uppercase tracking-wider hover:bg-accent-strong hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
           >
             <PlusIcon />
             {config.addLabel ?? 'Agregar'}
           </button>
         </div>
       </div>
+
       <FilterBar
         filters={config.filters ?? []}
         values={filters}
@@ -110,75 +115,72 @@ export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelet
       />
 
       {/* Table */}
-      <div className="flex-1 rounded-[20px] bg-surface border border-border overflow-hidden flex flex-col">
-        {/* Table head */}
+      <div className="flex-1 rounded-2xl bg-surface border border-border overflow-hidden flex flex-col">
         <div className="overflow-x-auto flex-1">
           <table className="w-full min-w-full">
             <thead>
               <tr className="border-b border-border">
-                {config.avatarKey && <th className="w-12 px-4 py-3" />}
+                <th className="px-4 py-4 w-12 text-left font-condensed text-xs font-semibold uppercase tracking-widest text-text-muted">
+                  N.º
+                </th>
+                {config.avatarKey && <th className="w-12 px-2 py-3" />}
                 {config.columns.map((col, columnIndex) => (
                   <th
                     key={`${col.key}-${col.label}-${columnIndex}`}
-                    className="px-4 py-3 text-left font-condensed font-600 text-xs uppercase tracking-widest text-text-muted whitespace-nowrap"
+                    className="px-4 py-4 text-left font-condensed text-xs font-semibold uppercase tracking-widest text-text-soft whitespace-nowrap"
                     style={col.width ? { width: col.width } : undefined}
                   >
                     {col.label}
                   </th>
                 ))}
-                <th className="px-4 py-3 text-right font-condensed font-600 text-xs uppercase tracking-widest text-text-muted w-28">
+                <th className="px-4 py-4 text-right font-condensed text-xs font-semibold uppercase tracking-widest text-text-soft w-32">
                   Acciones
                 </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={config.columns.length + 2} className="px-4 py-16 text-center text-text-muted font-body text-sm">Cargando registros...</td></tr>
+                <tr><td colSpan={config.columns.length + extraCols} className="px-4 py-16 text-center text-text-soft font-body text-sm">Cargando registros...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={config.columns.length + 2} className="px-4 py-16 text-center text-text-muted font-body text-sm">
+                  <td colSpan={config.columns.length + extraCols} className="px-4 py-16 text-center text-text-soft font-body text-sm">
                     {config.emptyMessage ?? "No se encontraron resultados"}
                   </td>
                 </tr>
               ) : (
-                filtered.map((row, i) => (
+                pag.visibles.map((row, i) => (
                   <tr
-                    key={row.id ?? i}
-                    className="border-b border-border last:border-0 hover:bg-purple-400/4 transition-colors group"
+                    key={row.id ?? `${pag.controles.pagina}-${i}`}
+                    className="border-b border-border last:border-0 hover:bg-accent/5 transition-colors"
                   >
+                    <td className="px-4 py-3 font-condensed text-xs text-text-muted">
+                      ({String(offset + i + 1).padStart(2, '0')})
+                    </td>
                     {config.avatarKey && (
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3">
                         <Avatar name={String(row[config.avatarKey!])} />
                       </td>
                     )}
                     {config.columns.map((col, columnIndex) => (
-                      <td key={`${col.key}-${col.label}-${columnIndex}`} className="px-4 py-3 font-body text-sm text-text-soft whitespace-nowrap max-w-[200px] truncate">
+                      <td key={`${col.key}-${col.label}-${columnIndex}`} className="px-4 py-3 font-body text-sm text-text-soft whitespace-nowrap">
                         {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '—')}
                       </td>
                     ))}
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => onView(row)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-purple-400 hover:bg-purple-400/10 transition-all cursor-pointer"
-                          title="Ver detalle"
-                        >
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => onView(row)} className={`${actionBtn} hover:text-accent hover:bg-accent/10`} title="Ver detalle" aria-label="Ver detalle">
                           <ViewIcon />
                         </button>
-                        {!config.hideEdit && <button
-                          onClick={() => onEdit(row)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-blue-400 hover:bg-blue-400/10 transition-all cursor-pointer"
-                          title="Editar"
-                        >
-                          <EditIcon />
-                        </button>}
-                        {!config.hideStatusAction && <button
-                          onClick={() => onDelete(row)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-all cursor-pointer"
-                          title={config.actionLabel ?? "Inactivar"}
-                        >
-                          <DeleteIcon />
-                        </button>}
+                        {!config.hideEdit && (
+                          <button onClick={() => onEdit(row)} className={`${actionBtn} hover:text-mist hover:bg-mist/10`} title="Editar" aria-label="Editar">
+                            <EditIcon />
+                          </button>
+                        )}
+                        {!config.hideStatusAction && (
+                          <button onClick={() => onDelete(row)} className={`${actionBtn} hover:text-red-400 hover:bg-red-400/10`} title={config.actionLabel ?? "Inactivar"} aria-label={config.actionLabel ?? "Inactivar"}>
+                            <DeleteIcon />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -188,12 +190,7 @@ export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelet
           </table>
         </div>
 
-        {/* Table footer */}
-        <div className="border-t border-border px-5 py-3 flex items-center justify-between">
-          <span className="font-condensed text-xs uppercase tracking-wider text-text-muted">
-            {filtered.length} de {data.length} registro{data.length !== 1 ? 's' : ''}
-          </span>
-        </div>
+        <Paginacion {...pag.controles} />
       </div>
     </div>
   );

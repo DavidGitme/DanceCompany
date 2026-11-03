@@ -9,6 +9,8 @@ import {
   Acudiente,
   Rol,
 } from "@/modulos/seguridad"
+import Paginacion from "@/compartido/ui/Paginacion"
+import { usePaginacion } from "@/compartido/ui/usePaginacion"
 
 /* ═══════════════════════════════════════════════════════════════════
  * MÓDULO PERSONAS — VISTA ADMINISTRADOR
@@ -466,15 +468,15 @@ function EditableRow({
         )}
         {editing ? (
           <>
-            <button type="button" onClick={commit} title="Guardar" className="text-emerald-400 hover:bg-emerald-400/10 rounded-md p-1 cursor-pointer">
+            <button type="button" onClick={commit} title="Guardar" aria-label="Guardar" className="text-emerald-400 hover:bg-emerald-400/10 rounded-md p-1 cursor-pointer">
               <Icon name="check" />
             </button>
-            <button type="button" onClick={() => setEditing(false)} title="Cancelar" className="text-text-muted hover:bg-border rounded-md p-1 cursor-pointer">
+            <button type="button" onClick={() => setEditing(false)} title="Cancelar" aria-label="Cancelar" className="text-text-muted hover:bg-border rounded-md p-1 cursor-pointer">
               <Icon name="close" />
             </button>
           </>
         ) : (
-          <button type="button" onClick={() => setEditing(true)} title={`Editar ${label.toLowerCase()}`} className="text-text-muted hover:text-purple-400 hover:bg-purple-400/10 rounded-md p-1 cursor-pointer">
+          <button type="button" onClick={() => setEditing(true)} title={`Editar ${label.toLowerCase()}`} aria-label={`Editar ${label.toLowerCase()}`} className="text-text-muted hover:text-purple-400 hover:bg-purple-400/10 rounded-md p-1 cursor-pointer">
             <Icon name="pencil" />
           </button>
         )}
@@ -604,6 +606,7 @@ function ViewModal({
                       setEditRol(false)
                     }}
                     title="Guardar rol"
+                    aria-label="Guardar rol"
                     className="text-emerald-400 hover:bg-emerald-400/10 rounded-md p-1 cursor-pointer"
                   >
                     <Icon name="check" />
@@ -615,6 +618,7 @@ function ViewModal({
                       setEditRol(false)
                     }}
                     title="Cancelar"
+                    aria-label="Cancelar"
                     className="text-text-muted hover:bg-border rounded-md p-1 cursor-pointer"
                   >
                     <Icon name="close" />
@@ -628,6 +632,7 @@ function ViewModal({
                     setEditRol(true)
                   }}
                   title="Editar rol"
+                  aria-label="Editar rol"
                   className="text-text-muted hover:text-purple-400 hover:bg-purple-400/10 rounded-md p-1 cursor-pointer"
                 >
                   <Icon name="pencil" />
@@ -1158,6 +1163,9 @@ export default function PersonasScreen() {
     return [...out].sort((a, b) => Number(!!pagos[b.idPersona]) - Number(!!pagos[a.idPersona]))
   }, [personas, pagos, search, filtro])
 
+  // Paginación: vuelve a la página 1 cuando cambia la búsqueda o el filtro
+  const pag = usePaginacion(lista, 8, [search, filtro])
+
   const viewPersona = personas.find((p) => p.idPersona === viewId) ?? null
   const acuInfo = acuFor != null ? acudienteDe(acuFor) : null
 
@@ -1309,6 +1317,7 @@ export default function PersonasScreen() {
               onClick={() => setMenuOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
+              aria-label="Configuración"
               title="Configuración"
               className="w-11 h-11 rounded-full bg-purple-700 text-white flex items-center justify-center shadow-lg shadow-purple-700/30 hover:bg-purple-900 active:scale-95 transition-all cursor-pointer"
             >
@@ -1383,6 +1392,7 @@ export default function PersonasScreen() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar"
+            aria-label="Buscar persona"
             className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-surface border border-border text-text text-sm placeholder:text-text-muted focus:outline-none focus:border-purple-400 transition-colors font-body"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
@@ -1428,14 +1438,14 @@ export default function PersonasScreen() {
             No hay personas con esos filtros.
           </div>
         ) : (
-          lista.map((p) => {
+          pag.visibles.map((p) => {
             const pago = pagos[p.idPersona] ?? null
             const acu = acudienteDe(p.idPersona)
             const roles0 = nombresRoles(p.idPersona)
             return (
               <div
                 key={p.idPersona}
-                className="relative flex items-center gap-3 px-5 py-3 border-b border-border last:border-0 first:rounded-t-[20px] last:rounded-b-[20px] hover:bg-purple-400/5 transition-colors"
+                className="relative flex items-center gap-3 px-5 py-3 border-b border-border last:border-0 first:rounded-t-[20px] hover:bg-purple-400/5 transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-sm font-600 text-text truncate">{p.nombre}</p>
@@ -1448,6 +1458,7 @@ export default function PersonasScreen() {
                       type="button"
                       onClick={() => setAcuFor(p.idPersona)}
                       title={`Acudiente: ${acu.persona.nombre}`}
+                      aria-label={`Ver acudiente: ${acu.persona.nombre}`}
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
                         acu.acudiente.idEstado === 1
                           ? "text-purple-400 hover:bg-purple-400/10"
@@ -1498,6 +1509,7 @@ export default function PersonasScreen() {
                   type="button"
                   onClick={() => setViewId(p.idPersona)}
                   title="Ver persona"
+                  aria-label="Ver persona"
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-purple-400 hover:bg-purple-400/10 transition-all cursor-pointer flex-shrink-0"
                 >
                   <Icon name="eye" className="w-5 h-5" />
@@ -1506,11 +1518,7 @@ export default function PersonasScreen() {
             )
           })
         )}
-        <div className="border-t border-border px-5 py-3 rounded-b-[20px]">
-          <span className="font-condensed text-xs uppercase tracking-wider text-text-muted">
-            {lista.length} de {personas.length} persona{personas.length !== 1 ? "s" : ""}
-          </span>
-        </div>
+        <Paginacion {...pag.controles} opciones={[8, 16, 32]} />
       </div>
 
       {/* ── Tarjetas ── */}

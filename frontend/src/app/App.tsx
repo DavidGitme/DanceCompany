@@ -83,6 +83,7 @@ export default function App() {
         isDark={isDark}
         onToggleTheme={() => setIsDark((d) => !d)}
         onLoginClick={() => setPage("login")}
+        onRegisterClick={() => setPage("register")}
       />
       <main>
         <Hero />

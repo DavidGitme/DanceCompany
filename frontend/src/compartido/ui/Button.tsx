@@ -15,18 +15,14 @@ interface ButtonProps {
 }
 
 const variants: Record<Variant, string> = {
-  primary:
-    'bg-accent text-on-accent hover:bg-accent-strong active:scale-95 shadow-lg shadow-purple-700/30',
-  secondary:
-    'bg-surface-alt text-text hover:bg-border active:scale-95',
-  ghost:
-    'bg-transparent text-text hover:bg-text/10 active:scale-95',
-  outline:
-    'border border-accent text-accent hover:bg-accent hover:text-on-accent active:scale-95',
+  primary: 'bg-accent text-on-accent hover:bg-accent-strong',
+  secondary: 'bg-surface-alt text-text hover:bg-border',
+  ghost: 'bg-transparent text-text hover:bg-text/10',
+  outline: 'border border-accent text-accent hover:bg-accent hover:text-on-accent',
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'px-4 py-2 text-sm',
+  sm: 'px-5 py-2 text-sm',
   md: 'px-6 py-3 text-base',
   lg: 'px-8 py-4 text-lg',
 };
@@ -47,7 +43,8 @@ export default function Button({
       onClick={onClick}
       disabled={disabled}
       className={[
-        'inline-flex items-center justify-center gap-2 font-condensed font-700 tracking-wider uppercase transition-all duration-200 cursor-pointer select-none',
+        'inline-flex items-center justify-center gap-2 rounded-full font-condensed font-bold tracking-wider uppercase',
+        'transition-all duration-300 cursor-pointer select-none hover:-translate-y-0.5 active:translate-y-0',
         variants[variant],
         sizes[size],
         fullWidth ? 'w-full' : '',

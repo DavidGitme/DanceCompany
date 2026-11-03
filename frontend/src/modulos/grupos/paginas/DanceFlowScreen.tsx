@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createGuardianRecord, findGuardianByDocument } from '@/app/admin/registroAcudientes';
+import Paginacion from '@/compartido/ui/Paginacion';
+import { usePaginacion } from '@/compartido/ui/usePaginacion';
 
 type ModuleId = 'instructores' | 'niveles' | 'grupos' | 'sedes' | 'estilos' | 'talleres' | 'estudiantes';
 type Row = Record<string, string | number | string[]> & { id: number; estado: string };
@@ -248,7 +250,7 @@ function Icon({ name }: { name: 'search' | 'filter' | 'plus' | 'eye' | 'edit' | 
 
 function StatusBadge({ value }: { value: string }) {
   const active = value === 'Activo';
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ${active ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400' : 'border-white/10 bg-white/5 text-text-muted'}`}>{value}</span>;
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ${active ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400' : 'border-border bg-surface-alt text-text-muted'}`}>{value}</span>;
 }
 
 export default function DanceFlowScreen({ moduleId }: { moduleId: ModuleId }) {
@@ -281,6 +283,9 @@ export default function DanceFlowScreen({ moduleId }: { moduleId: ModuleId }) {
     });
     return matchesSearch && matchesFilters;
   }), [filters, rows, search]);
+
+  // Paginación: vuelve a la página 1 cuando cambia la búsqueda o los filtros
+  const pag = usePaginacion(filteredRows, 10, [search, filters]);
 
   const openForm = (row?: Row, competition = false) => {
     setSelected(row ?? null);
@@ -517,21 +522,21 @@ export default function DanceFlowScreen({ moduleId }: { moduleId: ModuleId }) {
         </div> : <>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px]">
-            <thead><tr className="border-b border-border bg-white/[0.02]">{config.columns.map(column => <th key={column.key} className="px-4 py-3.5 text-left font-condensed text-xs font-semibold uppercase tracking-widest text-text-muted">{column.label}</th>)}<th className="px-4 py-3 text-right font-condensed text-xs font-semibold uppercase tracking-widest text-text-muted">Acciones</th></tr></thead>
-            <tbody>{filteredRows.map(row => <tr key={row.id} className="group border-b border-border last:border-0 hover:bg-purple-400/[0.04]">
+            <thead><tr className="border-b border-border bg-surface-alt">{config.columns.map(column => <th key={column.key} className="px-4 py-3.5 text-left font-condensed text-xs font-semibold uppercase tracking-widest text-text-soft">{column.label}</th>)}<th className="px-4 py-3 text-right font-condensed text-xs font-semibold uppercase tracking-widest text-text-soft">Acciones</th></tr></thead>
+            <tbody>{pag.visibles.map(row => <tr key={row.id} className="group border-b border-border last:border-0 hover:bg-purple-400/[0.04]">
               {config.columns.map((column, index) => <td key={column.key} className={`max-w-56 px-4 py-4 text-sm ${index === 0 ? 'font-semibold text-text' : 'text-text-soft'}`}>
                 {column.key === 'estado' ? <StatusBadge value={String(row.estado)} /> : column.key === 'tipo' ? <span className="rounded-full bg-purple-400/10 px-2.5 py-1 text-xs font-semibold text-purple-400">{String(row[column.key])}</span> : column.key === 'valor' ? `$${Number(row.valor).toLocaleString('es-CO')}` : column.key === 'acudientes' && Array.isArray(row[column.key]) ? (row[column.key] as string[]).map(parseGuardian).map(guardian => guardian.nombre).join(', ') || '—' : Array.isArray(row[column.key]) ? <div className="flex gap-1">{(row[column.key] as string[]).map(value => <span key={value} className="rounded-full border border-purple-400/20 bg-purple-400/10 px-2 py-1 text-xs text-purple-400">{value}</span>)}</div> : String(row[column.key] ?? '—')}
               </td>)}
               <td className="px-4 py-3"><div className="flex justify-end gap-1">
-                {moduleId !== 'estilos' && <button className={iconButton} title="Ver detalle" onClick={() => { setSelected(row); setModal('detail'); }}><Icon name="eye" /></button>}
-                <button className={iconButton} title="Editar" onClick={() => openForm(row)}><Icon name="edit" /></button>
-                <button className={iconButton} title="Cambiar estado" onClick={() => { setSelected(row); setModal('state'); }}><Icon name="power" /></button>
-                {(moduleId === 'sedes' || moduleId === 'talleres') && <button className={`${iconButton} hover:text-red-400`} title="Eliminar" onClick={() => { setSelected(row); setModal('delete'); }}><Icon name="trash" /></button>}
+                {moduleId !== 'estilos' && <button className={iconButton} title="Ver detalle" aria-label="Ver detalle" onClick={() => { setSelected(row); setModal('detail'); }}><Icon name="eye" /></button>}
+                <button className={iconButton} title="Editar" aria-label="Editar" onClick={() => openForm(row)}><Icon name="edit" /></button>
+                <button className={iconButton} title="Cambiar estado" aria-label="Cambiar estado" onClick={() => { setSelected(row); setModal('state'); }}><Icon name="power" /></button>
+                {(moduleId === 'sedes' || moduleId === 'talleres') && <button className={`${iconButton} hover:text-red-400`} title="Eliminar" aria-label="Eliminar" onClick={() => { setSelected(row); setModal('delete'); }}><Icon name="trash" /></button>}
               </div></td>
             </tr>)}</tbody>
           </table>
         </div>
-        <div className="border-t border-border px-5 py-3 font-condensed text-xs uppercase tracking-wider text-text-muted">{filteredRows.length} de {rows.length} registros</div>
+        <Paginacion {...pag.controles} />
         </>}
       </div>
 
@@ -539,7 +544,7 @@ export default function DanceFlowScreen({ moduleId }: { moduleId: ModuleId }) {
         <div className={`max-h-[92vh] w-full overflow-y-auto rounded-[24px] border border-border bg-surface shadow-2xl ${modal === 'form' ? 'max-w-2xl' : 'max-w-lg'}`}>
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-6 py-5">
             <div><p className="font-condensed text-[11px] font-semibold uppercase tracking-[0.2em] text-purple-400">{config.eyebrow}</p><h2 className="mt-1 font-display text-2xl uppercase text-text">{modal === 'form' ? `${selected ? 'Editar' : 'Crear'} ${config.title.toLowerCase()}` : modal === 'detail' ? 'Detalle' : modal === 'state' ? 'Cambiar estado' : 'Eliminar registro'}</h2></div>
-            <button className={iconButton} onClick={() => setModal(null)}><Icon name="close" /></button>
+            <button className={iconButton} aria-label="Cerrar" onClick={() => setModal(null)}><Icon name="close" /></button>
           </div>
 
           {modal === 'form' && <form onSubmit={event => { event.preventDefault(); save(); }} className="p-6">
@@ -566,7 +571,7 @@ export default function DanceFlowScreen({ moduleId }: { moduleId: ModuleId }) {
               {moduleId === 'instructores' && <div className="sm:col-span-2"><h3 className="mb-4 border-b border-border pb-2 font-condensed text-sm font-bold uppercase tracking-widest text-text">Datos de instructor</h3><p className="mb-2 font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">Sedes asignadas *</p><div className="overflow-hidden rounded-xl border border-border">{sedes.map(sede => {
                 const selectedSedes = Array.isArray(form.sede) ? form.sede : [];
                 const checked = selectedSedes.includes(sede);
-                return <label key={sede} className="flex cursor-pointer items-center justify-between border-b border-border px-4 py-3 last:border-0"><span className="text-sm text-text">{sede}</span><input type="checkbox" checked={checked} onChange={() => setValue('sede', checked ? selectedSedes.filter(item => item !== sede) : [...selectedSedes, sede])} className="peer sr-only" /><span className="h-6 w-11 rounded-full bg-white/10 p-0.5 transition peer-checked:bg-purple-700"><span className={`block h-5 w-5 rounded-full bg-white transition ${checked ? 'translate-x-5' : ''}`} /></span></label>;
+                return <label key={sede} className="flex cursor-pointer items-center justify-between border-b border-border px-4 py-3 last:border-0"><span className="text-sm text-text">{sede}</span><input type="checkbox" checked={checked} onChange={() => setValue('sede', checked ? selectedSedes.filter(item => item !== sede) : [...selectedSedes, sede])} className="peer sr-only" /><span className="h-6 w-11 rounded-full bg-border p-0.5 transition peer-checked:bg-purple-700"><span className={`block h-5 w-5 rounded-full bg-white transition ${checked ? 'translate-x-5' : ''}`} /></span></label>;
               })}</div>{errors.sede && <p className="mt-1.5 text-xs text-red-400">{errors.sede}</p>}</div>}
 
               {moduleId === 'grupos' && form.tipo === 'Competencia' && <div className="sm:col-span-2 rounded-xl border border-purple-400/20 bg-purple-400/5 p-4"><p className="font-condensed text-xs font-bold uppercase tracking-wider text-purple-400">Seleccionar estudiantes aceptados</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{['Valentina Restrepo', 'Samuel Ortiz', 'Laura Mejía'].map(student => <label key={student} className="flex items-center gap-2 text-sm text-text-soft"><input type="checkbox" className="accent-purple-700" />{student}</label>)}</div></div>}
@@ -575,7 +580,7 @@ export default function DanceFlowScreen({ moduleId }: { moduleId: ModuleId }) {
                 <div className="mb-2 flex items-center justify-between"><label className="font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">Acudientes responsables *</label><button type="button" onClick={openGuardianForm} className="flex items-center gap-1.5 rounded-full border border-purple-400/30 px-3 py-1.5 font-condensed text-xs font-bold uppercase tracking-wider text-purple-400 hover:bg-purple-400/10"><Icon name="plus" /> Agregar acudiente</button></div>
                 <div className="grid gap-2">{Array.isArray(form.acudientes) && form.acudientes.length ? form.acudientes.map((value, index) => {
                   const guardian = parseGuardian(value);
-                  return <div key={`${value}-${index}`} className="rounded-xl border border-border bg-surface-alt px-4 py-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-text">{guardian.nombre}</p><p className="mt-0.5 text-xs text-purple-400">{guardian.parentesco}</p></div><div className="flex"><button type="button" onClick={() => openGuardianEdit(value, index, 'form')} className={iconButton} title="Editar acudiente"><Icon name="edit" /></button><button type="button" onClick={() => { if (window.confirm(`¿Deseas quitar a ${guardian.nombre} como acudiente responsable?`)) setValue('acudientes', (form.acudientes as string[]).filter((_, itemIndex) => itemIndex !== index)); }} className={`${iconButton} hover:text-red-400`} title="Quitar acudiente"><Icon name="trash" /></button></div></div><div className="mt-3 grid gap-1 text-xs text-text-muted sm:grid-cols-3"><span>Doc. {guardian.documento}</span><span>{guardian.telefono}</span><span className="truncate">{guardian.email}</span></div></div>;
+                  return <div key={`${value}-${index}`} className="rounded-xl border border-border bg-surface-alt px-4 py-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-text">{guardian.nombre}</p><p className="mt-0.5 text-xs text-purple-400">{guardian.parentesco}</p></div><div className="flex"><button type="button" onClick={() => openGuardianEdit(value, index, 'form')} className={iconButton} title="Editar acudiente" aria-label="Editar acudiente"><Icon name="edit" /></button><button type="button" onClick={() => { if (window.confirm(`¿Deseas quitar a ${guardian.nombre} como acudiente responsable?`)) setValue('acudientes', (form.acudientes as string[]).filter((_, itemIndex) => itemIndex !== index)); }} className={`${iconButton} hover:text-red-400`} title="Quitar acudiente" aria-label="Quitar acudiente"><Icon name="trash" /></button></div></div><div className="mt-3 grid gap-1 text-xs text-text-muted sm:grid-cols-3"><span>Doc. {guardian.documento}</span><span>{guardian.telefono}</span><span className="truncate">{guardian.email}</span></div></div>;
                 }) : <div className="rounded-xl border border-dashed border-border px-4 py-5 text-center text-sm text-text-muted">No hay acudientes agregados.</div>}</div>
                 {errors.acudientes && <p className="mt-1.5 text-xs text-red-400">{errors.acudientes}</p>}
               </div>}
@@ -587,7 +592,7 @@ export default function DanceFlowScreen({ moduleId }: { moduleId: ModuleId }) {
             <div className="grid grid-cols-2 gap-4">{Object.entries(selected).filter(([key]) => key !== 'id' && key !== 'idPersona' && key !== 'asociados' && !(moduleId === 'estudiantes' && key === 'acudientes')).map(([key, value]) => <div key={key} className={Array.isArray(value) ? 'col-span-2' : ''}><p className="font-condensed text-[11px] font-semibold uppercase tracking-wider text-text-muted">{config.columns.find(column => column.key === key)?.label ?? config.fields.find(field => field.key === key)?.label ?? key}</p><div className="mt-1 text-sm font-medium text-text">{key === 'estado' ? <StatusBadge value={String(value)} /> : Array.isArray(value) ? value.join(', ') : String(value)}</div></div>)}</div>
             {moduleId === 'estudiantes' && <div className="mt-6"><h3 className="mb-3 font-condensed text-xs font-bold uppercase tracking-widest text-text-muted">Acudientes responsables</h3><div className="grid gap-3">{Array.isArray(selected.acudientes) && selected.acudientes.length ? selected.acudientes.map((value, index) => {
               const guardian = parseGuardian(value);
-              return <div key={`${value}-${index}`} className="rounded-xl border border-border bg-surface-alt p-4"><div className="flex items-start justify-between"><div><p className="font-semibold text-text">{guardian.nombre}</p><p className="mt-0.5 text-xs font-semibold text-purple-400">{guardian.parentesco}</p></div><button type="button" onClick={() => openGuardianEdit(value, index, 'detail')} className={iconButton} title="Editar acudiente"><Icon name="edit" /></button></div><dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2"><div><dt className="text-text-muted">Documento</dt><dd className="mt-0.5 text-text">{guardian.documento}</dd></div><div><dt className="text-text-muted">Teléfono</dt><dd className="mt-0.5 text-text">{guardian.telefono}</dd></div><div className="sm:col-span-2"><dt className="text-text-muted">Email</dt><dd className="mt-0.5 text-text">{guardian.email}</dd></div></dl></div>;
+              return <div key={`${value}-${index}`} className="rounded-xl border border-border bg-surface-alt p-4"><div className="flex items-start justify-between"><div><p className="font-semibold text-text">{guardian.nombre}</p><p className="mt-0.5 text-xs font-semibold text-purple-400">{guardian.parentesco}</p></div><button type="button" onClick={() => openGuardianEdit(value, index, 'detail')} className={iconButton} title="Editar acudiente" aria-label="Editar acudiente"><Icon name="edit" /></button></div><dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2"><div><dt className="text-text-muted">Documento</dt><dd className="mt-0.5 text-text">{guardian.documento}</dd></div><div><dt className="text-text-muted">Teléfono</dt><dd className="mt-0.5 text-text">{guardian.telefono}</dd></div><div className="sm:col-span-2"><dt className="text-text-muted">Email</dt><dd className="mt-0.5 text-text">{guardian.email}</dd></div></dl></div>;
             }) : <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-text-muted">No tiene acudientes registrados.</p>}</div></div>}
             <div className="mt-6 rounded-xl border border-border bg-surface-alt p-4 text-sm text-text-soft">{moduleId === 'instructores' ? 'Grupos actuales: Urban Kids 01 · Lunes y miércoles, 5:00 p. m.' : moduleId === 'niveles' ? 'Grupos asociados: 2 grupos activos' : moduleId === 'grupos' ? 'Horario: martes y jueves, 6:00 p. m. · 18 estudiantes matriculados' : moduleId === 'sedes' ? '3 aulas · 4 instructores habilitados · 6 grupos activos' : moduleId === 'talleres' ? `${Number(selected.asociados)} estudiantes inscritos` : moduleId === 'estudiantes' ? 'Matrícula activa · Estado de cuenta al día' : 'Registro de oferta académica'}</div>
           </div>}
@@ -599,7 +604,7 @@ export default function DanceFlowScreen({ moduleId }: { moduleId: ModuleId }) {
           <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[24px] border border-border bg-surface shadow-2xl">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-6 py-5">
               <div><p className="font-condensed text-[11px] font-semibold uppercase tracking-[0.2em] text-purple-400">Acudientes responsables</p><h3 className="mt-1 font-display text-2xl uppercase text-text">{editingGuardianIndex === null ? 'Agregar acudiente' : 'Editar acudiente'}</h3></div>
-              <button type="button" className={iconButton} onClick={() => setGuardianModal(false)}><Icon name="close" /></button>
+              <button type="button" className={iconButton} aria-label="Cerrar" onClick={() => setGuardianModal(false)}><Icon name="close" /></button>
             </div>
             <div className="p-6">
               <label className="block"><span className="mb-1.5 block font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">Verificar persona por documento</span><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><Icon name="search" /></span><input value={guardianDraft.busqueda ?? ''} onChange={event => { setGuardianDraft(prev => ({ ...prev, busqueda: event.target.value })); setSelectedGuardianDocument(''); }} placeholder="Ingresa el número de documento" className={`${inputClass} pl-9`} /></div></label>
