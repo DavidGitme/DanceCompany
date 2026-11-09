@@ -15,6 +15,7 @@ import Button from "@/compartido/ui/Button"
 import RutaProtegida from "@/app/guardas/RutaProtegida"
 import { useAuth } from "@/nucleo/auth/useAuth"
 import type { RutaAplicacion } from "@/app/rutas/rutas"
+import { PortalInstructor } from "@/app/instructores"
 
 export default function App() {
   const [isDark, setIsDark] = useState(true)
@@ -53,6 +54,14 @@ export default function App() {
       </div>
     )
   }
+
+  if (page === "instructor") {
+  return (
+    <div className={rootClass}>
+      <PortalInstructor onSalir={() => setPage("home")} />
+    </div>
+  )
+}
 
   if (page === "admin") {
     return (
