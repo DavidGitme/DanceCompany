@@ -45,11 +45,47 @@ Relación RBAC:
 
 Todas requieren el permiso `seguridad`.
 
+## Módulos académicos
+
+`sedes`, `estilos`, `niveles`, `talleres`, `instructores`, `estudiantes` y `grupos`
+comparten el mismo contrato:
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| GET | `/<modulo>` | Lista paginada. Filtros: `estado`, `buscar` (sin mayúsculas ni tildes), `pagina`, `tamano`. |
+| GET | `/<modulo>/disponibles` | Solo activos, sin paginar, para selectores. |
+| GET | `/<modulo>/{id}` | Detalle. `404` con mensaje del módulo (ej. "Estilo no encontrado"). |
+| POST | `/<modulo>` | Crea el registro activo. `201`, o `409` si el nombre ya existe. |
+| PUT | `/<modulo>/{id}` | Edita. Los campos que no se envían conservan su valor. `409` si choca con otro registro. |
+| PATCH | `/<modulo>/{id}/estado` | Recibe `{ "idEstado": 2 }`. No hay borrado físico. |
+
+Filtros adicionales:
+
+- `instructores`: `sede`.
+- `estudiantes`: `sede`, `grupo`.
+- `grupos`: `sede`, `nivel`, `estilo`, `instructor`; apoyo para el formulario en
+  `GET /grupos/tipos` y `GET /grupos/aulas?sede=`.
+
+Reglas principales:
+
+- Nombre único sin distinguir mayúsculas ni tildes en estilos, sedes, niveles y
+  grupos (por sede). Niveles valida además `orden` único y `edadMax > edadMin`.
+- Estilos, sedes, niveles e instructores devuelven `gruposActivos` para advertir
+  antes de inactivarlos.
+- Un grupo solo acepta nivel, estilo, sede, instructor y aula activos; el aula debe
+  ser de la sede, la capacidad no puede superar la del aula y el instructor debe
+  estar asignado a la sede.
+- Un instructor no puede quitar una sede donde tiene grupos activos.
+
+Permisos: cada módulo exige el permiso con su mismo nombre. `/estilos/disponibles`,
+`/niveles/disponibles`, `/sedes/disponibles` y `/talleres/disponibles` solo piden
+sesión, porque los usa la Oferta académica de estudiantes y acudientes.
+
+Códigos de error: `400` regla de negocio, `404` no encontrado, `409` duplicado,
+`422` datos con formato inválido.
+
 ## Módulos preparados
 
-Existen endpoints de lista protegidos para `/estudiantes`, `/instructores`,
-`/grupos`, `/matriculas`, `/pagos`, `/talleres`, `/sedes` y `/reportes`.
-Actualmente devuelven una lista vacía y marcan el punto de extensión del caso
-de uso y repositorio correspondiente.
+`/matriculas`, `/pagos` y `/reportes` todavía devuelven una lista vacía.
 
 FastAPI genera el contrato completo en `/docs`.
