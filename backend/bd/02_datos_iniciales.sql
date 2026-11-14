@@ -68,7 +68,9 @@ INSERT INTO permisos (descripcion) VALUES
 ('matriculas'),    -- 12
 ('aulas'),         -- 13
 ('niveles'),       -- 14
-('estilos');       -- 15
+('estilos'),       -- 15
+('convocatorias'), -- 16
+('noticias');      -- 17
 
 INSERT INTO roles (nombre, idEstado) VALUES
 ('Administrador', 1),  -- 1
