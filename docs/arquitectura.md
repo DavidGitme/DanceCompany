@@ -21,7 +21,7 @@ backend/aplicacion
 backend/dominio <--- backend/infraestructura
                          |
                          v
-                  SQL Server academia_v2
+                  PostgreSQL (Neon) academia_v2
 ```
 
 ## Reglas de dependencia

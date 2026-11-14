@@ -17,13 +17,18 @@ class NoAutorizado(ErrorDominio):
 
 
 class NoEncontrado(ErrorDominio):
-    def __init__(self, recurso: str):
-        super().__init__("no_encontrado", f"No se encontró el recurso {recurso}.")
+    def __init__(self, recurso: str, mensaje: str | None = None):
+        super().__init__("no_encontrado", mensaje or f"No se encontró el recurso {recurso}.")
 
 
 class Conflicto(ErrorDominio):
     def __init__(self, mensaje: str):
         super().__init__("conflicto", mensaje)
+
+
+class DatoInvalido(ErrorDominio):
+    def __init__(self, mensaje: str):
+        super().__init__("dato_invalido", mensaje)
 
 
 class DemasiadosIntentos(ErrorDominio):
