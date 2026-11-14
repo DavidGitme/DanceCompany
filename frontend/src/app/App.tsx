@@ -16,11 +16,12 @@ import RutaProtegida from "@/app/guardas/RutaProtegida"
 import { useAuth } from "@/nucleo/auth/useAuth"
 import type { RutaAplicacion } from "@/app/rutas/rutas"
 import { PortalInstructor } from "@/app/instructores"
+import { PortalEstudiante, ROL_ESTUDIANTE } from "@/modulos/portal_estudiante"
 
 export default function App() {
   const [isDark, setIsDark] = useState(true)
   const [page, setPage] = useState<RutaAplicacion>("home")
-  const { cerrarSesion } = useAuth()
+  const { usuario, cerrarSesion } = useAuth()
 
   const rootClass = ["font-body min-h-full bg-page", isDark ? "dark" : ""].join(
     " ",
@@ -62,6 +63,20 @@ export default function App() {
     </div>
   )
 }
+
+  // Un estudiante que inicia sesión ve su portal, no el panel de administración
+  if (page === "admin" && usuario?.roles.includes(ROL_ESTUDIANTE)) {
+    return (
+      <div className={rootClass}>
+        <PortalEstudiante
+          nombre={usuario.nombre}
+          onSalir={() => {
+            cerrarSesion().finally(() => setPage("home"))
+          }}
+        />
+      </div>
+    )
+  }
 
   if (page === "admin") {
     return (

@@ -20,6 +20,15 @@ export const autenticacionServicio = {
       }
       return dtoAModelo(sesionAdministradorMock)
     }
+    // Con correo entra un estudiante a su portal; con documento, el login de siempre
+    if (solicitud.documento.includes("@")) {
+      return dtoAModelo(
+        await clienteHttp.post<TokenRespuestaDto>("/portal-estudiante/login", {
+          correo: solicitud.documento.trim(),
+          clave: solicitud.clave,
+        }),
+      )
+    }
     return dtoAModelo(
       await clienteHttp.post<TokenRespuestaDto>("/auth/login", solicitud),
     )

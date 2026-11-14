@@ -27,6 +27,7 @@ from app.presentacion.rutas import (
     niveles,
     noticias,
     pagos,
+    portal_estudiante,
     postulaciones,
     sedes,
     seguridad,
@@ -66,6 +67,9 @@ for modulo in (
     app.include_router(modulo.router, prefix="/api/v1")
 for router_catalogo in catalogos_simples.routers:
     app.include_router(router_catalogo, prefix="/api/v1")
+
+# Portal del estudiante (login por correo y su información)
+app.include_router(portal_estudiante.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/salud", tags=["Sistema"])
