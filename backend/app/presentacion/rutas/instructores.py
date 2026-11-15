@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.aplicacion.dtos.comun_dto import CambioEstadoSolicitud, ListaRespuesta
 from app.aplicacion.dtos.personas_rol_dto import (
+    CuentaInstructorSolicitud,
     InstructorCreateDto,
     InstructorOpcion,
     InstructorRespuesta,
     InstructorUpdateDto,
 )
+from app.infraestructura.seguridad.hash_claves import HasherArgon2
 from app.presentacion.dependencias.academicos import gestor_instructores
 from app.presentacion.dependencias.auth import requiere_permiso
 
@@ -56,3 +58,16 @@ def cambiar_estado_instructor(
     identificador: int, solicitud: CambioEstadoSolicitud, gestor=Depends(gestor_instructores)
 ):
     return gestor.cambiar_estado(identificador, solicitud.idEstado)
+
+
+# Crea el usuario con rol "instructor"; inicia sesión con su documento y esta clave
+@router.post(
+    "/{identificador}/cuenta",
+    response_model=InstructorRespuesta,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=permiso,
+)
+def crear_cuenta_instructor(
+    identificador: int, solicitud: CuentaInstructorSolicitud, gestor=Depends(gestor_instructores)
+):
+    return gestor.crear_cuenta(identificador, HasherArgon2().crear_hash(solicitud.clave))

@@ -16,7 +16,8 @@ COLUMNAS = f"""
                 FROM instructor_Sede ins JOIN sede s ON s.idSede = ins.idSede
                WHERE ins.idInstructor = i.idInstructor), '[]') AS sedes,
     (SELECT COUNT(*) FROM grupo g
-      WHERE g.idInstructor = i.idInstructor AND g.idEstado = :activo) AS "gruposActivos"
+      WHERE g.idInstructor = i.idInstructor AND g.idEstado = :activo) AS "gruposActivos",
+    EXISTS (SELECT 1 FROM usuarios u WHERE u.documento = p.documento) AS "tieneCuenta"
 """
 ORIGEN = """
     FROM instructor i
@@ -77,7 +78,7 @@ class RepositorioInstructoresSql(PersonaSql, RepositorioInstructores):
             id_instructor = self.sesion.execute(
                 text(
                     "INSERT INTO instructor (idPersona, descripcion, idEstado) "
-                    "VALUES (:idPersona, :descripcion, :idEstado) RETURNING idInstructor"
+                    "VALUES (:idPersona, COALESCE(:descripcion, ''), :idEstado) RETURNING idInstructor"
                 ),
                 {**datos, "idPersona": id_persona},
             ).scalar_one()
@@ -96,7 +97,10 @@ class RepositorioInstructoresSql(PersonaSql, RepositorioInstructores):
             ).scalar_one()
             self._actualizar_persona(id_persona, datos)
             self.sesion.execute(
-                text("UPDATE instructor SET descripcion = :descripcion WHERE idInstructor = :id"),
+                text(
+                    "UPDATE instructor SET descripcion = COALESCE(:descripcion, '') "
+                    "WHERE idInstructor = :id"
+                ),
                 {"descripcion": datos["descripcion"], "id": identificador},
             )
             self._guardar_sedes(identificador, datos["sedes"])
@@ -112,6 +116,35 @@ class RepositorioInstructoresSql(PersonaSql, RepositorioInstructores):
             {"estado": id_estado, "id": identificador},
         )
         return self.obtener(identificador)
+
+    def tiene_cuenta(self, documento):
+        return self.sesion.execute(
+            text("SELECT 1 FROM usuarios WHERE documento = :documento"), {"documento": documento}
+        ).first() is not None
+
+    def id_rol_por_nombre(self, nombre):
+        return self.sesion.execute(
+            text("SELECT idRol FROM roles WHERE lower(nombre) = lower(:nombre)"), {"nombre": nombre}
+        ).scalar()
+
+    def crear_cuenta(self, documento, password_hash, id_rol):
+        # usuario + rol en una sola transacción; el usuario es el mismo documento de la persona
+        try:
+            self.sesion.execute(
+                text(
+                    "INSERT INTO usuarios (documento, password_hash, idEstado) "
+                    "VALUES (:documento, :hash, :activo)"
+                ),
+                {"documento": documento, "hash": password_hash, "activo": ESTADO_ACTIVO},
+            )
+            self.sesion.execute(
+                text("INSERT INTO usuarios_roles (documento, idRol) VALUES (:documento, :rol)"),
+                {"documento": documento, "rol": id_rol},
+            )
+            self.sesion.commit()
+        except Exception:
+            self.sesion.rollback()
+            raise
 
     def _guardar_sedes(self, id_instructor, sedes):
         """Reemplaza las sedes del instructor por las recibidas."""
