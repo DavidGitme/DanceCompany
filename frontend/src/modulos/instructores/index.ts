@@ -1,4 +1,4 @@
-﻿export {
+export {
   instructorMock,
   gruposInstructorMock,
   estudiantesInstructorMock,
@@ -9,4 +9,10 @@ export type {
   EstudianteInstructor,
   GrupoInstructor,
   MensualidadInstructor,
+  PerfilInstructor,
 } from "./datos/instructorMock"
+
+export {
+  portalInstructorServicio,
+  type DatosPortalInstructor,
+} from "./servicios/portalInstructorServicio"

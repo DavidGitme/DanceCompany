@@ -1,13 +1,18 @@
-import { useState, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react"
 import Paginacion from "@/compartido/ui/Paginacion"
 import Button from "@/compartido/ui/Button"
 import StatusBadge from "@/compartido/ui/StatusBadge"
 import logoFna from "@/recursos/logo-fna.png"
 import IconoInstructor from "../componentes/IconoInstructor"
 import {
-  estudiantesInstructorMock,
-  gruposInstructorMock,
-  instructorMock,
+  portalInstructorServicio,
+  type DatosPortalInstructor,
   type EstudianteInstructor,
   type GrupoInstructor,
 } from "@/modulos/instructores"
@@ -38,6 +43,50 @@ const superficie =
 const campo =
   "w-full rounded-xl border border-border bg-surface-alt px-4 py-2.5 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-purple-400"
 
+// Los datos del instructor se cargan una vez y las vistas los leen de aquí
+const DatosPortalContext = createContext<DatosPortalInstructor | null>(null)
+
+function useDatosPortal() {
+  const datos = useContext(DatosPortalContext)
+  if (!datos) throw new Error("useDatosPortal debe usarse dentro de PortalInstructor")
+  return datos
+}
+
+export default function PortalInstructor({ onSalir }: PortalInstructorProps) {
+  const [datos, setDatos] = useState<DatosPortalInstructor | null>(null)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    portalInstructorServicio
+      .cargar()
+      .then(setDatos)
+      .catch((causa: { mensaje?: string }) =>
+        setError(causa?.mensaje ?? "No fue posible cargar tu información."),
+      )
+  }, [])
+
+  if (!datos) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-page p-6 text-center">
+        <p className="font-body text-sm text-text-muted">
+          {error || "Cargando tu información..."}
+        </p>
+        {error && (
+          <Button size="md" onClick={onSalir}>
+            Volver
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <DatosPortalContext.Provider value={datos}>
+      <ContenidoPortal onSalir={onSalir} />
+    </DatosPortalContext.Provider>
+  )
+}
+
 function usePaginacion<T>(elementos: T[], tamanoInicial = 6) {
   const [pagina, setPagina] = useState(1)
   const [tamano, setTamano] = useState(tamanoInicial)
@@ -62,7 +111,8 @@ function usePaginacion<T>(elementos: T[], tamanoInicial = 6) {
   }
 }
 
-export default function PortalInstructor({ onSalir }: PortalInstructorProps) {
+function ContenidoPortal({ onSalir }: PortalInstructorProps) {
+  const { instructor } = useDatosPortal()
   const [vista, setVista] = useState<VistaInstructor>("inicio")
   const [menuMovil, setMenuMovil] = useState(false)
   const [menuUsuario, setMenuUsuario] = useState(false)
@@ -142,10 +192,10 @@ export default function PortalInstructor({ onSalir }: PortalInstructorProps) {
 
         <div className="border-t border-border p-4">
           <div className="mb-3 flex items-center gap-3 rounded-xl bg-surface-alt p-3">
-            <Avatar nombre={instructorMock.nombre} />
+            <Avatar nombre={instructor.nombre} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-text">
-                {instructorMock.nombre}
+                {instructor.nombre}
               </p>
               <p className="truncate text-xs text-text-muted">Instructor</p>
             </div>
@@ -185,10 +235,10 @@ export default function PortalInstructor({ onSalir }: PortalInstructorProps) {
               className="flex items-center gap-2 rounded-xl border border-transparent p-1.5 transition-colors hover:border-border hover:bg-surface"
               onClick={() => setMenuUsuario((valor) => !valor)}
             >
-              <Avatar nombre={instructorMock.nombre} pequeno />
+              <Avatar nombre={instructor.nombre} pequeno />
               <div className="hidden text-left md:block">
                 <p className="text-sm font-semibold text-text">
-                  {instructorMock.nombre}
+                  {instructor.nombre}
                 </p>
                 <p className="text-xs text-text-muted">Instructor</p>
               </div>
@@ -243,33 +293,38 @@ export default function PortalInstructor({ onSalir }: PortalInstructorProps) {
 }
 
 function InicioInstructor({ onVerGrupos }: { onVerGrupos: () => void }) {
-  const pendientes = estudiantesInstructorMock.filter(
+  const {
+    instructor,
+    grupos: gruposInstructor,
+    estudiantes: estudiantesInstructor,
+  } = useDatosPortal()
+  const pendientes = estudiantesInstructor.filter(
     (estudiante) => estudiante.estado !== "Al día",
   ).length
   return (
     <div className="space-y-8">
       <CabeceraPagina
         ceja="Resumen de hoy"
-        titulo={`¡Hola, ${instructorMock.nombre.split(" ")[0]}!`}
+        titulo={`¡Hola, ${instructor.nombre.split(" ")[0]}!`}
         descripcion="Consulta tus grupos asignados, estudiantes y la información de tu jornada."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaMetrica
           etiqueta="Grupos asignados"
-          valor={gruposInstructorMock.length}
-          ayuda={`${new Set(gruposInstructorMock.map((grupo) => grupo.sede)).size} sedes activas`}
+          valor={gruposInstructor.length}
+          ayuda={`${new Set(gruposInstructor.map((grupo) => grupo.sede)).size} sedes activas`}
           icono="grupos"
         />
         <TarjetaMetrica
           etiqueta="Mis estudiantes"
-          valor={estudiantesInstructorMock.length}
+          valor={estudiantesInstructor.length}
           ayuda="En todos tus grupos"
           icono="estudiantes"
         />
         <TarjetaMetrica
           etiqueta="Sedes asignadas"
-          valor={new Set(gruposInstructorMock.map((grupo) => grupo.sede)).size}
+          valor={new Set(gruposInstructor.map((grupo) => grupo.sede)).size}
           ayuda="Ubicaciones de tus grupos"
           icono="calendario"
         />
@@ -301,7 +356,7 @@ function InicioInstructor({ onVerGrupos }: { onVerGrupos: () => void }) {
           </Button>
         </div>
         <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
-          {gruposInstructorMock.slice(0, 4).map((grupo) => (
+          {gruposInstructor.slice(0, 4).map((grupo) => (
             <article
               key={grupo.idGrupo}
               className="rounded-xl border border-border bg-surface-alt/60 p-4"
@@ -333,12 +388,13 @@ function GruposInstructor({
 }: {
   onSeleccionar: (grupo: GrupoInstructor) => void
 }) {
+  const { grupos: gruposInstructor } = useDatosPortal()
   const [busqueda, setBusqueda] = useState("")
   const [estilo, setEstilo] = useState("")
   const [nivel, setNivel] = useState("")
   const [sede, setSede] = useState("")
 
-  const grupos = gruposInstructorMock.filter(
+  const grupos = gruposInstructor.filter(
     (grupo) =>
       grupo.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
       (!estilo || grupo.estilo === estilo) &&
@@ -475,13 +531,17 @@ function GruposInstructor({
 }
 
 function EstudiantesInstructor() {
+  const {
+    grupos: gruposInstructor,
+    estudiantes: estudiantesInstructor,
+  } = useDatosPortal()
   const [busqueda, setBusqueda] = useState("")
   const [grupo, setGrupo] = useState("")
   const [estado, setEstado] = useState("")
   const [detalle, setDetalle] = useState<EstudianteInstructor | null>(null)
 
-  const estudiantes = estudiantesInstructorMock.filter((estudiante) => {
-    const grupoEstudiante = gruposInstructorMock.find(
+  const estudiantes = estudiantesInstructor.filter((estudiante) => {
+    const grupoEstudiante = gruposInstructor.find(
       (item) => item.idGrupo === estudiante.idGrupo,
     )
     const coincideBusqueda = `${estudiante.nombre} ${estudiante.documento}`
@@ -522,7 +582,7 @@ function EstudiantesInstructor() {
             onChange={setGrupo}
             opcionInicial="Todos los grupos"
           >
-            {gruposInstructorMock.map((item) => (
+            {gruposInstructor.map((item) => (
               <option key={item.idGrupo} value={item.idGrupo}>
                 {item.nombre}
               </option>
@@ -565,7 +625,7 @@ function EstudiantesInstructor() {
             </thead>
             <tbody>
              {paginacionEstudiantes.visibles.map((estudiante) => {
-                const grupoEstudiante = gruposInstructorMock.find(
+                const grupoEstudiante = gruposInstructor.find(
                   (item) => item.idGrupo === estudiante.idGrupo,
                 )!
                 return (
@@ -641,7 +701,8 @@ function DetalleGrupo({
   grupo: GrupoInstructor
   onVolver: () => void
 }) {
-  const estudiantes = estudiantesInstructorMock.filter(
+  const { instructor, estudiantes: estudiantesInstructor } = useDatosPortal()
+  const estudiantes = estudiantesInstructor.filter(
     (estudiante) => estudiante.idGrupo === grupo.idGrupo,
   )
   const paginacionEstudiantes = usePaginacion(estudiantes, 8)
@@ -670,7 +731,7 @@ function DetalleGrupo({
           </div>
         </div>
         <div className="grid gap-4 border-t border-border p-6 sm:grid-cols-2 lg:grid-cols-4">
-          <DatoIcono icono="perfil" etiqueta="Instructor" valor={instructorMock.nombre} />
+          <DatoIcono icono="perfil" etiqueta="Instructor" valor={instructor.nombre} />
           <DatoIcono icono="ubicacion" etiqueta="Ubicación" valor={`${grupo.sede} · ${grupo.aula}`} />
           <DatoIcono icono="calendario" etiqueta="Días" valor={grupo.dias} />
           <DatoIcono icono="reloj" etiqueta="Horario" valor={grupo.horario} />
@@ -715,11 +776,12 @@ function DetalleGrupo({
 }
 
 function PerfilInstructor() {
+  const { instructor } = useDatosPortal()
   const [editando, setEditando] = useState(false)
   const [cambiarClave, setCambiarClave] = useState(false)
   const [mensaje, setMensaje] = useState("")
-  const [perfil, setPerfil] = useState(instructorMock)
-  const [borrador, setBorrador] = useState(instructorMock)
+  const [perfil, setPerfil] = useState(instructor)
+  const [borrador, setBorrador] = useState(instructor)
 
   const guardar = () => {
     setPerfil(borrador)
@@ -891,7 +953,8 @@ function DetalleEstudiante({
   estudiante: EstudianteInstructor
   onClose: () => void
 }) {
-  const grupo = gruposInstructorMock.find(
+  const { grupos: gruposInstructor } = useDatosPortal()
+  const grupo = gruposInstructor.find(
     (item) => item.idGrupo === estudiante.idGrupo,
   )!
   return (

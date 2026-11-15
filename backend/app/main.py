@@ -28,6 +28,7 @@ from app.presentacion.rutas import (
     noticias,
     pagos,
     portal_estudiante,
+    portal_instructor,
     postulaciones,
     sedes,
     seguridad,
@@ -56,7 +57,7 @@ app.include_router(seguridad.router, prefix="/api/v1")
 app.include_router(ejemplos.router, prefix="/api/v1")
 
 # Módulos académicos
-for modulo in (sedes, estilos, niveles, talleres, instructores, estudiantes, grupos):
+for modulo in (sedes, estilos, niveles, talleres, instructores, estudiantes, grupos, portal_instructor):
     app.include_router(modulo.router, prefix="/api/v1")
 
 # Módulos administrativos: aulas y horarios, matrículas, finanzas, convocatorias y noticias

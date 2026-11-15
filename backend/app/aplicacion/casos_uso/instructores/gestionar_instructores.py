@@ -1,5 +1,6 @@
 from app.aplicacion.casos_uso.gestionar_persona_rol import CAMPOS_PERSONA, GestionarPersonaRol
 from app.dominio.excepciones.errores import Conflicto, DatoInvalido
+from app.dominio.reglas import ESTADO_ACTIVO
 from app.dominio.repositorios.repositorio_instructores import RepositorioInstructores
 
 
@@ -31,3 +32,18 @@ class GestionarInstructores(GestionarPersonaRol):
             quitadas = self.repositorio.sedes_con_grupos_activos(identificador) - sedes
             if quitadas:
                 raise Conflicto("El instructor tiene grupos activos en una sede que se intenta quitar.")
+
+    def crear_cuenta(self, identificador: int, password_hash: str):
+        """Crea el usuario de acceso del instructor. Inicia sesión con su documento."""
+        instructor = self.obtener(identificador)
+        if instructor["idEstado"] != ESTADO_ACTIVO:
+            raise DatoInvalido("El instructor está inactivo.")
+        if not instructor["documento"]:
+            raise DatoInvalido("El instructor no tiene documento para iniciar sesión.")
+        if self.repositorio.tiene_cuenta(instructor["documento"]):
+            raise Conflicto("El instructor ya tiene una cuenta de acceso.")
+        id_rol = self.repositorio.id_rol_por_nombre("instructor")
+        if not id_rol:
+            raise DatoInvalido("No existe el rol 'instructor' en la tabla roles.")
+        self.repositorio.crear_cuenta(instructor["documento"], password_hash, id_rol)
+        return self.obtener(identificador)

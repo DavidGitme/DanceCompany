@@ -29,3 +29,12 @@ def requiere_permiso(modulo: str) -> Callable:
         return usuario
 
     return validar
+
+
+def requiere_rol(rol: str) -> Callable:
+    def validar(usuario: dict = Depends(get_usuario_actual)):
+        if rol not in usuario.get("roles", []):
+            raise NoAutorizado()
+        return usuario
+
+    return validar

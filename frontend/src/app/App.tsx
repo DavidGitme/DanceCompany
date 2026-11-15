@@ -17,26 +17,36 @@ import { useAuth } from "@/nucleo/auth/useAuth"
 import type { RutaAplicacion } from "@/app/rutas/rutas"
 import { PortalInstructor } from "@/app/instructores"
 import { PortalEstudiante, ROL_ESTUDIANTE } from "@/modulos/portal_estudiante"
+import type { UsuarioSesion } from "@/modulos/autenticacion/dtos/autenticacionDto"
+
+// El instructor va a su portal; el resto de roles al panel administrativo
+function destinoSegunRol(usuario: UsuarioSesion): RutaAplicacion {
+  const esInstructor = usuario.roles.includes("instructor")
+  const esAdministrador = usuario.roles.includes("administrador")
+  return esInstructor && !esAdministrador ? "instructor" : "admin"
+}
 
 export default function App() {
   const [isDark, setIsDark] = useState(true)
   const [page, setPage] = useState<RutaAplicacion>("home")
   const { usuario, cerrarSesion } = useAuth()
+  const salir = () => {
+    cerrarSesion().finally(() => setPage("home"))
+  }
+  const loginConRedireccion = (
+    <Login
+      onBack={() => setPage("home")}
+      onLogin={(usuario) => setPage(destinoSegunRol(usuario))}
+      onGoToRegister={() => setPage("register")}
+    />
+  )
 
   const rootClass = ["font-body min-h-full bg-page", isDark ? "dark" : ""].join(
     " ",
   )
 
   if (page === "login") {
-    return (
-      <div className={rootClass}>
-        <Login
-          onBack={() => setPage("home")}
-          onLogin={() => setPage("admin")}
-          onGoToRegister={() => setPage("register")}
-        />
-      </div>
-    )
+    return <div className={rootClass}>{loginConRedireccion}</div>
   }
 
   if (page === "register") {
@@ -57,23 +67,20 @@ export default function App() {
   }
 
   if (page === "instructor") {
-  return (
-    <div className={rootClass}>
-      <PortalInstructor onSalir={() => setPage("home")} />
-    </div>
-  )
-}
+    return (
+      <div className={rootClass}>
+        <RutaProtegida alNoAutorizado={loginConRedireccion}>
+          <PortalInstructor onSalir={salir} />
+        </RutaProtegida>
+      </div>
+    )
+  }
 
   // Un estudiante que inicia sesión ve su portal, no el panel de administración
   if (page === "admin" && usuario?.roles.includes(ROL_ESTUDIANTE)) {
     return (
       <div className={rootClass}>
-        <PortalEstudiante
-          nombre={usuario.nombre}
-          onSalir={() => {
-            cerrarSesion().finally(() => setPage("home"))
-          }}
-        />
+        <PortalEstudiante nombre={usuario.nombre} onSalir={salir} />
       </div>
     )
   }
@@ -83,19 +90,9 @@ export default function App() {
       <div className={rootClass}>
         <RutaProtegida
           permiso="dashboard"
-          alNoAutorizado={
-            <Login
-              onBack={() => setPage("home")}
-              onLogin={() => setPage("admin")}
-              onGoToRegister={() => setPage("register")}
-            />
-          }
+          alNoAutorizado={loginConRedireccion}
         >
-          <AdminPanel
-            onExit={() => {
-              cerrarSesion().finally(() => setPage("home"))
-            }}
-          />
+          <AdminPanel onExit={salir} />
         </RutaProtegida>
       </div>
     )

@@ -5,13 +5,13 @@ from app.aplicacion.dtos.auth_dto import (
 )
 from app.aplicacion.servicios.seguridad import EmisorTokens, HasherClaves
 from app.dominio.excepciones.errores import NoAutenticado
-from app.dominio.repositorios.repositorio_seguridad import RepositorioSeguridad
+from app.dominio.repositorios.repositorio_autenticacion import RepositorioAutenticacion
 
 
 class IniciarSesion:
     def __init__(
         self,
-        repositorio: RepositorioSeguridad,
+        repositorio: RepositorioAutenticacion,
         hasher: HasherClaves,
         tokens: EmisorTokens,
     ):

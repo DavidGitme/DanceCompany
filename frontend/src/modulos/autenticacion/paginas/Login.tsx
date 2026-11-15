@@ -2,10 +2,11 @@ import { useState } from "react"
 import logoFna from "@/recursos/logo-fna.png"
 import Button from "@/compartido/ui/Button"
 import { useAuth } from "@/nucleo/auth/useAuth"
+import type { UsuarioSesion } from "../dtos/autenticacionDto"
 
 interface LoginProps {
   onBack: () => void
-  onLogin?: () => void
+  onLogin?: (usuario: UsuarioSesion) => void
   onGoToRegister?: () => void
 }
 
@@ -23,8 +24,8 @@ export default function Login({ onBack, onLogin, onGoToRegister }: LoginProps) {
     setError("")
     setEnviando(true)
     try {
-      await iniciarSesion({ documento: email, clave: password })
-      onLogin?.()
+      const usuario = await iniciarSesion({ documento: email, clave: password })
+      onLogin?.(usuario)
     } catch {
       setError("Documento o clave incorrectos.")
     } finally {
