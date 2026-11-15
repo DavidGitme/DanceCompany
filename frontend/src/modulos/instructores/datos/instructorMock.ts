@@ -30,7 +30,15 @@ export interface EstudianteInstructor {
   mensualidades: MensualidadInstructor[]
 }
 
-export const instructorMock = {
+export interface PerfilInstructor {
+  nombre: string
+  documento: string
+  correo: string
+  telefono: string
+  especialidad: string
+}
+
+export const instructorMock: PerfilInstructor = {
   nombre: "Carlos Vélez",
   documento: "1122334455",
   correo: "cvelez@fanda.co",
