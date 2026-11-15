@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.aplicacion.casos_uso.seguridad.gestionar_seguridad import GestionarSeguridad
 from app.config.settings import obtener_configuracion
 from app.infraestructura.bd.conexion import obtener_sesion
+from app.infraestructura.repositorios.autenticacion_sql import RepositorioAutenticacionSql
 from app.infraestructura.repositorios.seguridad_memoria import RepositorioSeguridadMemoria
 from app.infraestructura.repositorios.seguridad_sql import RepositorioSeguridadSql
 from app.infraestructura.seguridad.hash_claves import HasherArgon2
@@ -30,3 +31,10 @@ def obtener_repositorio(sesion: Session = Depends(obtener_sesion)):
 
 def obtener_gestor(repositorio=Depends(obtener_repositorio)):
     return GestionarSeguridad(repositorio)
+
+
+def obtener_repositorio_auth(sesion: Session = Depends(obtener_sesion)):
+    """Login: en modo mock usa el admin de prueba; si no, las cuentas reales de Neon."""
+    if obtener_configuracion().modo_mock:
+        return repositorio_memoria()
+    return RepositorioAutenticacionSql(sesion)
