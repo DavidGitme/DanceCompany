@@ -157,6 +157,25 @@ Reglas principales:
 Los permisos `convocatorias` y `noticias` vienen en `02_datos_iniciales.sql`; en una
 base ya creada se agregan con `bd/04_permisos_modulos_administrativos.sql`.
 
+## Portal del instructor
+
+Requiere sesión con rol `instructor`. El instructor se identifica por el documento
+del token, así que no se envía ningún id.
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| GET | `/portal-instructor/perfil` | Nombre, documento, correo, teléfono y especialidad. |
+| GET | `/portal-instructor/grupos` | Grupos activos con estilo, nivel, sede, aula, días, horario y cantidad de estudiantes. |
+| GET | `/portal-instructor/estudiantes` | Estudiantes de sus grupos con el estado y el historial de mensualidades. |
+
+La cuenta se crea desde administración con `POST /instructores/{id}/cuenta`
+(`{ "clave": "..." }`). Crea el usuario con el rol `instructor` y el instructor inicia
+sesión con su documento. El frontend lo envía a su portal según el rol que devuelve
+el login.
+
+Con `MODO_MOCK=false` el login usa las cuentas reales de Neon (`usuarios` y
+`usuarios_roles`, ambas por documento). Los nombres de rol llegan en minúscula.
+
 ## Módulos preparados
 
 `/reportes` todavía devuelve una lista vacía.

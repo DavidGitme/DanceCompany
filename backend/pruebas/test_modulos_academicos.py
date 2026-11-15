@@ -234,3 +234,47 @@ def test_instructor_no_puede_quitar_sede_con_grupos_activos():
     instructor = gestor.crear({**INSTRUCTOR, "sedes": [1, 2]})
     with pytest.raises(Conflicto):
         gestor.actualizar(instructor["idInstructor"], {"sedes": [2]})
+
+
+# ---------- Portal del instructor ----------
+from datetime import date, time  # noqa: E402
+
+from app.aplicacion.casos_uso.portal_instructor.consultar_portal_instructor import (  # noqa: E402
+    ConsultarPortalInstructor,
+    resumir_horario,
+)
+
+
+def test_horario_se_resume_como_en_el_portal():
+    dias, horario = resumir_horario([
+        {"dia": "Miércoles", "inicio": time(19, 0), "fin": time(21, 0)},
+        {"dia": "Lunes", "inicio": time(19, 0), "fin": time(21, 0)},
+    ])
+    assert dias == "Lunes y miércoles"
+    assert horario == "7:00 p. m. – 9:00 p. m."
+
+
+class PortalMemoria:
+    def perfil_por_documento(self, documento):
+        return {"idInstructor": 1, "nombre": "Ana"} if documento == "100" else None
+
+    def estudiantes(self, id_instructor):
+        return [{"idMatricula": 7, "idEstudiante": 1, "nombre": "Juan", "idGrupo": 2}]
+
+    def mensualidades(self, matriculas):
+        return [
+            {"idMatricula": 7, "valor": 120000, "fechaLimite": date(2026, 10, 15), "estado": "Pagada"},
+            {"idMatricula": 7, "valor": 120000, "fechaLimite": date(2026, 11, 15), "estado": "Mora"},
+        ]
+
+
+def test_portal_estado_del_estudiante_es_el_peor_de_sus_mensualidades():
+    estudiante = ConsultarPortalInstructor(PortalMemoria()).estudiantes("100")[0]
+    assert estudiante["estado"] == "Vencida"
+    assert estudiante["mensualidades"][0]["periodo"] == "Octubre 2026"
+    assert estudiante["mensualidades"][0]["fechaLimite"] == "15 oct 2026"
+
+
+def test_portal_usuario_sin_instructor_da_404():
+    with pytest.raises(NoEncontrado):
+        ConsultarPortalInstructor(PortalMemoria()).perfil("999")
