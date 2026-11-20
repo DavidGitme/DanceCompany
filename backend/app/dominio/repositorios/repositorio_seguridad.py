@@ -28,6 +28,10 @@ class RepositorioSeguridad(RepositorioAutenticacion):
         raise NotImplementedError
 
     @abstractmethod
+    def persona_existe(self, documento: str) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def buscar_usuario_por_documento(self, documento: str) -> dict[str, Any] | None:
         raise NotImplementedError
 

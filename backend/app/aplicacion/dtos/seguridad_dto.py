@@ -1,3 +1,9 @@
+"""DTO de seguridad, alineados con las tablas de Neon (backend/bd/01_esquema.sql).
+
+Las solicitudes validan lo que entra; las respuestas solo describen lo que sale
+(sin longitudes mínimas, porque los datos ya guardados pueden tener campos vacíos).
+"""
+
 from datetime import date
 from typing import Generic, TypeVar
 
@@ -13,74 +19,77 @@ class ListaRespuesta(BaseModel, Generic[T]):
     tamano: int
 
 
-class PersonaBase(BaseModel):
-    nombre: str = Field(min_length=2, max_length=120)
-    documento: str = Field(min_length=5, max_length=30)
-    telefono: str = Field(min_length=7, max_length=30)
-    email: EmailStr
-    fecha_nacimiento: date
-    idEstado: int = Field(gt=0)
+# ─── Personas (tabla persona) ──────────────────────────
+
+class PersonaCrearSolicitud(BaseModel):
+    nombre: str = Field(min_length=2, max_length=100)
+    idTipoDocumento: int = Field(1, gt=0, description="1 = cédula de ciudadanía (ver tipo_documento)")
+    documento: str = Field(min_length=5, max_length=20)
+    telefono: str | None = Field(None, min_length=7, max_length=20)
+    email: EmailStr | None = None
+    fecha_nacimiento: date | None = None
+    idEstado: int = Field(1, gt=0)
 
 
-class PersonaCrearSolicitud(PersonaBase):
-    pass
+PersonaActualizarSolicitud = PersonaCrearSolicitud
 
 
-class PersonaActualizarSolicitud(PersonaBase):
-    pass
-
-
-class PersonaRespuesta(PersonaBase):
+class PersonaRespuesta(BaseModel):
     idPersona: int
+    nombre: str
+    idTipoDocumento: int | None = None
+    documento: str
+    telefono: str | None = None
+    email: str | None = None
+    fecha_nacimiento: date | None = None
+    idEstado: int
 
+
+# ─── Usuarios (tabla usuarios, la llave es el documento) ───
 
 class UsuarioCrearSolicitud(BaseModel):
-    documento: str = Field(min_length=5, max_length=30)
-    username: str = Field(min_length=3, max_length=80)
+    documento: str = Field(min_length=5, max_length=20, description="Documento de una persona existente")
     clave: str = Field(min_length=8, max_length=128)
-    idEstado: int = Field(gt=0)
+    idEstado: int = Field(1, gt=0)
     roles: list[int] = Field(min_length=1)
+    username: str | None = Field(None, description="Ignorado: el usuario inicia sesión con su documento")
 
 
 class UsuarioActualizarSolicitud(BaseModel):
-    username: str = Field(min_length=3, max_length=80)
     idEstado: int = Field(gt=0)
     roles: list[int] = Field(min_length=1)
+    username: str | None = Field(None, description="Ignorado: el usuario inicia sesión con su documento")
 
 
 class UsuarioRespuesta(BaseModel):
     documento: str
-    username: str
+    username: str = Field(description="Igual al documento (se conserva por compatibilidad)")
     idEstado: int
     roles: list[int]
 
 
+# ─── Roles y permisos ──────────────────────────────────
+
 class RolCrearSolicitud(BaseModel):
-    nombre: str = Field(min_length=2, max_length=80)
-    idEstado: int = Field(gt=0)
+    nombre: str = Field(min_length=2, max_length=30)
+    idEstado: int = Field(1, gt=0)
     permisos: list[int] = []
 
 
-class RolRespuesta(RolCrearSolicitud):
+class RolRespuesta(BaseModel):
     idRol: int
+    nombre: str
+    idEstado: int
+    permisos: list[int]
 
 
 class PermisoCrearSolicitud(BaseModel):
-    descripcion: str = Field(min_length=2, max_length=120)
+    descripcion: str = Field(min_length=2, max_length=100)
 
 
-class PermisoRespuesta(PermisoCrearSolicitud):
+class PermisoRespuesta(BaseModel):
     idPermiso: int
-
-
-class EstadoCrearSolicitud(BaseModel):
-    nombre: str = Field(min_length=2, max_length=60)
-    categoria: str = Field(min_length=2, max_length=60)
-    descripcion: str = Field(min_length=2, max_length=250)
-
-
-class EstadoRespuesta(EstadoCrearSolicitud):
-    idEstado: int
+    descripcion: str
 
 
 class RolesPermisosSolicitud(BaseModel):
@@ -90,3 +99,20 @@ class RolesPermisosSolicitud(BaseModel):
 class RolesPermisosRespuesta(BaseModel):
     idRol: int
     permisos: list[int]
+
+
+# ─── Estados ───────────────────────────────────────────
+
+class EstadoCrearSolicitud(BaseModel):
+    nombre: str = Field(min_length=2, max_length=30)
+    categoria: str = Field(min_length=2, max_length=30)
+    descripcion: str | None = Field(None, max_length=100)
+    orden: int | None = Field(None, ge=1, description="Si no se envía, va de último en su categoría")
+
+
+class EstadoRespuesta(BaseModel):
+    idEstado: int
+    nombre: str
+    categoria: str
+    descripcion: str | None = None
+    orden: int | None = None
