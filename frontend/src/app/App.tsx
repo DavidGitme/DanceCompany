@@ -26,6 +26,24 @@ function destinoSegunRol(usuario: UsuarioSesion): RutaAplicacion {
   return esInstructor && !esAdministrador ? "instructor" : "admin"
 }
 
+// Cuenta válida pero sin una vista asignada (por ahora, el rol Acudiente)
+function SinVistaAsignada({ nombre, onSalir }: { nombre: string; onSalir: () => void }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center px-6">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center">
+        <h1 className="font-display text-3xl uppercase text-text">Hola, {nombre}</h1>
+        <p className="mt-3 font-body text-sm text-text-soft">
+          Tu cuenta está activa, pero todavía no tiene una vista asignada. Pide a la
+          administración de la academia que revise tus roles.
+        </p>
+        <Button size="md" className="mt-6" onClick={onSalir}>
+          Cerrar sesión
+        </Button>
+      </div>
+    </main>
+  )
+}
+
 export default function App() {
   const [isDark, setIsDark] = useState(true)
   const [page, setPage] = useState<RutaAplicacion>("home")
@@ -90,7 +108,13 @@ export default function App() {
       <div className={rootClass}>
         <RutaProtegida
           permiso="dashboard"
-          alNoAutorizado={loginConRedireccion}
+          alNoAutorizado={
+            usuario ? (
+              <SinVistaAsignada nombre={usuario.nombre} onSalir={salir} />
+            ) : (
+              loginConRedireccion
+            )
+          }
         >
           <AdminPanel onExit={salir} />
         </RutaProtegida>

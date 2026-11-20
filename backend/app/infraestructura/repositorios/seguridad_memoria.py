@@ -18,12 +18,11 @@ class RepositorioSeguridadMemoria(RepositorioSeguridad):
             "estados": [
                 {"idEstado": 1, "nombre": "Activo", "categoria": "general", "descripcion": "Registro activo.", "orden": 1},
                 {"idEstado": 2, "nombre": "Inactivo", "categoria": "general", "descripcion": "Registro inactivo.", "orden": 2},
-                {"idEstado": 8, "nombre": "Activo", "categoria": "usuario", "descripcion": "Cuenta activa.", "orden": 1},
             ],
             "permisos": [
                 {"idPermiso": i + 1, "descripcion": permiso}
                 for i, permiso in enumerate(
-                    ["dashboard", "estudiantes", "instructores", "grupos", "matriculas", "pagos", "talleres", "sedes", "reportes", "landing", "seguridad"]
+                    ["dashboard", "estudiantes", "instructores", "grupos", "matriculas", "pagos", "talleres", "sedes", "reportes", "usuarios", "roles"]
                 )
             ],
             "roles": [
@@ -46,7 +45,7 @@ class RepositorioSeguridadMemoria(RepositorioSeguridad):
                     "documento": "1234567890",
                     "username": "1234567890",
                     "password_hash": password_hash,
-                    "idEstado": 8,
+                    "idEstado": 1,
                     "roles": [1],
                 }
             ],

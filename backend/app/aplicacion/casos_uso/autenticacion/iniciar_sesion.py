@@ -5,6 +5,7 @@ from app.aplicacion.dtos.auth_dto import (
 )
 from app.aplicacion.servicios.seguridad import EmisorTokens, HasherClaves
 from app.dominio.excepciones.errores import NoAutenticado
+from app.dominio.reglas import ESTADO_ACTIVO
 from app.dominio.repositorios.repositorio_autenticacion import RepositorioAutenticacion
 
 
@@ -25,7 +26,8 @@ class IniciarSesion:
             solicitud.clave, registro["password_hash"]
         ):
             raise NoAutenticado("Documento o clave incorrectos.")
-        if registro["idEstado"] not in (1, 8):
+        # Solo entra una cuenta Activa (estados.idEstado = 1)
+        if registro["idEstado"] != ESTADO_ACTIVO:
             raise NoAutenticado("Documento o clave incorrectos.")
 
         roles, permisos = self.repositorio.permisos_de_roles(registro["roles"])

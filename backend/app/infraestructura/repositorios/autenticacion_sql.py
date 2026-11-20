@@ -41,8 +41,9 @@ class RepositorioAutenticacionSql(RepositorioBaseSql, RepositorioAutenticacion):
             text(
                 "SELECT DISTINCT p.descripcion FROM permisos p "
                 "JOIN roles_permisos rp ON rp.idPermiso = p.idPermiso "
-                "WHERE rp.idRol = ANY(:roles)"
+                "JOIN roles r ON r.idRol = rp.idRol "
+                "WHERE rp.idRol = ANY(:roles) AND r.idEstado = :activo"
             ),
-            {"roles": roles},
+            {"roles": roles, "activo": ESTADO_ACTIVO},
         ).scalars()
         return list(nombres), list(permisos)

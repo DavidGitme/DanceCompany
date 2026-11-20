@@ -26,8 +26,10 @@ export default function Login({ onBack, onLogin, onGoToRegister }: LoginProps) {
     try {
       const usuario = await iniciarSesion({ documento: email, clave: password })
       onLogin?.(usuario)
-    } catch {
-      setError("Documento o clave incorrectos.")
+    } catch (err) {
+      // La API ya trae un mensaje claro (clave incorrecta, demasiados intentos, cuenta bloqueada)
+      const mensaje = (err as { mensaje?: string })?.mensaje
+      setError(mensaje ?? "Documento o clave incorrectos.")
     } finally {
       setEnviando(false)
     }
@@ -103,12 +105,12 @@ export default function Login({ onBack, onLogin, onGoToRegister }: LoginProps) {
             {/* Email */}
             <div>
               <label className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
-                Correo electrónico
+                Documento o correo
               </label>
               <input
                 type="text"
                 className={inputClass}
-                placeholder="tu@correo.com"
+                placeholder="Documento (admin e instructor) o correo (estudiante)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

@@ -10,6 +10,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.dominio.reglas import ESTADO_ACTIVO, ESTADO_INACTIVO
 from app.dominio.repositorios.repositorio_seguridad import RepositorioSeguridad
 
 RECURSOS = {
@@ -142,7 +143,7 @@ class RepositorioSeguridadSql(RepositorioSeguridad):
         return self.obtener(recurso, identificador)
 
     def inactivar(self, recurso: str, identificador: int | str):
-        return self.actualizar(recurso, identificador, {"idEstado": 2})
+        return self.actualizar(recurso, identificador, {"idEstado": ESTADO_INACTIVO})
 
     def persona_existe(self, documento: str) -> bool:
         return self.sesion.execute(
@@ -170,15 +171,17 @@ class RepositorioSeguridadSql(RepositorioSeguridad):
         if not roles:
             return [], []
         nombres = self.sesion.execute(
-            text("SELECT lower(nombre) FROM roles WHERE idRol = ANY(:roles)"), {"roles": list(roles)}
+            text("SELECT lower(nombre) FROM roles WHERE idRol = ANY(:roles) AND idEstado = :activo"),
+            {"roles": list(roles), "activo": ESTADO_ACTIVO},
         ).scalars()
         permisos = self.sesion.execute(
             text(
                 "SELECT DISTINCT p.descripcion FROM permisos p "
                 "JOIN roles_permisos rp ON rp.idPermiso = p.idPermiso "
-                "WHERE rp.idRol = ANY(:roles)"
+                "JOIN roles r ON r.idRol = rp.idRol "
+                "WHERE rp.idRol = ANY(:roles) AND r.idEstado = :activo"
             ),
-            {"roles": list(roles)},
+            {"roles": list(roles), "activo": ESTADO_ACTIVO},
         ).scalars()
         return list(nombres), list(permisos)
 

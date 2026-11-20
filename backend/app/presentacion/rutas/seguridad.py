@@ -20,8 +20,9 @@ from app.infraestructura.seguridad.hash_claves import HasherArgon2
 from app.presentacion.dependencias.auth import requiere_permiso
 from app.presentacion.dependencias.servicios import obtener_gestor, obtener_repositorio
 
+# El permiso "usuarios" existe en la tabla permisos (el administrador entra siempre)
 router = APIRouter(
-    dependencies=[Depends(requiere_permiso("seguridad"))],
+    dependencies=[Depends(requiere_permiso("usuarios"))],
     tags=["Seguridad"],
 )
 

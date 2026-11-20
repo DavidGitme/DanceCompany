@@ -4,6 +4,7 @@ from app.aplicacion.casos_uso.autenticacion.iniciar_sesion import IniciarSesion
 from app.aplicacion.dtos.auth_dto import InicioSesionSolicitud, TokenRespuesta
 from app.config.settings import obtener_configuracion
 from app.dominio.excepciones.errores import NoAutenticado
+from app.dominio.reglas import ESTADO_ACTIVO
 from app.infraestructura.seguridad.hash_claves import HasherArgon2
 from app.infraestructura.seguridad.jwt_tokens import EmisorJwt
 from app.presentacion.dependencias.auth import get_usuario_actual
@@ -45,7 +46,8 @@ def refresh(response: Response, refresh_token: str | None = Cookie(default=None)
     emisor = EmisorJwt(obtener_configuracion())
     contenido = emisor.decodificar(refresh_token, "refresh")
     registro = repositorio.buscar_usuario_por_documento(contenido["sub"])
-    if not registro:
+    # Un usuario inactivado no puede seguir renovando su sesión
+    if not registro or registro["idEstado"] != ESTADO_ACTIVO:
         raise NoAutenticado()
     roles, permisos = repositorio.permisos_de_roles(registro["roles"])
     acceso, expira = emisor.emitir_acceso(contenido["sub"], roles, permisos)
