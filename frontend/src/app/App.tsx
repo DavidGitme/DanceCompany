@@ -16,26 +16,55 @@ import RutaProtegida from "@/app/guardas/RutaProtegida"
 import { useAuth } from "@/nucleo/auth/useAuth"
 import type { RutaAplicacion } from "@/app/rutas/rutas"
 import { PortalInstructor } from "@/app/instructores"
+import { PortalEstudiante, ROL_ESTUDIANTE } from "@/modulos/portal_estudiante"
+import type { UsuarioSesion } from "@/modulos/autenticacion/dtos/autenticacionDto"
+
+// El instructor va a su portal; el resto de roles al panel administrativo
+function destinoSegunRol(usuario: UsuarioSesion): RutaAplicacion {
+  const esInstructor = usuario.roles.includes("instructor")
+  const esAdministrador = usuario.roles.includes("administrador")
+  return esInstructor && !esAdministrador ? "instructor" : "admin"
+}
+
+// Cuenta válida pero sin una vista asignada (por ahora, el rol Acudiente)
+function SinVistaAsignada({ nombre, onSalir }: { nombre: string; onSalir: () => void }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center px-6">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center">
+        <h1 className="font-display text-3xl uppercase text-text">Hola, {nombre}</h1>
+        <p className="mt-3 font-body text-sm text-text-soft">
+          Tu cuenta está activa, pero todavía no tiene una vista asignada. Pide a la
+          administración de la academia que revise tus roles.
+        </p>
+        <Button size="md" className="mt-6" onClick={onSalir}>
+          Cerrar sesión
+        </Button>
+      </div>
+    </main>
+  )
+}
 
 export default function App() {
   const [isDark, setIsDark] = useState(true)
   const [page, setPage] = useState<RutaAplicacion>("home")
-  const { cerrarSesion } = useAuth()
+  const { usuario, cerrarSesion } = useAuth()
+  const salir = () => {
+    cerrarSesion().finally(() => setPage("home"))
+  }
+  const loginConRedireccion = (
+    <Login
+      onBack={() => setPage("home")}
+      onLogin={(usuario) => setPage(destinoSegunRol(usuario))}
+      onGoToRegister={() => setPage("register")}
+    />
+  )
 
   const rootClass = ["font-body min-h-full bg-page", isDark ? "dark" : ""].join(
     " ",
   )
 
   if (page === "login") {
-    return (
-      <div className={rootClass}>
-        <Login
-          onBack={() => setPage("home")}
-          onLogin={() => setPage("admin")}
-          onGoToRegister={() => setPage("register")}
-        />
-      </div>
-    )
+    return <div className={rootClass}>{loginConRedireccion}</div>
   }
 
   if (page === "register") {
@@ -56,12 +85,23 @@ export default function App() {
   }
 
   if (page === "instructor") {
-  return (
-    <div className={rootClass}>
-      <PortalInstructor onSalir={() => setPage("home")} />
-    </div>
-  )
-}
+    return (
+      <div className={rootClass}>
+        <RutaProtegida alNoAutorizado={loginConRedireccion}>
+          <PortalInstructor onSalir={salir} />
+        </RutaProtegida>
+      </div>
+    )
+  }
+
+  // Un estudiante que inicia sesión ve su portal, no el panel de administración
+  if (page === "admin" && usuario?.roles.includes(ROL_ESTUDIANTE)) {
+    return (
+      <div className={rootClass}>
+        <PortalEstudiante nombre={usuario.nombre} onSalir={salir} />
+      </div>
+    )
+  }
 
   if (page === "admin") {
     return (
@@ -69,18 +109,14 @@ export default function App() {
         <RutaProtegida
           permiso="dashboard"
           alNoAutorizado={
-            <Login
-              onBack={() => setPage("home")}
-              onLogin={() => setPage("admin")}
-              onGoToRegister={() => setPage("register")}
-            />
+            usuario ? (
+              <SinVistaAsignada nombre={usuario.nombre} onSalir={salir} />
+            ) : (
+              loginConRedireccion
+            )
           }
         >
-          <AdminPanel
-            onExit={() => {
-              cerrarSesion().finally(() => setPage("home"))
-            }}
-          />
+          <AdminPanel onExit={salir} />
         </RutaProtegida>
       </div>
     )

@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from app.dominio.repositorios.repositorio_autenticacion import RepositorioAutenticacion
 
-class RepositorioSeguridad(ABC):
+
+class RepositorioSeguridad(RepositorioAutenticacion):
     @abstractmethod
     def listar(self, recurso: str, pagina: int, tamano: int) -> tuple[list[dict[str, Any]], int]:
         raise NotImplementedError
@@ -23,6 +25,10 @@ class RepositorioSeguridad(ABC):
 
     @abstractmethod
     def inactivar(self, recurso: str, identificador: int | str) -> dict[str, Any] | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def persona_existe(self, documento: str) -> bool:
         raise NotImplementedError
 
     @abstractmethod

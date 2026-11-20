@@ -17,7 +17,7 @@ import { tokenStore } from "./tokenStore"
 interface AuthContexto {
   usuario: UsuarioSesion | null
   cargando: boolean
-  iniciarSesion: (solicitud: InicioSesionSolicitudDto) => Promise<void>
+  iniciarSesion: (solicitud: InicioSesionSolicitudDto) => Promise<UsuarioSesion>
   cerrarSesion: () => Promise<void>
 }
 
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const sesion = await autenticacionServicio.iniciarSesion(solicitud)
       tokenStore.guardar(sesion.tokenAcceso)
       setUsuario(sesion.usuario)
+      return sesion.usuario
     },
     [],
   )

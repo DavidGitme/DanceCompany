@@ -4,10 +4,11 @@ from app.aplicacion.casos_uso.autenticacion.iniciar_sesion import IniciarSesion
 from app.aplicacion.dtos.auth_dto import InicioSesionSolicitud, TokenRespuesta
 from app.config.settings import obtener_configuracion
 from app.dominio.excepciones.errores import NoAutenticado
+from app.dominio.reglas import ESTADO_ACTIVO
 from app.infraestructura.seguridad.hash_claves import HasherArgon2
 from app.infraestructura.seguridad.jwt_tokens import EmisorJwt
 from app.presentacion.dependencias.auth import get_usuario_actual
-from app.presentacion.dependencias.servicios import obtener_repositorio
+from app.presentacion.dependencias.servicios import obtener_repositorio_auth
 from app.presentacion.middlewares.limite_intentos import limitar_inicio_sesion
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
@@ -31,7 +32,7 @@ def _guardar_cookie(response: Response, token: str, max_age: int):
     response_model=TokenRespuesta,
     dependencies=[Depends(limitar_inicio_sesion)],
 )
-def login(solicitud: InicioSesionSolicitud, response: Response, repositorio=Depends(obtener_repositorio)):
+def login(solicitud: InicioSesionSolicitud, response: Response, repositorio=Depends(obtener_repositorio_auth)):
     caso = IniciarSesion(repositorio, HasherArgon2(), EmisorJwt(obtener_configuracion()))
     token, refresh, max_age = caso.ejecutar(solicitud)
     _guardar_cookie(response, refresh, max_age)
@@ -39,13 +40,14 @@ def login(solicitud: InicioSesionSolicitud, response: Response, repositorio=Depe
 
 
 @router.post("/refresh", response_model=TokenRespuesta)
-def refresh(response: Response, refresh_token: str | None = Cookie(default=None), repositorio=Depends(obtener_repositorio)):
+def refresh(response: Response, refresh_token: str | None = Cookie(default=None), repositorio=Depends(obtener_repositorio_auth)):
     if not refresh_token:
         raise NoAutenticado()
     emisor = EmisorJwt(obtener_configuracion())
     contenido = emisor.decodificar(refresh_token, "refresh")
     registro = repositorio.buscar_usuario_por_documento(contenido["sub"])
-    if not registro:
+    # Un usuario inactivado no puede seguir renovando su sesión
+    if not registro or registro["idEstado"] != ESTADO_ACTIVO:
         raise NoAutenticado()
     roles, permisos = repositorio.permisos_de_roles(registro["roles"])
     acceso, expira = emisor.emitir_acceso(contenido["sub"], roles, permisos)

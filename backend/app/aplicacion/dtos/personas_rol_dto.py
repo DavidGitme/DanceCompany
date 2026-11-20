@@ -59,6 +59,11 @@ class InstructorRespuesta(PersonaRespuesta):
     estado: str
     sedes: list[SedeResumen]
     gruposActivos: int
+    tieneCuenta: bool
+
+
+class CuentaInstructorSolicitud(BaseModel):
+    clave: str = Field(min_length=8, max_length=128)
 
 
 class InstructorOpcion(BaseModel):

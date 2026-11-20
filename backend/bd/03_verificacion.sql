@@ -24,25 +24,25 @@ SELECT u.documento, p.nombre, r.nombre AS rol, e.nombre AS estado
 FROM usuarios u
 JOIN persona p         ON p.documento = u.documento
 JOIN usuarios_roles ur ON ur.documento = u.documento
-JOIN roles r           ON r.id_rol = ur.id_rol
-JOIN estados e         ON e.id_estado = u.id_estado
+JOIN roles r           ON r.idRol = ur.idRol
+JOIN estados e         ON e.idEstado = u.idEstado
 ORDER BY u.documento;
 
 -- 4. Permisos efectivos por usuario (lo que ira dentro del token).
 SELECT ur.documento, STRING_AGG(DISTINCT pe.descripcion, ', ') AS permisos
 FROM usuarios_roles ur
-JOIN roles r           ON r.id_rol = ur.id_rol AND r.id_estado = 1
-JOIN roles_permisos rp ON rp.id_rol = r.id_rol
-JOIN permisos pe       ON pe.id_permiso = rp.id_permiso
+JOIN roles r           ON r.idRol = ur.idRol AND r.idEstado = 1
+JOIN roles_permisos rp ON rp.idRol = r.idRol
+JOIN permisos pe       ON pe.idPermiso = rp.idPermiso
 GROUP BY ur.documento
 ORDER BY ur.documento;
 
 -- 5. Grupo vigente de cada estudiante.
 SELECT p.nombre AS estudiante, g.nombre AS grupo, n.nombre AS nivel
 FROM matricula m
-JOIN estudiante es ON es.id_estudiante = m.id_estudiante
-JOIN persona p     ON p.id_persona = es.id_persona
-JOIN grupo g       ON g.id_grupo = m.id_grupo
-JOIN nivel n       ON n.id_nivel = g.id_nivel
-WHERE m.id_estado = 1
+JOIN estudiante es ON es.idEstudiante = m.idEstudiante
+JOIN persona p     ON p.idPersona = es.idPersona
+JOIN grupo g       ON g.idGrupo = m.idGrupo
+JOIN nivel n       ON n.idNivel = g.idNivel
+WHERE m.idEstado = 1
 ORDER BY p.nombre;

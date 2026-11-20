@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 
-export type FieldType = 'text' | 'email' | 'tel' | 'select' | 'date' | 'time' | 'datetime-local' | 'number' | 'textarea' | 'badge';
+export type FieldType = 'text' | 'password' | 'email' | 'tel' | 'select' | 'date' | 'time' | 'datetime-local' | 'number' | 'textarea' | 'badge';
 
 export interface Column {
   key: string;

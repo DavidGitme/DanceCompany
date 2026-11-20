@@ -27,6 +27,8 @@ from app.presentacion.rutas import (
     niveles,
     noticias,
     pagos,
+    portal_estudiante,
+    portal_instructor,
     postulaciones,
     sedes,
     seguridad,
@@ -55,7 +57,7 @@ app.include_router(seguridad.router, prefix="/api/v1")
 app.include_router(ejemplos.router, prefix="/api/v1")
 
 # Módulos académicos
-for modulo in (sedes, estilos, niveles, talleres, instructores, estudiantes, grupos):
+for modulo in (sedes, estilos, niveles, talleres, instructores, estudiantes, grupos, portal_instructor):
     app.include_router(modulo.router, prefix="/api/v1")
 
 # Módulos administrativos: aulas y horarios, matrículas, finanzas, convocatorias y noticias
@@ -66,6 +68,9 @@ for modulo in (
     app.include_router(modulo.router, prefix="/api/v1")
 for router_catalogo in catalogos_simples.routers:
     app.include_router(router_catalogo, prefix="/api/v1")
+
+# Portal del estudiante (login por correo y su información)
+app.include_router(portal_estudiante.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/salud", tags=["Sistema"])

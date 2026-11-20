@@ -2,10 +2,11 @@ import { useState } from "react"
 import logoFna from "@/recursos/logo-fna.png"
 import Button from "@/compartido/ui/Button"
 import { useAuth } from "@/nucleo/auth/useAuth"
+import type { UsuarioSesion } from "../dtos/autenticacionDto"
 
 interface LoginProps {
   onBack: () => void
-  onLogin?: () => void
+  onLogin?: (usuario: UsuarioSesion) => void
   onGoToRegister?: () => void
 }
 
@@ -23,10 +24,12 @@ export default function Login({ onBack, onLogin, onGoToRegister }: LoginProps) {
     setError("")
     setEnviando(true)
     try {
-      await iniciarSesion({ documento: email, clave: password })
-      onLogin?.()
-    } catch {
-      setError("Documento o clave incorrectos.")
+      const usuario = await iniciarSesion({ documento: email, clave: password })
+      onLogin?.(usuario)
+    } catch (err) {
+      // La API ya trae un mensaje claro (clave incorrecta, demasiados intentos, cuenta bloqueada)
+      const mensaje = (err as { mensaje?: string })?.mensaje
+      setError(mensaje ?? "Documento o clave incorrectos.")
     } finally {
       setEnviando(false)
     }
@@ -102,12 +105,12 @@ export default function Login({ onBack, onLogin, onGoToRegister }: LoginProps) {
             {/* Email */}
             <div>
               <label className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
-                Correo electrónico
+                Documento o correo
               </label>
               <input
                 type="text"
                 className={inputClass}
-                placeholder="tu@correo.com"
+                placeholder="Documento (admin e instructor) o correo (estudiante)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

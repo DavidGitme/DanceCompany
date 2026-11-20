@@ -23,3 +23,16 @@ export const sesionAdministradorMock: TokenRespuestaDto = {
     ],
   },
 }
+
+// Con VITE_USAR_MOCK=true, iniciar sesión con este documento abre el portal del instructor
+export const sesionInstructorMock: TokenRespuestaDto = {
+  accessToken: "token-mock-instructor",
+  tipo: "bearer",
+  expiraEn: 1800,
+  usuario: {
+    documento: "1122334455",
+    nombre: "Carlos Vélez",
+    roles: ["instructor"],
+    permisos: [],
+  },
+}

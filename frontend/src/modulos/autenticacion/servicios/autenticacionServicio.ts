@@ -1,6 +1,9 @@
 import { clienteHttp } from "@/nucleo/http/clienteHttp"
 import { env } from "@/nucleo/config/env"
-import { sesionAdministradorMock } from "../datos/autenticacionMock"
+import {
+  sesionAdministradorMock,
+  sesionInstructorMock,
+} from "../datos/autenticacionMock"
 import {
   dtoAModelo,
   type InicioSesionSolicitudDto,
@@ -18,7 +21,18 @@ export const autenticacionServicio = {
       if (!solicitud.documento.trim() || !solicitud.clave.trim()) {
         throw new Error("Documento o clave incorrectos.")
       }
-      return dtoAModelo(sesionAdministradorMock)
+      const esInstructor =
+        solicitud.documento.trim() === sesionInstructorMock.usuario.documento
+      return dtoAModelo(esInstructor ? sesionInstructorMock : sesionAdministradorMock)
+    }
+    // Con correo entra un estudiante a su portal; con documento, el login de siempre
+    if (solicitud.documento.includes("@")) {
+      return dtoAModelo(
+        await clienteHttp.post<TokenRespuestaDto>("/portal-estudiante/login", {
+          correo: solicitud.documento.trim(),
+          clave: solicitud.clave,
+        }),
+      )
     }
     return dtoAModelo(
       await clienteHttp.post<TokenRespuestaDto>("/auth/login", solicitud),

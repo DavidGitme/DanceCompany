@@ -45,6 +45,15 @@ Relación RBAC:
 
 Todas requieren el permiso `seguridad`.
 
+Campos según las tablas de Neon:
+
+- **Personas** (`persona`): `idTipoDocumento` es obligatorio en la base (por defecto `1`);
+  `telefono`, `email` y `fecha_nacimiento` son opcionales.
+- **Usuarios** (`usuarios`): la llave es el `documento` de una persona que ya existe; si no
+  existe responde `400`. No hay columna `username`: la respuesta lo devuelve igual al documento.
+- **Estados**: `orden` es opcional al crear (queda de último en su categoría) y la
+  descripción es opcional. Estados y permisos no se inactivan (`DELETE` responde `400`).
+
 ## Módulos académicos
 
 `sedes`, `estilos`, `niveles`, `talleres`, `instructores`, `estudiantes` y `grupos`
@@ -156,6 +165,37 @@ Reglas principales:
 
 Los permisos `convocatorias` y `noticias` vienen en `02_datos_iniciales.sql`; en una
 base ya creada se agregan con `bd/04_permisos_modulos_administrativos.sql`.
+
+## Portal del instructor
+
+Requiere sesión con rol `instructor`. El instructor se identifica por el documento
+del token, así que no se envía ningún id.
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| GET | `/portal-instructor/perfil` | Nombre, documento, correo, teléfono y especialidad. |
+| GET | `/portal-instructor/grupos` | Grupos activos con estilo, nivel, sede, aula, días, horario y cantidad de estudiantes. |
+| GET | `/portal-instructor/estudiantes` | Estudiantes de sus grupos con el estado y el historial de mensualidades. |
+
+La cuenta se crea desde administración con `POST /instructores/{id}/cuenta`
+(`{ "clave": "..." }`). Crea el usuario con el rol `instructor` y el instructor inicia
+sesión con su documento. El frontend lo envía a su portal según el rol que devuelve
+el login.
+
+Con `MODO_MOCK=false` el login usa las cuentas reales de Neon (`usuarios` y
+`usuarios_roles`, ambas por documento). Los nombres de rol llegan en minúscula.
+
+## Probar la API contra la base de datos
+
+Con el backend corriendo (`MODO_MOCK=false`), desde `backend`:
+
+```powershell
+python pruebas_api/probar_api.py                    # solo lectura
+python pruebas_api/probar_api.py --escritura        # además crea e inactiva registros "PRUEBA"
+python pruebas_api/probar_api.py --url https://.../api/v1   # backend desplegado
+```
+
+Usa las cuentas de `bd/02_datos_iniciales.sql` y no necesita instalar nada.
 
 ## Módulos preparados
 

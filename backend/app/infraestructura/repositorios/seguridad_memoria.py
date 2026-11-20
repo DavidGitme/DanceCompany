@@ -16,14 +16,13 @@ class RepositorioSeguridadMemoria(RepositorioSeguridad):
     def __init__(self, password_hash: str):
         self.datos: dict[str, list[dict[str, Any]]] = {
             "estados": [
-                {"idEstado": 1, "nombre": "Activo", "categoria": "general", "descripcion": "Registro activo."},
-                {"idEstado": 2, "nombre": "Inactivo", "categoria": "general", "descripcion": "Registro inactivo."},
-                {"idEstado": 8, "nombre": "Activo", "categoria": "usuario", "descripcion": "Cuenta activa."},
+                {"idEstado": 1, "nombre": "Activo", "categoria": "general", "descripcion": "Registro activo.", "orden": 1},
+                {"idEstado": 2, "nombre": "Inactivo", "categoria": "general", "descripcion": "Registro inactivo.", "orden": 2},
             ],
             "permisos": [
                 {"idPermiso": i + 1, "descripcion": permiso}
                 for i, permiso in enumerate(
-                    ["dashboard", "estudiantes", "instructores", "grupos", "matriculas", "pagos", "talleres", "sedes", "reportes", "landing", "seguridad"]
+                    ["dashboard", "estudiantes", "instructores", "grupos", "matriculas", "pagos", "talleres", "sedes", "reportes", "usuarios", "roles"]
                 )
             ],
             "roles": [
@@ -33,6 +32,7 @@ class RepositorioSeguridadMemoria(RepositorioSeguridad):
                 {
                     "idPersona": 1,
                     "nombre": "Andrea Salazar",
+                    "idTipoDocumento": 1,
                     "documento": "1234567890",
                     "telefono": "3001234567",
                     "email": "asalazar@fanda.co",
@@ -43,13 +43,16 @@ class RepositorioSeguridadMemoria(RepositorioSeguridad):
             "usuarios": [
                 {
                     "documento": "1234567890",
-                    "username": "asalazar",
+                    "username": "1234567890",
                     "password_hash": password_hash,
-                    "idEstado": 8,
+                    "idEstado": 1,
                     "roles": [1],
                 }
             ],
         }
+
+    def persona_existe(self, documento: str) -> bool:
+        return any(p["documento"] == documento for p in self.datos["personas"])
 
     def listar(self, recurso: str, pagina: int, tamano: int):
         registros = self.datos[recurso]

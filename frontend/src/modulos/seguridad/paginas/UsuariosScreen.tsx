@@ -1,77 +1,26 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import CrudTable from '@/compartido/ui/CrudTable';
 import SlideOver from '@/compartido/ui/SlideOver';
 import DetailWidget from '@/compartido/ui/DetailWidget';
+import ConfirmDialog from '@/compartido/ui/ConfirmDialog';
 import { ModuleConfig } from '@/app/admin/tipos';
-import {
-  usuariosSeed,
-  personasSeed,
-  rolesSeed,
-  estadosSeed,
-  getEstadoNombre,
-  getPersonaNombre,
-  getRolNombre,
-  estadoBadge,
-  Usuario,
-} from '@/modulos/seguridad';
+import type { Estado, Persona, Rol, Usuario } from '@/compartido/tipos/entities';
+import type { ErrorApi } from '@/nucleo/http/clienteHttp';
+import { estadoBadge, seguridadServicio } from '@/modulos/seguridad';
 
-const config: ModuleConfig = {
-  id: 'seg-usuarios',
-  title: 'Usuarios',
-  addLabel: 'Nuevo usuario',
-  avatarKey: 'username',
-  icon: null,
-  columns: [
-    { key: 'username', label: 'Usuario', render: v => <span className="font-600 text-text font-condensed tracking-wider">{v}</span> },
-    { key: 'persona_id', label: 'Persona', render: v => getPersonaNombre(Number(v)) },
-    { key: 'roles', label: 'Roles', render: v => (
-      <div className="flex gap-1 flex-wrap">
-        {(v as number[]).map(id => (
-          <span key={id} className="px-2 py-0.5 rounded-full bg-purple-700/20 text-purple-400 font-condensed text-xs uppercase tracking-wider border border-purple-700/30">
-            {getRolNombre(id)}
-          </span>
-        ))}
-      </div>
-    )},
-    { key: 'idEstado', label: 'Estado', render: v => estadoBadge(getEstadoNombre(Number(v))) },
-  ],
-  fields: [
-    {
-      key: 'persona_id',
-      label: 'Persona',
-      type: 'select',
-      required: true,
-      span: 'full',
-      options: personasSeed.map(p => ({ label: p.nombre, value: String(p.idPersona) })),
-    },
-    { key: 'username', label: 'Nombre de usuario', type: 'text', required: true, span: 'half' },
-    { key: 'clave', label: 'Contraseña', type: 'password', span: 'half', placeholder: '••••••••' },
-    {
-      key: 'idEstado',
-      label: 'Estado',
-      type: 'select',
-      span: 'half',
-      options: estadosSeed
-        .filter(e => e.categoria === 'usuario')
-        .map(e => ({ label: e.nombre, value: String(e.idEstado) })),
-    },
-  ],
-  detailFields: [
-    { key: 'username', label: 'Nombre de usuario' },
-    { key: 'persona_id', label: 'Persona', render: v => getPersonaNombre(Number(v)) },
-    { key: 'clave', label: 'Contraseña', render: () => '••••••••' },
-    { key: 'idEstado', label: 'Estado', render: v => estadoBadge(getEstadoNombre(Number(v))) },
-  ],
-  detailTitle: r => r.username,
-  detailSubtitle: r => `Usuario · ${getPersonaNombre(Number(r.persona_id))}`,
-  data: [],
-};
+// La API pagina de a 100 como máximo; la tabla pagina en pantalla de a 10
+const TAMANO_CARGA = 100;
+
+const mensajeDe = (error: unknown) =>
+  (error as ErrorApi)?.mensaje ?? 'No fue posible completar la operación.';
 
 /* ─── ROLES CHECKBOXES ─── */
 function RolesSelector({
+  roles,
   selected,
   onChange,
 }: {
+  roles: Rol[];
   selected: number[];
   onChange: (ids: number[]) => void;
 }) {
@@ -81,10 +30,10 @@ function RolesSelector({
   return (
     <div>
       <p className="font-condensed font-600 text-xs uppercase tracking-wider text-purple-400 mb-3">
-        Roles asignados
+        Roles asignados <span className="text-red-400">*</span>
       </p>
       <div className="grid grid-cols-2 gap-2">
-        {rolesSeed.map(rol => (
+        {roles.map(rol => (
           <label
             key={rol.idRol}
             className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border hover:border-purple-400/40 cursor-pointer transition-colors group"
@@ -105,36 +54,187 @@ function RolesSelector({
 
 /* ─── SCREEN ─── */
 export default function UsuariosScreen() {
-  const [data, setData] = useState<Usuario[]>([...usuariosSeed]);
-  const [slideOver, setSlideOver] = useState<{ open: boolean; mode: 'create' | 'edit'; row: any | null }>({
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const [roles, setRoles] = useState<Rol[]>([]);
+  const [estados, setEstados] = useState<Estado[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  const [slideOver, setSlideOver] = useState<{ open: boolean; mode: 'create' | 'edit'; row: Usuario | null }>({
     open: false, mode: 'create', row: null,
   });
   const [detail, setDetail] = useState<{ open: boolean; row: Usuario | null }>({ open: false, row: null });
+  const [porInactivar, setPorInactivar] = useState<Usuario | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<number[]>([]);
+  const [guardando, setGuardando] = useState(false);
+
+  const cargar = useCallback(async () => {
+    setCargando(true);
+    setError(null);
+    try {
+      const [u, p, r, e] = await Promise.all([
+        seguridadServicio.listar<Usuario>('usuarios', 1, TAMANO_CARGA),
+        seguridadServicio.listar<Persona>('personas', 1, TAMANO_CARGA),
+        seguridadServicio.listar<Rol>('roles', 1, TAMANO_CARGA),
+        seguridadServicio.listar<Estado>('estados', 1, TAMANO_CARGA),
+      ]);
+      setUsuarios(u.datos);
+      setPersonas(p.datos);
+      setRoles(r.datos);
+      setEstados(e.datos);
+    } catch (err) {
+      setError(mensajeDe(err));
+    } finally {
+      setCargando(false);
+    }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const nombrePersona = useCallback(
+    (documento: string) => personas.find(p => p.documento === documento)?.nombre ?? '—',
+    [personas],
+  );
+  const nombreRol = useCallback((id: number) => roles.find(r => r.idRol === id)?.nombre ?? '—', [roles]);
+  const nombreEstado = useCallback((id: number) => estados.find(e => e.idEstado === id)?.nombre ?? '—', [estados]);
+
+  // Una persona solo puede tener una cuenta
+  const personasSinCuenta = useMemo(
+    () => personas.filter(p => p.idEstado === 1 && !usuarios.some(u => u.documento === p.documento)),
+    [personas, usuarios],
+  );
+  const opcionesEstado = estados
+    .filter(e => e.categoria === 'general')
+    .map(e => ({ label: e.nombre, value: String(e.idEstado) }));
+
+  const config: ModuleConfig = {
+    id: 'seg-usuarios',
+    title: 'Usuarios',
+    addLabel: 'Nuevo usuario',
+    avatarKey: 'nombre',
+    icon: null,
+    emptyMessage: 'Todavía no hay cuentas. Crea la persona en Personas y luego su usuario aquí.',
+    columns: [
+      { key: 'nombre', label: 'Persona', render: v => <span className="font-600 text-text">{v}</span> },
+      { key: 'documento', label: 'Documento (usuario)', render: v => <span className="font-condensed tracking-wider">{v}</span> },
+      { key: 'roles', label: 'Roles', render: v => (
+        <div className="flex gap-1 flex-wrap">
+          {(v as number[]).map(id => (
+            <span key={id} className="px-2 py-0.5 rounded-full bg-purple-700/20 text-purple-400 font-condensed text-xs uppercase tracking-wider border border-purple-700/30">
+              {nombreRol(id)}
+            </span>
+          ))}
+        </div>
+      )},
+      { key: 'idEstado', label: 'Estado', render: v => estadoBadge(nombreEstado(Number(v))) },
+    ],
+    filters: [
+      { key: 'idEstado', label: 'Estado', options: opcionesEstado },
+    ],
+    fields: slideOver.mode === 'create'
+      ? [
+          {
+            key: 'documento',
+            label: 'Persona',
+            type: 'select',
+            required: true,
+            span: 'full',
+            options: personasSinCuenta.map(p => ({ label: `${p.nombre} · ${p.documento}`, value: p.documento })),
+          },
+          { key: 'clave', label: 'Contraseña (mín. 8)', type: 'password', required: true, span: 'half', placeholder: '••••••••' },
+          { key: 'idEstado', label: 'Estado', type: 'select', required: true, span: 'half', options: opcionesEstado },
+        ]
+      : [
+          { key: 'nombre', label: 'Persona', type: 'text', span: 'half', readOnly: true },
+          { key: 'documento', label: 'Documento (usuario)', type: 'text', span: 'half', readOnly: true },
+          { key: 'idEstado', label: 'Estado', type: 'select', required: true, span: 'half', options: opcionesEstado },
+        ],
+    detailFields: [
+      { key: 'documento', label: 'Usuario (documento)' },
+      { key: 'idEstado', label: 'Estado', render: v => estadoBadge(nombreEstado(Number(v))) },
+    ],
+    detailTitle: r => r.nombre,
+    detailSubtitle: r => `Usuario · ${r.documento}`,
+    data: [],
+  };
+
+  // Memorizado: SlideOver reinicia el formulario cada vez que initialData cambia de referencia
+  const datosFormulario = useMemo(
+    () => (slideOver.row ? { ...slideOver.row, nombre: nombrePersona(slideOver.row.documento ?? '') } : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [slideOver.row],
+  );
+
+  const filas = useMemo(
+    () => usuarios.map(u => ({ ...u, nombre: nombrePersona(u.documento) })),
+    [usuarios, nombrePersona],
+  );
 
   const handleAdd = () => {
+    setAviso(null);
     setSelectedRoles([]);
-    setSlideOver({ open: true, mode: 'create', row: null });
+    setSlideOver({ open: true, mode: 'create', row: { idEstado: 1 } as unknown as Usuario });
   };
   const handleEdit = (row: Usuario) => {
+    setAviso(null);
     setDetail({ open: false, row: null });
     setSelectedRoles(row.roles ?? []);
     setSlideOver({ open: true, mode: 'edit', row });
   };
   const handleView = (row: Usuario) => setDetail({ open: true, row });
-  const handleDelete = (row: Usuario) => { setDetail({ open: false, row: null }); setData(d => d.filter(r => r.idUsuario !== row.idUsuario)); };
+  const handleDelete = (row: Usuario) => { setDetail({ open: false, row: null }); setPorInactivar(row); };
 
-  const handleSave = (form: any) => {
-    const persona_id = Number(form.persona_id) || 1;
-    const idEstado = Number(form.idEstado) || 8;
-    if (slideOver.mode === 'create') {
-      const newId = Math.max(0, ...data.map(r => r.idUsuario)) + 1;
-      setData(d => [...d, { idUsuario: newId, persona_id, username: form.username, password_hash: '[hash-mock]', idEstado, roles: selectedRoles }]);
-    } else {
-      const { clave: _, ...datosSeguros } = form;
-      setData(d => d.map(r => r.idUsuario === form.idUsuario ? { ...r, ...datosSeguros, persona_id, idEstado, roles: selectedRoles } : r));
+  const confirmarInactivar = async () => {
+    if (!porInactivar) return;
+    try {
+      const actualizado = await seguridadServicio.inactivar<Usuario>('usuarios', porInactivar.documento);
+      setUsuarios(d => d.map(u => (u.documento === porInactivar.documento ? { ...u, ...actualizado } : u)));
+      setAviso('Usuario inactivado. Ya no puede iniciar sesión.');
+    } catch (err) {
+      setError(mensajeDe(err));
+    } finally {
+      setPorInactivar(null);
     }
-    setSlideOver(s => ({ ...s, open: false }));
+  };
+
+  const validar = (form: Record<string, any>) => {
+    const errores: Record<string, string> = {};
+    if (slideOver.mode === 'create' && String(form.clave ?? '').length < 8) {
+      errores.clave = 'Mínimo 8 caracteres';
+    }
+    if (selectedRoles.length === 0) errores.idEstado = 'Selecciona al menos un rol';
+    return errores;
+  };
+
+  const handleSave = async (form: any) => {
+    setGuardando(true);
+    setError(null);
+    try {
+      if (slideOver.mode === 'create') {
+        const creado = await seguridadServicio.crear<Usuario, object>('usuarios', {
+          documento: form.documento,
+          clave: form.clave,
+          idEstado: Number(form.idEstado) || 1,
+          roles: selectedRoles,
+        });
+        setUsuarios(d => [...d, creado]);
+        setAviso(`Cuenta creada. ${nombrePersona(creado.documento)} inicia sesión con su documento.`);
+      } else if (slideOver.row) {
+        const actualizado = await seguridadServicio.actualizar<Usuario, object>('usuarios', slideOver.row.documento, {
+          idEstado: Number(form.idEstado),
+          roles: selectedRoles,
+        });
+        setUsuarios(d => d.map(u => (u.documento === actualizado.documento ? actualizado : u)));
+        setAviso('Cambios guardados. Los permisos nuevos aplican en su próximo inicio de sesión.');
+      }
+      setSlideOver(s => ({ ...s, open: false }));
+    } catch (err) {
+      setError(mensajeDe(err));
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const rolesDetail = (row: Usuario | null) => {
@@ -147,7 +247,7 @@ export default function UsuariosScreen() {
             <span className="text-text-muted font-body text-xs">Sin roles asignados</span>
           ) : (row.roles ?? []).map(id => (
             <span key={id} className="px-2.5 py-0.5 rounded-full bg-purple-700/20 text-purple-400 font-condensed text-xs uppercase tracking-wider border border-purple-700/30">
-              {getRolNombre(id)}
+              {nombreRol(id)}
             </span>
           ))}
         </div>
@@ -160,9 +260,21 @@ export default function UsuariosScreen() {
       <div className="mb-1">
         <span className="font-condensed text-xs uppercase tracking-[0.2em] text-purple-400">Seguridad</span>
       </div>
+      {error && (
+        <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 font-body text-sm text-red-400">
+          <span>{error}</span>
+          <button onClick={cargar} className="font-condensed text-xs uppercase tracking-wider underline cursor-pointer">Reintentar</button>
+        </div>
+      )}
+      {aviso && !error && (
+        <div role="status" className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 font-body text-sm text-emerald-400">
+          {aviso}
+        </div>
+      )}
       <CrudTable
         config={config}
-        data={data}
+        data={filas}
+        loading={cargando}
         onAdd={handleAdd}
         onEdit={handleEdit}
         onView={handleView}
@@ -172,21 +284,30 @@ export default function UsuariosScreen() {
         open={slideOver.open}
         mode={slideOver.mode}
         config={config}
-        initialData={slideOver.row}
-        onSave={handleSave}
+        initialData={datosFormulario}
+        onSave={guardando ? () => undefined : handleSave}
         onClose={() => setSlideOver(s => ({ ...s, open: false }))}
+        validate={validar}
         extraContent={
-          <RolesSelector selected={selectedRoles} onChange={setSelectedRoles} />
+          <RolesSelector roles={roles.filter(r => r.idEstado === 1)} selected={selectedRoles} onChange={setSelectedRoles} />
         }
       />
       <DetailWidget
         open={detail.open}
         config={config}
-        row={detail.row}
+        row={detail.row ? { ...detail.row, nombre: nombrePersona(detail.row.documento) } : null}
         onEdit={() => handleEdit(detail.row!)}
         onDelete={() => handleDelete(detail.row!)}
         onClose={() => setDetail({ open: false, row: null })}
         extraContent={rolesDetail(detail.row)}
+      />
+      <ConfirmDialog
+        open={porInactivar !== null}
+        title="Inactivar usuario"
+        message={`${porInactivar ? nombrePersona(porInactivar.documento) : ''} no podrá iniciar sesión. Puedes reactivarlo editando su estado.`}
+        confirmLabel="Inactivar"
+        onConfirm={confirmarInactivar}
+        onClose={() => setPorInactivar(null)}
       />
     </>
   );
