@@ -153,8 +153,26 @@ body {
   .cursor-label { display: block; }
 }
 
+/* Entrada de diálogos, paneles y avisos del panel administrativo */
+.animar-fondo { animation: aparecer 0.2s ease-out both; }
+.animar-entrada { animation: entrar 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.animar-panel { animation: deslizar 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@keyframes aparecer { from { opacity: 0; } }
+@keyframes entrar { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
+@keyframes deslizar { from { opacity: 0; transform: translateX(-16px); } }
+
+/* Esqueleto de carga */
+.esqueleto {
+  background: linear-gradient(90deg, var(--color-surface-alt) 25%, var(--color-border) 50%, var(--color-surface-alt) 75%);
+  background-size: 200% 100%;
+  animation: brillo 1.4s ease-in-out infinite;
+}
+@keyframes brillo { to { background-position: -200% 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .reveal, .mask-inner { transition: none; transform: none; opacity: 1; }
   .marquee-track { animation: none; }
+  .animar-fondo, .animar-entrada, .animar-panel, .esqueleto { animation: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
 }

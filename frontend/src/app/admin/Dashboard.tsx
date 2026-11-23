@@ -1,467 +1,294 @@
-import { useState } from "react"
-import { useAdministration } from "@/modulos/pagos"
+import { useCallback, useEffect, useState, type ReactNode } from "react"
+import { recursoApi } from "@/compartido/api/recursos"
+import { Icono } from "@/compartido/ui/PantallaRecurso"
+import { useAuth } from "@/nucleo/auth/useAuth"
+import { requierePermiso } from "@/nucleo/auth/requierePermiso"
+import { formatoPesos, type Sede } from "@/app/admin/recursos"
 
 interface DashboardProps {
-  onNavigate: (module: string) => void
-  adminName?: string
-  data?: DashboardData
-}
-interface DashboardData {
-  estudiantesActivos: number
-  estudiantesPorSede: { sede: string; total: number }[]
-  ingresosMes: { label: string; total: number; numeroPagos: number }
-  mensualidades: { pagadas: number; pendientes: number; vencidas: number }
-  talleresActivos: number
-  convocatoriasAbiertas: number
-  actividadReciente: ActividadItem[]
-  alertaVencida?: {
-    estudiante: string
-    grupo: string
-    fechaLimite: string
-    valor: number
-  }
-}
-interface ActividadItem {
-  text: string
-  time: string
-  amount?: string
-  status: "Pagado" | "Pendiente" | "Vencido" | "Activo" | "Inactivo"
+  // Abre un módulo; con crear=true abre también su formulario
+  onNavigate: (modulo: string, crear?: boolean) => void
 }
 
-export const defaultDashboardData: DashboardData = {
-  estudiantesActivos: 4,
-  estudiantesPorSede: [
-    { sede: "Bello", total: 2 },
-    { sede: "Copacabana", total: 2 },
-  ],
-  ingresosMes: { label: "Marzo 2026", total: 510000, numeroPagos: 3 },
-  mensualidades: { pagadas: 3, pendientes: 1, vencidas: 1 },
-  talleresActivos: 2,
-  convocatoriasAbiertas: 1,
-  alertaVencida: {
-    estudiante: "Julian Rojas",
-    grupo: "Juvenil-Adultos Intermedio +14",
-    fechaLimite: "2026-02-10",
-    valor: 180000,
-  },
-  actividadReciente: [
-    { text: "Camila Rios — pago de mensualidad (Hip Hop Competencia)", time: "2026-03-07", amount: "$200.000", status: "Pagado" },
-    { text: "Mateo Torres — pago de mensualidad (Básico 10-13)", time: "2026-03-06", amount: "$150.000", status: "Pagado" },
-    { text: "Sofia Torres — pago de mensualidad (Intermedio Ninos 8-11)", time: "2026-03-05", amount: "$160.000", status: "Pagado" },
-    { text: "Mateo Torres inscrito al Taller de preparación física", time: "2026-02-21", amount: "$40.000", status: "Activo" },
-    { text: "Sofia Torres inscrita al Taller de maquillaje escénico", time: "2026-02-20", amount: "$50.000", status: "Activo" },
-    { text: "Julian Rojas — mensualidad de febrero vencida", time: "2026-02-10", amount: "$180.000", status: "Vencido" },
-  ],
+interface Pago {
+  idPago: number
+  concepto: string
+  monto: string
+  fecha_pago: string
+  pagador: string
+  estudiante: string | null
+  metodo: string
 }
 
-const statusCls: Record<string, string> = {
-  Pagado: "text-emerald-400 bg-emerald-400/10",
-  Pendiente: "text-amber-400 bg-amber-400/10",
-  Vencido: "text-red-400 bg-red-400/10",
-  Activo: "text-purple-400 bg-purple-400/10",
-  Inactivo: "text-text-muted bg-surface-alt",
+interface Mensualidad {
+  idMensualidad: number
+  estudiante: string
+  grupo: string
+  periodo: string
+  fecha_limite: string
+  saldo: string
+  estado: string
 }
 
-const statusDot: Record<string, string> = {
-  Pagado: "bg-emerald-400",
-  Pendiente: "bg-amber-400",
-  Vencido: "bg-red-400",
-  Activo: "bg-purple-400",
-  Inactivo: "bg-text-muted",
+// Cada dato se carga aparte: si falta un permiso o falla una ruta, el resto se muestra
+type Dato<T> = { estado: "cargando" } | { estado: "listo"; valor: T } | { estado: "error" }
+
+const ESTADO_ACTIVO = 1
+const MENSUALIDAD_PENDIENTE = 3
+const MENSUALIDAD_VENCIDA = 5
+const MENSUALIDAD_MORA = 6
+
+const hoy = new Date()
+const aIso = (fecha: Date) =>
+  `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${String(fecha.getDate()).padStart(2, "0")}`
+const inicioMes = aIso(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
+const nombreMes = hoy.toLocaleDateString("es-CO", { month: "long", year: "numeric" })
+const fechaCorta = (iso: string) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" })
+
+const contar = (ruta: string, parametros: Record<string, string | number> = {}) =>
+  recursoApi.listar(ruta, { ...parametros, tamano: 1 }).then((r) => r.total)
+
+function useDato<T>(cargar: () => Promise<T>, habilitado: boolean, version: number): Dato<T> {
+  const [dato, setDato] = useState<Dato<T>>({ estado: "cargando" })
+  useEffect(() => {
+    if (!habilitado) {
+      setDato({ estado: "error" })
+      return
+    }
+    let vigente = true
+    setDato({ estado: "cargando" })
+    cargar()
+      .then((valor) => vigente && setDato({ estado: "listo", valor }))
+      .catch(() => vigente && setDato({ estado: "error" }))
+    return () => {
+      vigente = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habilitado, version])
+  return dato
 }
 
-const modulos = [
-  { key: "estudiantes", label: "Estudiantes" },
-  { key: "grupos", label: "Grupos" },
-  { key: "instructores", label: "Instructores" },
-  { key: "adm-mensualidades", label: "Mensualidades" },
-  { key: "adm-pagos", label: "Pagos" },
-  { key: "talleres", label: "Talleres" },
-  { key: "adm-convocatorias", label: "Convocatorias" },
-  { key: "adm-contenidos", label: "Noticias" },
-]
+function Valor<T>({ dato, children }: { dato: Dato<T>; children: (valor: T) => ReactNode }) {
+  if (dato.estado === "cargando") return <span className="esqueleto inline-block h-9 w-20 rounded-lg align-middle" aria-label="Cargando" />
+  if (dato.estado === "error") return <span className="text-text-muted" title="Sin datos o sin permiso">—</span>
+  return <>{children(dato.valor)}</>
+}
 
-const formatCOP = (value: number) =>
-  new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value)
+function Tarjeta({ etiqueta, dato, detalle, onClick }: { etiqueta: string; dato: Dato<number>; detalle: string; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className="group flex flex-col gap-3 rounded-[20px] border border-border bg-surface p-5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/50 disabled:pointer-events-none"
+    >
+      <span className="font-condensed text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">{etiqueta}</span>
+      <span className="display text-5xl text-text">
+        <Valor dato={dato}>{(v) => v.toLocaleString("es-CO")}</Valor>
+      </span>
+      <span className="flex items-center justify-between font-body text-xs text-text-soft">
+        {detalle}
+        {onClick && <span className="font-condensed text-sm uppercase tracking-wider text-accent transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>}
+      </span>
+    </button>
+  )
+}
 
-export default function Dashboard({
-  onNavigate,
-  adminName = "Laura",
-  data: suppliedData,
-}: DashboardProps) {
-  const { data: administration } = useAdministration()
-  const liveData: DashboardData = {
-    ...defaultDashboardData,
-    ingresosMes: {
-      label: new Date().toLocaleDateString("es-CO", { month: "long", year: "numeric" }),
-      total: administration.pagos.reduce((sum, payment) => sum + Number(payment.monto), 0),
-      numeroPagos: administration.pagos.length,
+export default function Dashboard({ onNavigate }: DashboardProps) {
+  const { usuario } = useAuth()
+  const [version, setVersion] = useState(0)
+  const puede = useCallback((permiso: string) => requierePermiso(usuario, permiso), [usuario])
+
+  const estudiantes = useDato(() => contar("/estudiantes", { estado: ESTADO_ACTIVO }), puede("estudiantes"), version)
+  const grupos = useDato(() => contar("/grupos", { estado: ESTADO_ACTIVO }), puede("grupos"), version)
+  const instructores = useDato(() => contar("/instructores", { estado: ESTADO_ACTIVO }), puede("instructores"), version)
+  const convocatorias = useDato(() => contar("/convocatorias", { vigencia: "abierta" }), puede("convocatorias"), version)
+  const sedes = useDato(() => recursoApi.listar<Sede>("/sedes", { estado: ESTADO_ACTIVO, tamano: 100 }).then((r) => r.datos), puede("sedes"), version)
+  const pagosMes = useDato(
+    () =>
+      recursoApi.listar<Pago>("/pagos", { desde: inicioMes, hasta: aIso(hoy), tamano: 100 }).then((r) => ({
+        total: r.datos.reduce((suma, p) => suma + Number(p.monto), 0),
+        cantidad: r.total,
+        incompleto: r.total > r.datos.length,
+      })),
+    puede("pagos"),
+    version,
+  )
+  const ultimosPagos = useDato(() => recursoApi.listar<Pago>("/pagos", { tamano: 5 }).then((r) => r.datos), puede("pagos"), version)
+  const cartera = useDato(
+    async () => {
+      const [vencidas, mora, pendientes] = await Promise.all([
+        recursoApi.listar<Mensualidad>("/mensualidades", { estado: MENSUALIDAD_VENCIDA, tamano: 5 }),
+        recursoApi.listar<Mensualidad>("/mensualidades", { estado: MENSUALIDAD_MORA, tamano: 5 }),
+        contar("/mensualidades", { estado: MENSUALIDAD_PENDIENTE }),
+      ])
+      return {
+        atrasadas: [...mora.datos, ...vencidas.datos].slice(0, 5),
+        totalAtrasadas: vencidas.total + mora.total,
+        pendientes,
+      }
     },
-    mensualidades: {
-      pagadas: administration.mensualidades.filter((item) => item.idEstado === 4).length,
-      pendientes: administration.mensualidades.filter((item) => item.idEstado !== 4 && new Date(`${item.fecha_limite}T23:59`) >= new Date()).length,
-      vencidas: administration.mensualidades.filter((item) => item.idEstado !== 4 && new Date(`${item.fecha_limite}T23:59`) < new Date()).length,
-    },
-    talleresActivos: new Set(administration.inscripciones.map((item) => item.idTaller)).size,
-    convocatoriasAbiertas: administration.convocatorias.filter((item) => item.estadoPublicacion === "Publicada" && new Date(`${item.fecha_inicio}T00:00`) <= new Date() && new Date(`${item.fecha_fin}T23:59`) >= new Date()).length,
-  }
-  const data = suppliedData ?? liveData
-  const {
-    estudiantesActivos,
-    estudiantesPorSede,
-    ingresosMes,
-    mensualidades,
-    talleresActivos,
-    convocatoriasAbiertas,
-    actividadReciente,
-    alertaVencida,
-  } = data
+    puede("pagos"),
+    version,
+  )
 
-  const [periodo, setPeriodo] = useState<"semana" | "mes" | "año">("semana")
-  const totalSedes = estudiantesPorSede.reduce((acc, s) => acc + s.total, 0) || 1
-
-  // Datos con valores diferentes → alturas diferentes
-  const datosBarras = periodo === "semana"
-    ? [
-        { etiqueta: "Lun", valor: 85000 },
-        { etiqueta: "Mar", valor: 120000 },
-        { etiqueta: "Mié", valor: 95000 },
-        { etiqueta: "Jue", valor: 110000 },
-        { etiqueta: "Vie", valor: 100000 },
-      ]
-    : periodo === "mes"
-    ? [
-        { etiqueta: "Ene", valor: 420000 },
-        { etiqueta: "Feb", valor: 480000 },
-        { etiqueta: "Mar", valor: 510000 },
-      ]
-    : [
-        { etiqueta: "2024", valor: 4800000 },
-        { etiqueta: "2025", valor: 5200000 },
-        { etiqueta: "2026", valor: 5500000 },
-      ]
-
-  const maxValor = Math.max(...datosBarras.map((d) => d.valor))
-
-  const formatoValor = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`)
+  const nombre = usuario?.nombre.split(" ")[0] ?? ""
+  const accesos = [
+    { modulo: "estudiantes", etiqueta: "Registrar estudiante", permiso: "estudiantes" },
+    { modulo: "grupos", etiqueta: "Crear grupo", permiso: "grupos" },
+    { modulo: "instructores", etiqueta: "Agregar instructor", permiso: "instructores" },
+    { modulo: "adm-aulas", etiqueta: "Nueva aula", permiso: "aulas" },
+  ].filter((a) => puede(a.permiso))
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Encabezado + Selector de Período */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl uppercase text-text leading-none">
-            Bienvenida, <span className="text-purple-400">{adminName}</span>
-          </h1>
-          <p className="font-body text-sm text-text-soft mt-2">
-            Panel de administración · F&A Dance Company
+          <p className="font-condensed text-xs font-semibold uppercase tracking-[0.25em] text-accent">
+            {hoy.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}
           </p>
+          <h1 className="display mt-2 text-5xl text-text sm:text-6xl">
+            Hola{nombre ? "," : ""} <span className="text-blush">{nombre}</span>
+          </h1>
+          <p className="mt-2 font-body text-sm text-text-soft">Resumen de la academia con datos reales de la base de datos.</p>
         </div>
-        <div className="flex gap-2 bg-surface border border-border rounded-full p-1">
-          {(["semana", "mes", "año"] as const).map((p) => (
+        <button
+          type="button"
+          onClick={() => setVersion((v) => v + 1)}
+          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 font-condensed text-sm font-semibold uppercase tracking-wider text-text-soft transition-colors hover:border-accent hover:text-text"
+        >
+          <Icono nombre="recargar" /> Actualizar
+        </button>
+      </header>
+
+      {accesos.length > 0 && (
+        <nav aria-label="Accesos rápidos" className="flex flex-wrap gap-2">
+          {accesos.map((a) => (
             <button
-              key={p}
-              onClick={() => setPeriodo(p)}
-              aria-pressed={periodo === p}
-              className={`px-4 py-2 rounded-full text-sm font-condensed uppercase tracking-wider transition-all ${
-                periodo === p
-                  ? "bg-accent text-on-accent"
-                  : "text-text-soft hover:text-text"
-              }`}
+              key={a.modulo}
+              type="button"
+              onClick={() => onNavigate(a.modulo, true)}
+              className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 font-condensed text-sm font-bold uppercase tracking-wider text-on-accent transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-strong"
             >
-              {p}
+              <Icono nombre="mas" /> {a.etiqueta}
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* Alerta */}
-      {alertaVencida && (
-        <button
-          onClick={() => onNavigate("adm-mensualidades")}
-          className="flex items-center gap-4 rounded-[16px] bg-red-400/10 border border-red-400/30 px-6 py-4 text-left hover:bg-red-400/15 transition-colors"
-        >
-          <span className="font-condensed text-xs font-bold uppercase tracking-widest text-red-400">Alerta</span>
-          <div className="flex-1">
-            <p className="font-body text-sm text-text">
-              <span className="font-600">{alertaVencida.estudiante}</span> tiene
-              una mensualidad vencida de{" "}
-              <span className="font-600">{formatCOP(alertaVencida.valor)}</span>{" "}
-              ({alertaVencida.grupo}) — venció el {alertaVencida.fechaLimite}
-            </p>
-          </div>
-          <span className="font-condensed text-xs uppercase tracking-wider text-red-400">
-            Ver mensualidades →
-          </span>
-        </button>
+        </nav>
       )}
 
-      {/* Tarjetas de resumen */}
-      <div className="grid md:grid-cols-4 gap-5">
-        <div
-          className="relative overflow-hidden rounded-[20px] bg-surface border border-border p-6 cursor-pointer hover:border-purple-700/50 transition-all"
-          onClick={() => onNavigate("estudiantes")}
-        >
-          <div className="font-condensed text-xs uppercase tracking-widest text-text-soft mb-3">
-            Estudiantes activos
-          </div>
-          <div className="font-display text-4xl text-text leading-none mb-4">
-            {estudiantesActivos}
-          </div>
-          <div className="flex gap-2">
-            {estudiantesPorSede.map((s) => (
-              <div key={s.sede} className="flex-1">
-                <div className="font-condensed text-[10px] uppercase text-text-soft mb-1">
-                  {s.sede}
-                </div>
-                <div className="h-1.5 rounded-full bg-border overflow-hidden">
-                  <div
-                    className="h-full bg-purple-700 rounded-full"
-                    style={{ width: `${(s.total / totalSedes) * 100}%` }}
-                  />
-                </div>
-                <div className="font-display text-lg text-purple-400 mt-1">
-                  {s.total}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <section aria-label="Indicadores" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Tarjeta etiqueta="Estudiantes activos" dato={estudiantes} detalle="En todas las sedes" onClick={puede("estudiantes") ? () => onNavigate("estudiantes") : undefined} />
+        <Tarjeta etiqueta="Grupos activos" dato={grupos} detalle="Con cupos e instructor" onClick={puede("grupos") ? () => onNavigate("grupos") : undefined} />
+        <Tarjeta etiqueta="Instructores activos" dato={instructores} detalle="Asignados a sedes" onClick={puede("instructores") ? () => onNavigate("instructores") : undefined} />
+        <Tarjeta etiqueta="Convocatorias abiertas" dato={convocatorias} detalle="Recibiendo postulaciones" />
+      </section>
 
-        <div
-          className="relative overflow-hidden rounded-[20px] bg-surface border border-border p-6 cursor-pointer hover:border-purple-700/50 transition-all"
-          onClick={() => onNavigate("adm-pagos")}
-        >
-          <div className="font-condensed text-xs uppercase tracking-widest text-text-soft mb-3">
-            Ingresos · {ingresosMes.label}
+      <div className="grid gap-4 lg:grid-cols-5">
+        {/* Cartera */}
+        <section aria-labelledby="titulo-cartera" className="rounded-[20px] border border-border bg-surface p-6 lg:col-span-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="titulo-cartera" className="font-display text-2xl uppercase text-text">Mensualidades por cobrar</h2>
+            <p className="font-body text-xs text-text-muted">
+              <Valor dato={cartera}>{(c) => `${c.pendientes} pendiente${c.pendientes === 1 ? "" : "s"} · ${c.totalAtrasadas} vencida${c.totalAtrasadas === 1 ? "" : "s"} o en mora`}</Valor>
+            </p>
           </div>
-          <div className="font-display text-4xl text-text leading-none mb-4">
-            {formatCOP(ingresosMes.total)}
+          <div className="mt-4">
+            <Valor dato={cartera}>
+              {(c) =>
+                c.atrasadas.length === 0 ? (
+                  <p className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-4 font-body text-sm text-emerald-700 dark:text-emerald-300">
+                    No hay mensualidades vencidas ni en mora.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {c.atrasadas.map((m) => (
+                      <li key={m.idMensualidad} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                        <div className="min-w-0">
+                          <p className="font-body text-sm font-semibold text-text">{m.estudiante}</p>
+                          <p className="truncate font-body text-xs text-text-muted">
+                            {m.grupo} · periodo {m.periodo} · venció el {fechaCorta(m.fecha_limite)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-body text-sm font-semibold tabular-nums text-text">{formatoPesos(m.saldo)}</span>
+                          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-0.5 font-condensed text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-300">{m.estado}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              }
+            </Valor>
           </div>
-          <div className="font-condensed text-xs uppercase tracking-wider text-text-soft">
-            {ingresosMes.numeroPagos} pagos registrados
-          </div>
-        </div>
+        </section>
 
-        <div
-          className="relative overflow-hidden rounded-[20px] bg-surface border border-border p-6 cursor-pointer hover:border-purple-700/50 transition-all"
-          onClick={() => onNavigate("adm-mensualidades")}
-        >
-          <div className="font-condensed text-xs uppercase tracking-widest text-text-soft mb-3">
-            Mensualidades
+        {/* Estudiantes por sede */}
+        <section aria-labelledby="titulo-sedes" className="rounded-[20px] border border-border bg-surface p-6 lg:col-span-2">
+          <h2 id="titulo-sedes" className="font-display text-2xl uppercase text-text">Estudiantes por sede</h2>
+          <div className="mt-5 flex flex-col gap-4">
+            <Valor dato={sedes}>
+              {(lista) => {
+                const maximo = Math.max(1, ...lista.map((s) => s.estudiantesActivos))
+                return lista.length === 0 ? (
+                  <p className="font-body text-sm text-text-muted">No hay sedes activas.</p>
+                ) : (
+                  lista.map((s) => (
+                    <div key={s.idSede}>
+                      <div className="mb-1.5 flex justify-between font-condensed text-sm uppercase tracking-wider">
+                        <span className="text-text">{s.nombre}</span>
+                        <span className="tabular-nums text-text-soft">{s.estudiantesActivos} · {s.gruposActivos} grupos</span>
+                      </div>
+                      <div className="h-2.5 overflow-hidden rounded-full bg-surface-alt" role="presentation">
+                        <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${(s.estudiantesActivos / maximo) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))
+                )
+              }}
+            </Valor>
           </div>
-          <div className="flex items-end gap-4">
-            <div>
-              <div className="font-display text-4xl text-emerald-400 leading-none">
-                {mensualidades.pagadas}
-              </div>
-              <div className="font-condensed text-[10px] uppercase text-text-soft mt-1">
-                Pagadas
-              </div>
-            </div>
-            <div>
-              <div className="font-display text-4xl text-amber-400 leading-none">
-                {mensualidades.pendientes}
-              </div>
-              <div className="font-condensed text-[10px] uppercase text-text-soft mt-1">
-                Pendientes
-              </div>
-            </div>
-            <div>
-              <div className="font-display text-4xl text-red-400 leading-none">
-                {mensualidades.vencidas}
-              </div>
-              <div className="font-condensed text-[10px] uppercase text-text-soft mt-1">
-                Vencidas
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="relative overflow-hidden rounded-[20px] bg-surface border border-border p-6 cursor-pointer hover:border-purple-700/50 transition-all"
-          onClick={() => onNavigate("talleres")}
-        >
-          <div className="font-condensed text-xs uppercase tracking-widest text-text-soft mb-3">
-            Actividad extra
-          </div>
-          <div className="flex items-end gap-6">
-            <div>
-              <div className="font-display text-4xl text-text leading-none">
-                {talleresActivos}
-              </div>
-              <div className="font-condensed text-[10px] uppercase text-text-soft mt-1">
-                Talleres activos
-              </div>
-            </div>
-            <div>
-              <div className="font-display text-4xl text-purple-400 leading-none">
-                {convocatoriasAbiertas}
-              </div>
-              <div className="font-condensed text-[10px] uppercase text-text-soft mt-1">
-                Convocatorias abiertas
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
 
-      {/* Gráfico de barras */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="rounded-[20px] bg-surface border border-border p-6">
-          <h3 className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-6">
-            Ingresos · {periodo === "semana" ? "Última semana" : periodo === "mes" ? "Por mes" : "Por año"}
-          </h3>
-          <div className="flex items-end justify-between gap-4 h-72 px-4">
-            {datosBarras.map((dato) => {
-              const alturaPorcentaje = (dato.valor / maxValor) * 100
-              return (
-                <div key={dato.etiqueta} className="flex flex-col items-center flex-1">
-                  <div className="text-sm text-text font-semibold mb-2">
-                    {formatoValor(dato.valor)}
-                  </div>
-                  <div
-                    className="w-full max-w-16 bg-purple-600 rounded-t-md transition-all duration-500"
-                    style={{
-                      height: `${alturaPorcentaje}%`,
-                      minHeight: "24px",
-                    }}
-                  />
-                  <div className="text-xs text-text-soft mt-3 font-condensed">
-                    {dato.etiqueta}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Gráfico circular / dona */}
-        <div className="rounded-[20px] bg-surface border border-border p-6">
-          <h3 className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-6">
-            Estado de mensualidades
-          </h3>
-          <div className="flex items-center justify-center gap-8">
-            <div className="relative w-52 h-52 flex-shrink-0">
-              <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#22c55e" strokeWidth="10"
-                  strokeDasharray={`${(mensualidades.pagadas / 5) * 251.2} 251.2`}
-                  strokeLinecap="round"
-                />
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" strokeWidth="10"
-                  strokeDasharray={`${(mensualidades.pendientes / 5) * 251.2} 251.2`}
-                  strokeDashoffset={`${-(mensualidades.pagadas / 5) * 251.2}`}
-                  strokeLinecap="round"
-                />
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" strokeWidth="10"
-                  strokeDasharray={`${(mensualidades.vencidas / 5) * 251.2} 251.2`}
-                  strokeDashoffset={`${-((mensualidades.pagadas + mensualidades.pendientes) / 5) * 251.2}`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-28 h-28 rounded-full bg-surface flex items-center justify-center">
-                  <span className="font-display text-3xl text-text font-bold">
-                    {mensualidades.pagadas + mensualidades.pendientes + mensualidades.vencidas}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                <span className="text-sm text-text">Pagadas</span>
-                <span className="font-display text-text font-bold ml-2">{mensualidades.pagadas}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-amber-500" />
-                <span className="text-sm text-text">Pendientes</span>
-                <span className="font-display text-text font-bold ml-2">{mensualidades.pendientes}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <span className="text-sm text-text">Vencidas</span>
-                <span className="font-display text-text font-bold ml-2">{mensualidades.vencidas}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Accesos rápidos */}
-      <div>
-        <h2 className="font-condensed font-700 text-base uppercase tracking-wider text-text mb-4">
-          Accesos rápidos
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {modulos.map((m, i) => (
-            <button
-              key={m.key}
-              onClick={() => onNavigate(m.key)}
-              className="flex items-center gap-3 rounded-[16px] bg-surface border border-border px-5 py-4 text-left hover:border-purple-700/50 hover:bg-purple-400/5 transition-all"
-            >
-              <span className="font-condensed text-xs text-text-muted">
-                ({String(i + 1).padStart(2, "0")})
-              </span>
-              <span className="font-condensed text-sm uppercase tracking-wider text-text">
-                {m.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Actividad reciente */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-condensed font-700 text-base uppercase tracking-wider text-text">
-            Actividad reciente
-          </h2>
-          <button
-            onClick={() => onNavigate("adm-pagos")}
-            className="font-condensed text-xs uppercase tracking-wider text-purple-400 hover:text-purple-300 transition-colors"
-          >
-            Ver todo →
-          </button>
-        </div>
-        <div className="rounded-[20px] bg-surface border border-border overflow-hidden">
-          {actividadReciente.map((item, i) => (
-            <div
-              key={i}
-              className={[
-                "flex items-center gap-4 px-6 py-4 transition-colors hover:bg-purple-400/5",
-                i < actividadReciente.length - 1 ? "border-b border-border" : "",
-              ].join(" ")}
-            >
-              <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center flex-shrink-0">
-                <span className={`h-2.5 w-2.5 rounded-full ${statusDot[item.status] ?? "bg-purple-400"}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-body text-sm text-text truncate">
-                  {item.text}
-                </p>
-                <p className="font-condensed text-xs uppercase tracking-wider text-text-soft mt-0.5">
-                  {item.time}
-                </p>
-              </div>
-              {item.amount && (
-                <span className="font-condensed font-600 text-sm text-text flex-shrink-0">
-                  {item.amount}
-                </span>
+      {/* Pagos */}
+      <section aria-labelledby="titulo-pagos" className="rounded-[20px] border border-border bg-surface p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="titulo-pagos" className="font-display text-2xl uppercase text-text">Pagos</h2>
+          <p className="font-body text-sm text-text-soft">
+            Recaudo de {nombreMes}:{" "}
+            <Valor dato={pagosMes}>
+              {(p) => (
+                <strong className="text-text">
+                  {formatoPesos(p.total)} · {p.cantidad} pago{p.cantidad === 1 ? "" : "s"}
+                  {p.incompleto ? " (primeros 100)" : ""}
+                </strong>
               )}
-              <span
-                className={`flex-shrink-0 font-condensed text-xs uppercase tracking-wider px-2.5 py-0.5 rounded-full ${statusCls[item.status] ?? "text-text-muted"}`}
-              >
-                {item.status}
-              </span>
-            </div>
-          ))}
+            </Valor>
+          </p>
         </div>
-      </div>
+        <div className="mt-4">
+          <Valor dato={ultimosPagos}>
+            {(lista) =>
+              lista.length === 0 ? (
+                <p className="font-body text-sm text-text-muted">Todavía no hay pagos registrados.</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {lista.map((p) => (
+                    <li key={p.idPago} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                      <div className="min-w-0">
+                        <p className="font-body text-sm font-semibold text-text">{p.estudiante ?? p.pagador}</p>
+                        <p className="truncate font-body text-xs text-text-muted">{p.concepto} · {p.metodo} · {fechaCorta(p.fecha_pago)}</p>
+                      </div>
+                      <span className="font-body text-sm font-semibold tabular-nums text-text">{formatoPesos(p.monto)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )
+            }
+          </Valor>
+        </div>
+      </section>
     </div>
   )
 }
