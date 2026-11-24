@@ -119,7 +119,7 @@ export default function Hero() {
                   expresa quién eres y transforma tu vida a través del movimiento.
                 </p>
                 <div className="mt-7 flex flex-col sm:flex-row gap-4">
-                  <Button size="lg" onClick={() => scrollTo('#alquiler')}>Regístrate ahora</Button>
+                  <Button size="lg" onClick={() => scrollTo('#sedes')}>Inscríbete en una sede</Button>
                   <Button size="lg" variant="outline" className="!text-purple-50 !border-purple-50/50 hover:!bg-purple-50 hover:!text-[#1b1326]" onClick={() => scrollTo('#nosotros')}>
                     Conoce más
                   </Button>

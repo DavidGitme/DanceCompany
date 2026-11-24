@@ -77,6 +77,28 @@ export interface DefinicionRecurso<T> {
   avisoInactivar?: (fila: T) => string | undefined
   // Bloquea el borrado con un motivo
   bloqueoEliminar?: (fila: T) => string | undefined
+  // Con sede fija, el campo idSede sigue visible al editar (traslado de estudiante)
+  permiteCambiarSede?: boolean
+}
+
+/*
+ * Cuenta de administrador de una sede: el backend ya limita todo a su sede, así que
+ * el filtro y la columna de sede sobran y el formulario usa su sede sin preguntarla.
+ */
+export function conSedeFija<T>(
+  definicion: DefinicionRecurso<T>,
+  sedeFija: number | null | undefined,
+  modo?: "crear" | "editar",
+): DefinicionRecurso<T> {
+  if (!sedeFija) return definicion
+  const mostrarSede = modo === "editar" && definicion.permiteCambiarSede
+  return {
+    ...definicion,
+    filtros: definicion.filtros?.filter((f) => f.clave !== "sede"),
+    columnas: definicion.columnas.filter((c) => c.clave !== "sede"),
+    campos: mostrarSede ? definicion.campos : definicion.campos.filter((c) => c.clave !== "idSede"),
+    valoresIniciales: { ...(definicion.valoresIniciales ?? {}), idSede: String(sedeFija) },
+  }
 }
 
 interface FilaBase {
@@ -113,6 +135,7 @@ const rutasIcono = {
   alerta: "M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.01",
   vacio: "M20.25 7.5l-.63 10.63a2.25 2.25 0 01-2.24 2.12H6.62a2.25 2.25 0 01-2.24-2.12L3.75 7.5M10 11.25h4M3.38 7.5h17.25c.62 0 1.12-.5 1.12-1.12v-1.5c0-.63-.5-1.13-1.12-1.13H3.38c-.63 0-1.13.5-1.13 1.13v1.5c0 .62.5 1.12 1.13 1.12z",
   check: "M4.5 12.75l6 6 9-13.5",
+  ojo: "M2.04 12.32a1 1 0 010-.64C3.42 7.51 7.36 4.5 12 4.5c4.64 0 8.57 3.01 9.96 7.18.07.21.07.43 0 .64C20.58 16.49 16.64 19.5 12 19.5c-4.64 0-8.57-3.01-9.96-7.18zM15 12a3 3 0 11-6 0 3 3 0 016 0z",
   recargar: "M16.02 9.35h4.99V4.36M2.99 19.64v-4.99h4.99m-4.99 0l3.18 3.18a8.25 8.25 0 0013.8-3.7M4.03 9.35a8.25 8.25 0 0113.8-3.7l3.18 3.18",
 }
 
@@ -124,16 +147,16 @@ export function Icono({ nombre, clase = "h-4 w-4" }: { nombre: keyof typeof ruta
   )
 }
 
-const claseEntrada =
+export const claseEntrada =
   "w-full rounded-xl border border-border bg-surface-alt px-3.5 py-2.5 font-body text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-0 disabled:opacity-60"
-const claseBotonPrincipal =
+export const claseBotonPrincipal =
   "inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 font-condensed text-sm font-bold uppercase tracking-wider text-on-accent transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-strong active:translate-y-0 disabled:pointer-events-none disabled:opacity-50"
-const claseBotonSecundario =
+export const claseBotonSecundario =
   "inline-flex items-center justify-center gap-2 rounded-full border border-border px-5 py-2.5 font-condensed text-sm font-semibold uppercase tracking-wider text-text-soft transition-colors hover:border-accent hover:text-text disabled:opacity-50"
-const claseBotonIcono =
+export const claseBotonIcono =
   "grid h-9 w-9 place-items-center rounded-full text-text-muted transition-colors"
-const hoverNeutro = "hover:bg-accent/10 hover:text-accent"
-const hoverPeligro = "hover:bg-red-500/10 hover:text-red-500"
+export const hoverNeutro = "hover:bg-accent/10 hover:text-accent"
+export const hoverPeligro = "hover:bg-red-500/10 hover:text-red-500"
 const hoverExito = "hover:bg-emerald-500/10 hover:text-emerald-500"
 
 const comoTexto = (valor: string | string[] | undefined) => (Array.isArray(valor) ? valor.join(",") : (valor ?? ""))
@@ -471,11 +494,34 @@ interface PantallaRecursoProps<T> {
   // Abre el formulario de creación al entrar (acciones rápidas del Dashboard)
   abrirCrear?: boolean
   onCrearAbierto?: () => void
+  // Sede de la cuenta (administrador de sede); null = sin restricción
+  sedeFija?: number | null
+  // Reemplaza el formulario genérico de creación (inscripción del estudiante)
+  alCrear?: () => void
+  // Botones adicionales por fila (por ejemplo, ver la ficha)
+  accionesFila?: (fila: T) => ReactNode
+  // Cambia el valor para volver a cargar la lista desde afuera
+  recargar?: number
+  // false oculta "Nuevo" (por ejemplo, sedes para un administrador de sede)
+  permiteCrear?: boolean
+  // false oculta editar, inactivar y eliminar en esa fila (registros de otra sede)
+  puedeGestionar?: (fila: T) => boolean
 }
 
 type Accion<T> = { tipo: "estado" | "eliminar"; fila: T } | null
 
-export default function PantallaRecurso<T extends FilaBase>({ definicion, abrirCrear, onCrearAbierto }: PantallaRecursoProps<T>) {
+export default function PantallaRecurso<T extends FilaBase>({
+  definicion: definicionBase,
+  abrirCrear,
+  onCrearAbierto,
+  sedeFija,
+  alCrear,
+  accionesFila,
+  recargar,
+  permiteCrear = true,
+  puedeGestionar,
+}: PantallaRecursoProps<T>) {
+  const definicion = useMemo(() => conSedeFija(definicionBase, sedeFija), [definicionBase, sedeFija])
   const [contexto, setContexto] = useState<ContextoLista>(() => contextos.get(definicion.id) ?? contextoInicial)
   const [busqueda, setBusqueda] = useState(contexto.buscar)
   const [filas, setFilas] = useState<T[]>([])
@@ -517,6 +563,8 @@ export default function PantallaRecurso<T extends FilaBase>({ definicion, abrirC
         buscar: contexto.buscar,
         estado: definicion.conEstado ? contexto.estado : undefined,
         ...contexto.filtros,
+        // Con sede fija no se envía un filtro de sede guardado de otra sesión
+        ...(sedeFija ? { sede: undefined } : {}),
       })
       if (numero !== peticion.current) return
       // Si se borró el último registro de la página, vuelve a la anterior
@@ -533,19 +581,20 @@ export default function PantallaRecurso<T extends FilaBase>({ definicion, abrirC
     } finally {
       if (numero === peticion.current) setCargando(false)
     }
-  }, [contexto, definicion])
+  }, [contexto, definicion, sedeFija])
 
   useEffect(() => {
     cargar()
-  }, [cargar])
+  }, [cargar, recargar])
 
   // Opciones de los filtros y de los campos sin dependencia (una vez)
+  // Se usa la definición completa: con sede fija, el campo sede solo aparece al editar
   const fuentesBase = useMemo(() => {
     const nombres = new Set<string>()
-    definicion.filtros?.forEach((f) => nombres.add(f.fuente))
-    definicion.campos.forEach((c) => c.fuente && !c.dependeDe && nombres.add(c.fuente))
+    definicionBase.filtros?.forEach((f) => nombres.add(f.fuente))
+    definicionBase.campos.forEach((c) => c.fuente && !c.dependeDe && nombres.add(c.fuente))
     return [...nombres]
-  }, [definicion])
+  }, [definicionBase])
 
   const cargarFuentes = useCallback(() => {
     fuentesBase.forEach((nombre) => {
@@ -559,11 +608,17 @@ export default function PantallaRecurso<T extends FilaBase>({ definicion, abrirC
     cargarFuentes()
   }, [cargarFuentes])
 
+  const abrirNuevo = useCallback(() => {
+    if (!permiteCrear) return
+    if (alCrear) alCrear()
+    else setFormulario({ modo: "crear", fila: null })
+  }, [alCrear, permiteCrear])
+
   useEffect(() => {
     if (!abrirCrear) return
-    setFormulario({ modo: "crear", fila: null })
+    abrirNuevo()
     onCrearAbierto?.()
-  }, [abrirCrear, onCrearAbierto])
+  }, [abrirCrear, onCrearAbierto, abrirNuevo])
 
   useEffect(() => {
     if (!aviso) return
@@ -633,8 +688,12 @@ export default function PantallaRecurso<T extends FilaBase>({ definicion, abrirC
   const acciones = (fila: T) => {
     const activo = fila.idEstado === ESTADO_ACTIVO
     const nombre = nombreDe(fila)
+    if (puedeGestionar && !puedeGestionar(fila)) {
+      return <div className="flex items-center justify-end gap-1">{accionesFila?.(fila)}</div>
+    }
     return (
       <div className="flex items-center justify-end gap-1">
+        {accionesFila?.(fila)}
         <button type="button" className={`${claseBotonIcono} ${hoverNeutro}`} onClick={() => setFormulario({ modo: "editar", fila })} aria-label={`Editar ${nombre}`} title="Editar">
           <Icono nombre="editar" />
         </button>
@@ -719,10 +778,12 @@ export default function PantallaRecurso<T extends FilaBase>({ definicion, abrirC
           <h1 id={`${definicion.id}-titulo`} className="display mt-2 text-4xl text-text sm:text-5xl">{definicion.titulo}</h1>
           <p className="mt-2 font-body text-sm text-text-soft">{definicion.descripcion}</p>
         </div>
-        <button type="button" onClick={() => setFormulario({ modo: "crear", fila: null })} className={claseBotonPrincipal}>
-          <Icono nombre="mas" />
-          {definicion.genero === "f" ? "Nueva" : "Nuevo"} {definicion.singular}
-        </button>
+        {permiteCrear && (
+          <button type="button" onClick={abrirNuevo} className={claseBotonPrincipal}>
+            <Icono nombre="mas" />
+            {definicion.genero === "f" ? "Nueva" : "Nuevo"} {definicion.singular}
+          </button>
+        )}
       </header>
 
       {/* Búsqueda y filtros */}
@@ -803,9 +864,11 @@ export default function PantallaRecurso<T extends FilaBase>({ definicion, abrirC
             {filtrosActivos ? (
               <button type="button" onClick={limpiarFiltros} className={claseBotonSecundario}>Limpiar filtros</button>
             ) : (
-              <button type="button" onClick={() => setFormulario({ modo: "crear", fila: null })} className={claseBotonPrincipal}>
-                <Icono nombre="mas" /> {definicion.genero === "f" ? "Nueva" : "Nuevo"} {definicion.singular}
-              </button>
+              permiteCrear && (
+                <button type="button" onClick={abrirNuevo} className={claseBotonPrincipal}>
+                  <Icono nombre="mas" /> {definicion.genero === "f" ? "Nueva" : "Nuevo"} {definicion.singular}
+                </button>
+              )
             )}
           </div>
         ) : (
@@ -886,7 +949,7 @@ export default function PantallaRecurso<T extends FilaBase>({ definicion, abrirC
 
       {formulario && (
         <FormularioRecurso
-          definicion={definicion}
+          definicion={conSedeFija(definicionBase, sedeFija, formulario.modo)}
           modo={formulario.modo}
           valoresIniciales={formulario.fila ? definicion.aFormulario(formulario.fila) : { ...(definicion.valoresIniciales ?? {}) }}
           opcionesBase={opcionesFiltro}

@@ -102,7 +102,8 @@ def iniciar_sesion(api, documento, clave, rol):
 def main():
     parser = argparse.ArgumentParser(description="Prueba de humo de la API de DanceFlow")
     parser.add_argument("--url", default="http://localhost:8000/api/v1")
-    parser.add_argument("--admin", default="1000000001", help="documento del administrador")
+    parser.add_argument("--admin", default="1000000001", help="documento del administrador de una sede")
+    parser.add_argument("--admin2", default="1000000010", help="documento del administrador de la otra sede")
     parser.add_argument("--instructor", default="1000000002", help="documento del instructor")
     parser.add_argument("--estudiante", default="julian.rojas@mail.com", help="correo del estudiante")
     parser.add_argument("--clave", default="Dance2026*", help="clave de las cuentas de prueba")
@@ -143,7 +144,33 @@ def main():
         revisar(api, "duplicado", "POST", "/estilos", 409, admin, {"nombre": estilos[0]["nombre"].upper()})
     revisar(api, "edades", "POST", "/niveles", 400, admin,
             {"nombre": "PRUEBA edades", "orden": 9999, "edadMin": 15, "edadMax": 10})
-    revisar(api, "formato", "POST", "/sedes", 422, admin, {"nombre": ""})
+    revisar(api, "formato", "POST", "/estilos", 422, admin, {"nombre": ""})
+
+    # Un registro de otra sede responde 404 para no revelar que existe
+    titulo("5b. Alcance por sede (cada administrador solo ve y cambia su sede)")
+    admin2 = iniciar_sesion(api, args.admin2, args.clave, "administrador")
+    if admin2:
+        propios = api.llamar("GET", "/estudiantes?tamano=100", admin)[1] or {"datos": []}
+        ajenos = api.llamar("GET", "/estudiantes?tamano=100", admin2)[1] or {"datos": []}
+        sedes_propias = {e["idSede"] for e in propios["datos"]}
+        sedes_ajenas = {e["idSede"] for e in ajenos["datos"]}
+        separadas = len(sedes_propias) <= 1 and len(sedes_ajenas) <= 1 and not (sedes_propias & sedes_ajenas)
+        print(f"  {'✔' if separadas else '✘'} listas de estudiantes separadas por sede: {sedes_propias} / {sedes_ajenas}")
+        resultados.append(separadas)
+        if ajenos["datos"] and sedes_ajenas:
+            otro = ajenos["datos"][0]
+            otra_sede = next(iter(sedes_ajenas))
+            revisar(api, "estudiante de otra sede", "GET", f"/estudiantes/{otro['idEstudiante']}", 404, admin)
+            revisar(api, "inactivar de otra sede", "PATCH", f"/estudiantes/{otro['idEstudiante']}/estado",
+                    404, admin, {"idEstado": 2})
+            revisar(api, "filtro de otra sede", "GET", f"/matriculas?sede={otra_sede}", 403, admin)
+            revisar(api, "pagos de alumno ajeno", "GET", f"/pagos?estudiante={otro['idEstudiante']}", 404, admin)
+        revisar(api, "crear sede con cuenta de sede", "POST", "/sedes", 403, admin, {"nombre": "PRUEBA sede"})
+        revisar(api, "dar rol administrador", "POST", "/usuarios", 403, admin,
+                {"documento": "00000000", "clave": "Prueba2026*", "roles": [1]})
+        revisar(api, "inactivar al otro admin", "DELETE", f"/usuarios/{args.admin2}", 404, admin)
+        revisar(api, "crear rol con cuenta de sede", "POST", "/roles", 403, admin, {"nombre": "PRUEBA rol"})
+        revisar(api, "cambiar matriz de permisos", "PUT", "/roles/2/permisos", 403, admin, {"permisos": [1]})
 
     titulo("6. Portal del instructor")
     instructor = iniciar_sesion(api, args.instructor, args.clave, "instructor")
@@ -167,7 +194,6 @@ def main():
         marca = time.strftime("%H%M%S")
         for ruta, cuerpo, cambio, clave_id in [
             ("/estilos", {"nombre": f"PRUEBA API {marca}"}, {"nombre": f"PRUEBA API {marca} editado"}, "idEstilo"),
-            ("/sedes", {"nombre": f"PRUEBA {marca}", "direccion": "Calle de prueba"}, {"direccion": "Calle editada"}, "idSede"),
             ("/talleres", {"descripcion": f"PRUEBA API {marca}", "valor": 1000}, {"valor": 2000}, "idTaller"),
         ]:
             creado = revisar(api, "crear", "POST", ruta, 201, admin, cuerpo)
@@ -177,6 +203,9 @@ def main():
                 revisar(api, "inactivar", "PATCH", f"{ruta}/{identificador}/estado", 200, admin, {"idEstado": 2})
 
         titulo("9. Seguridad (persona → cuenta → login → desactivar)")
+        # El backend acepta 5 inicios de sesión por minuto desde la misma IP
+        print("      esperando 60 s por el límite de inicios de sesión...")
+        time.sleep(61)
         documento = "99" + time.strftime("%H%M%S")
         persona = revisar(api, "crear persona", "POST", "/personas", 201, admin,
                           {"nombre": f"PRUEBA API {marca}", "documento": documento})
@@ -193,8 +222,9 @@ def main():
             revisar(api, "login desactivado", "POST", "/auth/login", 401,
                     cuerpo={"documento": documento, "clave": "Prueba2026*"})
             revisar(api, "desactivar persona", "DELETE", f"/personas/{persona['idPersona']}", 200, admin)
-        revisar(api, "cuenta sin persona", "POST", "/usuarios", 400, admin,
-                {"documento": "00000000", "clave": "Prueba2026*", "roles": [1]})
+        if rol:
+            revisar(api, "cuenta sin persona", "POST", "/usuarios", 400, admin,
+                    {"documento": "00000000", "clave": "Prueba2026*", "roles": [rol["idRol"]]})
 
     total, buenos = len(resultados), sum(resultados)
     print("\n" + "═" * 72)

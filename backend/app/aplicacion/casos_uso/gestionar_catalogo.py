@@ -23,8 +23,9 @@ class GestionarCatalogo:
         datos, total = self.repositorio.listar(estado, buscar, pagina, tamano)
         return {"datos": datos, "total": total, "pagina": pagina, "tamano": tamano}
 
-    def disponibles(self) -> list[dict[str, Any]]:
-        return self.repositorio.disponibles()
+    def disponibles(self, sede: int | None = None) -> list[dict[str, Any]]:
+        # Solo los recursos con sede reciben el filtro (estudiantes, grupos, matrículas...)
+        return self.repositorio.disponibles() if sede is None else self.repositorio.disponibles(sede)
 
     def obtener(self, identificador: int) -> dict[str, Any]:
         registro = self.repositorio.obtener(identificador)

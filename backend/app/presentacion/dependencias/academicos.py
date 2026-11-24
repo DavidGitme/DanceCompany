@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.aplicacion.casos_uso.estilos.gestionar_estilos import GestionarEstilos
 from app.aplicacion.casos_uso.estudiantes.gestionar_estudiantes import GestionarEstudiantes
 from app.aplicacion.casos_uso.grupos.gestionar_grupos import GestionarGrupos
+from app.aplicacion.casos_uso.inscripciones.inscribir_estudiante import InscribirEstudiante
+from app.aplicacion.casos_uso.matriculas.gestionar_matriculas import GestionarMatriculas
 from app.aplicacion.casos_uso.instructores.gestionar_instructores import GestionarInstructores
 from app.aplicacion.casos_uso.niveles.gestionar_niveles import GestionarNiveles
 from app.aplicacion.casos_uso.sedes.gestionar_sedes import GestionarSedes
@@ -14,10 +16,13 @@ from app.infraestructura.bd.conexion import obtener_sesion
 from app.infraestructura.repositorios.estilos_sql import RepositorioEstilosSql
 from app.infraestructura.repositorios.estudiantes_sql import RepositorioEstudiantesSql
 from app.infraestructura.repositorios.grupos_sql import RepositorioGruposSql
+from app.infraestructura.repositorios.inscripciones_sql import RepositorioInscripcionesSql
+from app.infraestructura.repositorios.matriculas_sql import RepositorioMatriculasSql
 from app.infraestructura.repositorios.instructores_sql import RepositorioInstructoresSql
 from app.infraestructura.repositorios.niveles_sql import RepositorioNivelesSql
 from app.infraestructura.repositorios.sedes_sql import RepositorioSedesSql
 from app.infraestructura.repositorios.talleres_sql import RepositorioTalleresSql
+from app.infraestructura.seguridad.hash_claves import HasherArgon2
 
 
 def gestor_estilos(sesion: Session = Depends(obtener_sesion)):
@@ -46,3 +51,13 @@ def gestor_estudiantes(sesion: Session = Depends(obtener_sesion)):
 
 def gestor_grupos(sesion: Session = Depends(obtener_sesion)):
     return GestionarGrupos(RepositorioGruposSql(sesion))
+
+
+def gestor_inscripciones(sesion: Session = Depends(obtener_sesion)):
+    # Todos comparten la misma sesión: la inscripción es una sola transacción
+    return InscribirEstudiante(
+        GestionarEstudiantes(RepositorioEstudiantesSql(sesion)),
+        RepositorioInscripcionesSql(sesion),
+        GestionarMatriculas(RepositorioMatriculasSql(sesion)),
+        HasherArgon2(),
+    )

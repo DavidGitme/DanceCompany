@@ -7,6 +7,7 @@ import { ModuleConfig } from '@/app/admin/tipos';
 import type { Estado, Persona, Rol, Usuario } from '@/compartido/tipos/entities';
 import type { ErrorApi } from '@/nucleo/http/clienteHttp';
 import { estadoBadge, seguridadServicio } from '@/modulos/seguridad';
+import { useAuth } from '@/nucleo/auth/useAuth';
 
 // La API pagina de a 100 como máximo; la tabla pagina en pantalla de a 10
 const TAMANO_CARGA = 100;
@@ -54,6 +55,10 @@ function RolesSelector({
 
 /* ─── SCREEN ─── */
 export default function UsuariosScreen() {
+  const { usuario } = useAuth();
+  // Un administrador de sede solo asigna estos roles (la API responde 403 con otros)
+  const rolAsignable = (nombre: string) =>
+    !usuario?.idSede || ['instructor', 'estudiante', 'acudiente'].includes(nombre.trim().toLowerCase());
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
@@ -289,7 +294,11 @@ export default function UsuariosScreen() {
         onClose={() => setSlideOver(s => ({ ...s, open: false }))}
         validate={validar}
         extraContent={
-          <RolesSelector roles={roles.filter(r => r.idEstado === 1)} selected={selectedRoles} onChange={setSelectedRoles} />
+          <RolesSelector
+            roles={roles.filter(r => r.idEstado === 1 && rolAsignable(r.nombre))}
+            selected={selectedRoles}
+            onChange={setSelectedRoles}
+          />
         }
       />
       <DetailWidget

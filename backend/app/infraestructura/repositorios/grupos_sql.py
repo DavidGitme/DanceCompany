@@ -61,13 +61,15 @@ class RepositorioGruposSql(RepositorioBaseSql, RepositorioGrupos):
             self.sesion, COLUMNAS, ORIGEN, filtros, parametros, "s.nombre, g.nombre", pagina, tamano
         )
 
-    def disponibles(self):
+    def disponibles(self, sede=None):
+        filtro_sede = "AND g.idSede = :sede" if sede is not None else ""
         filas = self.sesion.execute(
             text(
                 f'SELECT g.idGrupo AS "idGrupo", g.nombre, s.nombre AS sede, est.nombre AS estilo, '
-                f"n.nombre AS nivel {ORIGEN} WHERE g.idEstado = :activo ORDER BY s.nombre, g.nombre"
+                f"n.nombre AS nivel {ORIGEN} WHERE g.idEstado = :activo {filtro_sede} "
+                "ORDER BY s.nombre, g.nombre"
             ),
-            {"activo": ESTADO_ACTIVO},
+            {"activo": ESTADO_ACTIVO, "sede": sede},
         ).mappings()
         return [dict(fila) for fila in filas]
 

@@ -1,7 +1,7 @@
 """Crea una cuenta de acceso en la base de datos (por ejemplo, el primer administrador).
 
 Uso, desde la carpeta backend:
-    python -m app.herramientas.crear_cuenta --documento 1234567890 --rol administrador --nombre "Andrea Salazar"
+    python -m app.herramientas.crear_cuenta --documento 1234567890 --rol administrador --nombre "Andrea Salazar" --sede 1
     python -m app.herramientas.crear_cuenta --documento 2222222222 --rol instructor --nombre "Juan Pérez" --correo juan@mail.com
     python -m app.herramientas.crear_cuenta --documento 3333333333 --rol estudiante --nombre "Sara Gómez" --correo sara@mail.com --sede 1
 
@@ -9,6 +9,8 @@ Si la persona no existe y se indica --nombre, también la crea. La clave se pide
 Con rol instructor o estudiante también crea el registro en instructor o estudiante,
 porque cada portal necesita ese registro activo para mostrar datos.
 El estudiante inicia sesión con su correo; por eso --correo es obligatorio para ese rol.
+Cada administrador queda a cargo de una sede: --sede es obligatorio para ese rol.
+La cuenta técnica (roles, permisos y estados de toda la academia) se crea con --sin-sede.
 """
 
 import argparse
@@ -73,10 +75,16 @@ def main():
     parser.add_argument("--rol", required=True, help="Nombre del rol: administrador, instructor o estudiante")
     parser.add_argument("--nombre", help="Nombre de la persona si todavía no existe")
     parser.add_argument("--correo", help="Correo de la persona (obligatorio para estudiantes)")
-    parser.add_argument("--sede", type=int, help="idSede del estudiante (por defecto la primera activa)")
+    parser.add_argument("--sede", type=int, help="idSede del administrador (obligatorio) o del estudiante")
     parser.add_argument("--descripcion", default="Instructor", help="Descripción del instructor")
+    parser.add_argument("--sin-sede", action="store_true", help="Administrador técnico sin sede (ve todo)")
     args = parser.parse_args()
     rol = args.rol.strip().lower()
+    if rol == "administrador" and not args.sede and not args.sin_sede:
+        raise SystemExit(
+            "Cada administrador administra una sede: agrega --sede (1 = Bello, 2 = Copacabana) "
+            "o --sin-sede para la cuenta técnica."
+        )
     if args.correo:
         # Misma validación que el login del portal del estudiante (EmailStr)
         try:
@@ -121,10 +129,16 @@ def main():
 
         sesion.execute(
             text(
-                "INSERT INTO usuarios (documento, password_hash, idEstado) "
-                "VALUES (:doc, :hash, :activo)"
+                "INSERT INTO usuarios (documento, password_hash, idEstado, idSede) "
+                "VALUES (:doc, :hash, :activo, :sede)"
             ),
-            {"doc": args.documento, "hash": HasherArgon2().crear_hash(clave), "activo": ESTADO_ACTIVO},
+            {
+                "doc": args.documento,
+                "hash": HasherArgon2().crear_hash(clave),
+                "activo": ESTADO_ACTIVO,
+                # Solo el administrador queda atado a una sede en su cuenta
+                "sede": args.sede if rol == "administrador" else None,
+            },
         )
         sesion.execute(
             text("INSERT INTO usuarios_roles (documento, idRol) VALUES (:doc, :rol)"),

@@ -24,7 +24,7 @@ ORIGEN = """
     JOIN persona pa ON pa.idPersona = a.idPersona
 """
 
-FILTROS = {"estudiante": "it.idEstudiante", "taller": "it.idTaller"}
+FILTROS = {"estudiante": "it.idEstudiante", "taller": "it.idTaller", "sede": "e.idSede"}
 
 
 class RepositorioInscripcionesTallerSql(PagadorSql, RepositorioBaseSql, RepositorioInscripcionesTaller):

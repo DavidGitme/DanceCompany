@@ -8,15 +8,16 @@ from app.aplicacion.dtos.aulas_horarios_dto import (
 from app.aplicacion.dtos.comun_dto import ListaRespuesta
 from app.presentacion.dependencias.administrativos import gestor_horarios
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede, filtro_sede
 
 router = APIRouter(prefix="/horarios", tags=["Horarios"])
-permiso = [Depends(requiere_permiso("horarios"))]
+permiso = [Depends(requiere_permiso("horarios")), Depends(alcance_sede("horarios"))]
 
 
 @router.get("", response_model=ListaRespuesta[HorarioRespuesta], dependencies=permiso)
 def listar_horarios(
     grupo: int | None = Query(None, gt=0),
-    sede: int | None = Query(None, gt=0),
+    sede: int | None = Depends(filtro_sede),
     instructor: int | None = Query(None, gt=0),
     aula: int | None = Query(None, gt=0),
     dia: str | None = Query(None, max_length=20, description="Lunes ... Domingo"),

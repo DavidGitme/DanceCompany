@@ -9,15 +9,17 @@ from app.aplicacion.dtos.matriculas_dto import (
 )
 from app.presentacion.dependencias.administrativos import gestor_inscripciones_taller
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede, filtro_sede
 
 router = APIRouter(prefix="/inscripciones-taller", tags=["Inscripciones a talleres"])
-permiso = [Depends(requiere_permiso("talleres"))]
+permiso = [Depends(requiere_permiso("talleres")), Depends(alcance_sede("inscripciones"))]
 
 
 @router.get("", response_model=ListaRespuesta[InscripcionTallerRespuesta], dependencies=permiso)
 def listar_inscripciones_taller(
     estudiante: int | None = Query(None, gt=0),
     taller: int | None = Query(None, gt=0),
+    sede: int | None = Depends(filtro_sede),
     buscar: str | None = Query(
         None, max_length=60, description="Busca por estudiante, documento o taller"
     ),
@@ -25,7 +27,7 @@ def listar_inscripciones_taller(
     tamano: int = Query(20, ge=1, le=100),
     gestor=Depends(gestor_inscripciones_taller),
 ):
-    return gestor.listar(buscar, pagina, tamano, {"estudiante": estudiante, "taller": taller})
+    return gestor.listar(buscar, pagina, tamano, {"estudiante": estudiante, "taller": taller, "sede": sede})
 
 
 # Apoyo del formulario: quién puede pagar por el estudiante

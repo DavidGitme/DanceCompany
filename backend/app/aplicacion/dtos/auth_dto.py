@@ -11,6 +11,8 @@ class UsuarioSesionRespuesta(BaseModel):
     nombre: str
     roles: list[str]
     permisos: list[str]
+    idSede: int | None = None
+    sede: str | None = None
 
 
 class TokenRespuesta(BaseModel):

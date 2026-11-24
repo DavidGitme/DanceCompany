@@ -8,10 +8,11 @@ from app.aplicacion.dtos.convocatorias_dto import (
 )
 from app.presentacion.dependencias.administrativos import gestor_postulaciones
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede, filtro_sede
 
 # Tabla convocatoria_estudiante
 router = APIRouter(prefix="/postulaciones", tags=["Postulaciones (convocatoria_estudiante)"])
-permiso = [Depends(requiere_permiso("convocatorias"))]
+permiso = [Depends(requiere_permiso("convocatorias")), Depends(alcance_sede("postulaciones"))]
 
 
 @router.get("", response_model=ListaRespuesta[PostulacionRespuesta], dependencies=permiso)
@@ -19,12 +20,13 @@ def listar_postulaciones(
     estado: int | None = Query(None, gt=0, description="Filtra por idEstado (Postulado, Aceptado...)"),
     convocatoria: int | None = Query(None, gt=0),
     estudiante: int | None = Query(None, gt=0),
+    sede: int | None = Depends(filtro_sede),
     buscar: str | None = Query(None, max_length=60, description="Busca por estudiante o documento"),
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=100),
     gestor=Depends(gestor_postulaciones),
 ):
-    filtros = {"convocatoria": convocatoria, "estudiante": estudiante}
+    filtros = {"convocatoria": convocatoria, "estudiante": estudiante, "sede": sede}
     return gestor.listar(estado, buscar, pagina, tamano, filtros)
 
 

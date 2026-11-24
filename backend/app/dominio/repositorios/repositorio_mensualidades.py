@@ -18,5 +18,5 @@ class RepositorioMensualidades(RepositorioCatalogo, RepositorioConEstadoPorCateg
         """True si la matrícula ya tiene una mensualidad en el mismo año y mes."""
 
     @abstractmethod
-    def marcar_vencidas(self, hoy: date) -> int:
+    def marcar_vencidas(self, hoy: date, sede: int | None = None) -> int:
         """Pasa a Vencida las pendientes con fecha límite anterior a hoy. Devuelve cuántas."""

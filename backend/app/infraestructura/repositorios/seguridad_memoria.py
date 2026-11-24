@@ -54,7 +54,8 @@ class RepositorioSeguridadMemoria(RepositorioSeguridad):
     def persona_existe(self, documento: str) -> bool:
         return any(p["documento"] == documento for p in self.datos["personas"])
 
-    def listar(self, recurso: str, pagina: int, tamano: int):
+    def listar(self, recurso: str, pagina: int, tamano: int, sede: int | None = None):
+        # Modo de prueba sin base: no hay sedes que filtrar
         registros = self.datos[recurso]
         inicio = (pagina - 1) * tamano
         return deepcopy(registros[inicio : inicio + tamano]), len(registros)

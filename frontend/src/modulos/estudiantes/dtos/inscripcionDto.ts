@@ -1,0 +1,59 @@
+// Contrato de POST /inscripciones y de los acudientes del estudiante (docs/api.md)
+
+export interface PersonaNuevaDto {
+  nombre: string
+  idTipoDocumento: number
+  documento: string
+  telefono: string
+  email?: string
+  fecha_nacimiento?: string
+}
+
+// Una persona ya registrada (idPersona) o los datos de una nueva
+export interface AcudienteSolicitudDto {
+  idPersona?: number
+  persona?: PersonaNuevaDto
+  idParentesco: number
+}
+
+export interface InscripcionSolicitudDto {
+  nombre: string
+  idTipoDocumento: number
+  documento: string
+  telefono: string
+  email?: string
+  fecha_nacimiento: string
+  idSede: number
+  acudientes: AcudienteSolicitudDto[]
+  idGrupo?: number
+  valor_matricula?: number
+  clave?: string
+}
+
+export interface AcudienteDto {
+  idAcudiente: number
+  idPersona: number
+  nombre: string
+  tipoDocumento: string
+  documento: string
+  telefono: string | null
+  email: string | null
+  idParentesco: number
+  parentesco: string
+}
+
+export interface InscripcionRespuestaDto {
+  estudiante: { idEstudiante: number; nombre: string }
+  acudientes: AcudienteDto[]
+  idMatricula: number | null
+  cuentaCreada: boolean
+}
+
+// La API devuelve lo mínimo para reconocer a la persona (sin contacto)
+export interface PersonaEncontradaDto {
+  idPersona: number
+  nombre: string
+  tipoDocumento: string
+  documento: string
+  esAcudiente: boolean
+}

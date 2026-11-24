@@ -15,7 +15,7 @@ class HasherClaves(ABC):
 class EmisorTokens(ABC):
     @abstractmethod
     def emitir_acceso(
-        self, documento: str, roles: list[str], permisos: list[str]
+        self, documento: str, roles: list[str], permisos: list[str], sede: int | None = None
     ) -> tuple[str, int]:
         raise NotImplementedError
 

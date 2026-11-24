@@ -126,7 +126,11 @@ ORIGEN_POSTULACION = """
     JOIN sede s ON s.idSede = e.idSede
     JOIN estados es ON es.idEstado = ce.idEstado
 """
-FILTROS_POSTULACION = {"convocatoria": "ce.idConvocatoria", "estudiante": "ce.idEstudiante"}
+FILTROS_POSTULACION = {
+    "convocatoria": "ce.idConvocatoria",
+    "estudiante": "ce.idEstudiante",
+    "sede": "e.idSede",
+}
 
 
 class RepositorioPostulacionesSql(EstadoCategoriaSql, RepositorioBaseSql, RepositorioPostulaciones):

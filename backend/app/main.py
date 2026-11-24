@@ -13,6 +13,7 @@ from app.presentacion.middlewares.errores import (
 from app.presentacion.rutas import (
     aulas,
     auth,
+    catalogos,
     catalogos_simples,
     convocatorias,
     ejemplos,
@@ -20,6 +21,7 @@ from app.presentacion.rutas import (
     estudiantes,
     grupos,
     horarios,
+    inscripciones,
     inscripciones_taller,
     instructores,
     matriculas,
@@ -55,6 +57,8 @@ app.add_exception_handler(IntegrityError, manejar_error_integridad)
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(seguridad.router, prefix="/api/v1")
 app.include_router(ejemplos.router, prefix="/api/v1")
+app.include_router(catalogos.router, prefix="/api/v1")
+app.include_router(inscripciones.router, prefix="/api/v1")
 
 # Módulos académicos
 for modulo in (sedes, estilos, niveles, talleres, instructores, estudiantes, grupos, portal_instructor):

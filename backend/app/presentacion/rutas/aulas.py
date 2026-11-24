@@ -9,15 +9,16 @@ from app.aplicacion.dtos.aulas_horarios_dto import (
 from app.aplicacion.dtos.comun_dto import CambioEstadoSolicitud, ListaRespuesta
 from app.presentacion.dependencias.administrativos import gestor_aulas
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede, filtro_sede
 
 router = APIRouter(prefix="/aulas", tags=["Aulas"])
-permiso = [Depends(requiere_permiso("aulas"))]
+permiso = [Depends(requiere_permiso("aulas")), Depends(alcance_sede("aulas"))]
 
 
 @router.get("", response_model=ListaRespuesta[AulaRespuesta], dependencies=permiso)
 def listar_aulas(
     estado: int | None = Query(None, gt=0, description="Filtra por idEstado"),
-    sede: int | None = Query(None, gt=0),
+    sede: int | None = Depends(filtro_sede),
     buscar: str | None = Query(None, max_length=60, description="Busca por nombre de la sede"),
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=100),
@@ -28,7 +29,7 @@ def listar_aulas(
 
 # Solo activas, para selectores (grupos)
 @router.get("/disponibles", response_model=list[AulaDisponible], dependencies=permiso)
-def aulas_disponibles(sede: int | None = Query(None, gt=0), gestor=Depends(gestor_aulas)):
+def aulas_disponibles(sede: int | None = Depends(filtro_sede), gestor=Depends(gestor_aulas)):
     return gestor.disponibles(sede)
 
 

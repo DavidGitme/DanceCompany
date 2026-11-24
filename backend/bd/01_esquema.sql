@@ -72,6 +72,8 @@ CREATE TABLE roles (
     nombre    VARCHAR(30) NOT NULL UNIQUE,
     idEstado INT NOT NULL DEFAULT 1 REFERENCES estados(idEstado)
 );
+-- "Administrador" y "administrador" serian el mismo rol para el backend
+CREATE UNIQUE INDEX uq_roles_nombre ON roles (lower(trim(nombre)));
 
 -- ===================== SEDES Y AULAS =====================
 
@@ -106,10 +108,13 @@ CREATE UNIQUE INDEX uq_persona_email ON persona(email) WHERE email IS NOT NULL;
 
 -- La llave es el documento de la persona (nunca cambia).
 -- intentos_fallidos y bloqueado_hasta: bloqueo temporal tras varios logins fallidos.
+-- idSede: sede que administra la cuenta (un administrador por sede).
+-- NULL = sin restriccion de sede (cuentas de instructor, estudiante o tecnicas).
 CREATE TABLE usuarios (
     documento         VARCHAR(20) PRIMARY KEY REFERENCES persona(documento),
     password_hash     VARCHAR(255) NOT NULL,
     idEstado         INT NOT NULL DEFAULT 1 REFERENCES estados(idEstado),
+    idSede           INT REFERENCES sede(idSede),
     intentos_fallidos INT NOT NULL DEFAULT 0,
     bloqueado_hasta   TIMESTAMP
 );
