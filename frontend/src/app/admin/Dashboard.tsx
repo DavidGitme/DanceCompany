@@ -46,7 +46,7 @@ const nombreMes = hoy.toLocaleDateString("es-CO", { month: "long", year: "numeri
 const fechaCorta = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" })
 
-const contar = (ruta: string, parametros: Record<string, string | number> = {}) =>
+const contar = (ruta: string, parametros: Record<string, string | number | undefined> = {}) =>
   recursoApi.listar(ruta, { ...parametros, tamano: 1 }).then((r) => r.total)
 
 function useDato<T>(cargar: () => Promise<T>, habilitado: boolean, version: number): Dato<T> {
@@ -102,9 +102,18 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   const estudiantes = useDato(() => contar("/estudiantes", { estado: ESTADO_ACTIVO }), puede("estudiantes"), version)
   const grupos = useDato(() => contar("/grupos", { estado: ESTADO_ACTIVO }), puede("grupos"), version)
-  const instructores = useDato(() => contar("/instructores", { estado: ESTADO_ACTIVO }), puede("instructores"), version)
+  // Los instructores se comparten entre sedes: el administrador de sede cuenta los de la suya
+  const sedePropia = usuario?.idSede ?? undefined
+  const instructores = useDato(() => contar("/instructores", { estado: ESTADO_ACTIVO, sede: sedePropia }), puede("instructores"), version)
   const convocatorias = useDato(() => contar("/convocatorias", { vigencia: "abierta" }), puede("convocatorias"), version)
-  const sedes = useDato(() => recursoApi.listar<Sede>("/sedes", { estado: ESTADO_ACTIVO, tamano: 100 }).then((r) => r.datos), puede("sedes"), version)
+  const sedes = useDato(
+    () =>
+      recursoApi
+        .listar<Sede>("/sedes", { estado: ESTADO_ACTIVO, tamano: 100 })
+        .then((r) => r.datos.filter((s) => !sedePropia || s.idSede === sedePropia)),
+    puede("sedes"),
+    version,
+  )
   const pagosMes = useDato(
     () =>
       recursoApi.listar<Pago>("/pagos", { desde: inicioMes, hasta: aIso(hoy), tamano: 100 }).then((r) => ({
@@ -135,7 +144,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   const nombre = usuario?.nombre.split(" ")[0] ?? ""
   const accesos = [
-    { modulo: "estudiantes", etiqueta: "Registrar estudiante", permiso: "estudiantes" },
+    { modulo: "estudiantes", etiqueta: "Inscribir estudiante", permiso: "estudiantes" },
     { modulo: "grupos", etiqueta: "Crear grupo", permiso: "grupos" },
     { modulo: "instructores", etiqueta: "Agregar instructor", permiso: "instructores" },
     { modulo: "adm-aulas", etiqueta: "Nueva aula", permiso: "aulas" },
@@ -178,7 +187,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       )}
 
       <section aria-label="Indicadores" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Tarjeta etiqueta="Estudiantes activos" dato={estudiantes} detalle="En todas las sedes" onClick={puede("estudiantes") ? () => onNavigate("estudiantes") : undefined} />
+        <Tarjeta etiqueta="Estudiantes activos" dato={estudiantes} detalle={usuario?.sede ? `Sede ${usuario.sede}` : "En todas las sedes"} onClick={puede("estudiantes") ? () => onNavigate("estudiantes") : undefined} />
         <Tarjeta etiqueta="Grupos activos" dato={grupos} detalle="Con cupos e instructor" onClick={puede("grupos") ? () => onNavigate("grupos") : undefined} />
         <Tarjeta etiqueta="Instructores activos" dato={instructores} detalle="Asignados a sedes" onClick={puede("instructores") ? () => onNavigate("instructores") : undefined} />
         <Tarjeta etiqueta="Convocatorias abiertas" dato={convocatorias} detalle="Recibiendo postulaciones" />

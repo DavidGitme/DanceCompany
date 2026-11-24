@@ -1,7 +1,6 @@
 export const rutas = {
   inicio: "home",
   login: "login",
-  registro: "register",
   administracion: "admin",
   instructor: "instructor",
 } as const

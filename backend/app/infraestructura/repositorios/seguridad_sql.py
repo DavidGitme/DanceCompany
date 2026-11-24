@@ -12,6 +12,13 @@ from sqlalchemy.orm import Session
 
 from app.dominio.reglas import ESTADO_ACTIVO, ESTADO_INACTIVO
 from app.dominio.repositorios.repositorio_seguridad import RepositorioSeguridad
+from app.infraestructura.repositorios.persona_sql import condicion_persona_en_sede
+
+# Expresión del idPersona de cada recurso, para limitar las listas a una sede
+PERSONA_DE = {
+    "personas": "persona.idPersona",
+    "usuarios": "(SELECT pp.idPersona FROM persona pp WHERE pp.documento = usuarios.documento)",
+}
 
 RECURSOS = {
     "personas": {
@@ -65,12 +72,18 @@ class RepositorioSeguridadSql(RepositorioSeguridad):
 
     # ─── CRUD genérico ─────────────────────────────────
 
-    def listar(self, recurso: str, pagina: int, tamano: int):
+    def listar(self, recurso: str, pagina: int, tamano: int, sede: int | None = None):
         config = RECURSOS[recurso]
-        total = self.sesion.execute(text(f"SELECT COUNT(*) FROM {config['tabla']}")).scalar_one()
+        donde, parametros = "", {"tamano": tamano, "inicio": (pagina - 1) * tamano}
+        if sede is not None and recurso in PERSONA_DE:
+            donde = f"WHERE {condicion_persona_en_sede(PERSONA_DE[recurso])}"
+            parametros["sede"] = sede
+        total = self.sesion.execute(
+            text(f"SELECT COUNT(*) FROM {config['tabla']} {donde}"), parametros
+        ).scalar_one()
         filas = self.sesion.execute(
-            text(f"{_select(recurso)} ORDER BY {config['clave']} LIMIT :tamano OFFSET :inicio"),
-            {"tamano": tamano, "inicio": (pagina - 1) * tamano},
+            text(f"{_select(recurso)} {donde} ORDER BY {config['clave']} LIMIT :tamano OFFSET :inicio"),
+            parametros,
         ).mappings()
         registros = [dict(fila) for fila in filas]
         for registro in registros:

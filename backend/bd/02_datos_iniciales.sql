@@ -3,7 +3,8 @@
 -- Los numeros en comentarios son los id que se generan en ese orden.
 --
 -- CUENTAS DE PRUEBA (solo desarrollo): todas usan la clave  Dance2026*
--- Administradora de prueba: documento 1000000001 (Laura Gomez).
+-- Administradora de Bello: documento 1000000001 (Laura Gomez).
+-- Administradora de Copacabana: documento 1000000010 (Diana Restrepo).
 -- En produccion se cambian todas las claves antes de publicar.
 
 -- ===================== CATALOGOS =====================
@@ -25,7 +26,8 @@ INSERT INTO tipo_documento (nombre) VALUES
 ('Cedula de ciudadania'),   -- 1
 ('Tarjeta de identidad'),   -- 2
 ('Cedula de extranjeria'),  -- 3
-('Pasaporte');              -- 4
+('Pasaporte'),             -- 4
+('Registro civil');        -- 5
 
 INSERT INTO parentesco (nombre) VALUES
 ('Madre'), ('Padre'), ('Abuelo/a'), ('Tio/a'), ('Tutor legal');
@@ -100,7 +102,8 @@ INSERT INTO persona (nombre, idTipoDocumento, documento, telefono, email, fecha_
 ('Valentina Lopez', 1, '1000000006', '3006666666', 'valentina.lopez@mail.com',  '1985-11-30', 1),  -- 6
 ('Julian Rojas',    1, '1000000007', '3007777777', 'julian.rojas@mail.com',     '2000-01-20', 1),  -- 7
 ('David Rios',      1, '1000000008', '3008888888', 'david.rios@academia.com',   '1986-06-05', 1),  -- 8
-('Camila Rios',     2, '1000000009', '3009999999', NULL,                        '2014-04-18', 1);  -- 9
+('Camila Rios',     2, '1000000009', '3009999999', NULL,                        '2014-04-18', 1),  -- 9
+('Diana Restrepo',  1, '1000000010', '3010000000', 'diana.restrepo@academia.com', '1991-08-14', 1);  -- 10
 
 -- Hash Argon2 de la clave de prueba Dance2026*. Los menores no tienen cuenta.
 INSERT INTO usuarios (documento, password_hash, idEstado) VALUES
@@ -109,10 +112,16 @@ INSERT INTO usuarios (documento, password_hash, idEstado) VALUES
 ('1000000003', '$argon2id$v=19$m=65536,t=3,p=4$3E8RYBIW17SwBgIMHoZaaA$O0AEg/jk1VVaQDUGs3hOkxWHRgedFYFb8poTiF/Yjj4', 1),
 ('1000000006', '$argon2id$v=19$m=65536,t=3,p=4$3DmpC6eO0E1aR5I7YmdTMQ$sq/JTQI3T8i1snyJXGEFTSNwWiw9sUz3yvaK76fq5A4', 1),
 ('1000000007', '$argon2id$v=19$m=65536,t=3,p=4$fMEbHyJYpKlT29iMS0mxww$WZw5gd0i0zYvTdQT9ij48WUkoc5Lj0GrcvJ/SBOdneA', 1),
-('1000000008', '$argon2id$v=19$m=65536,t=3,p=4$K3fHroee021uIPf/w6EZ/w$oYMnQdRcWvFVwDQSwq9bAw2jhd4X3daSIO+mRh8BLJ8', 1);
+('1000000008', '$argon2id$v=19$m=65536,t=3,p=4$K3fHroee021uIPf/w6EZ/w$oYMnQdRcWvFVwDQSwq9bAw2jhd4X3daSIO+mRh8BLJ8', 1),
+('1000000010', '$argon2id$v=19$m=65536,t=3,p=4$K3fHroee021uIPf/w6EZ/w$oYMnQdRcWvFVwDQSwq9bAw2jhd4X3daSIO+mRh8BLJ8', 1);
+
+-- Un administrador por sede: 1 = Bello, 2 = Copacabana.
+UPDATE usuarios SET idSede = 1 WHERE documento = '1000000001';
+UPDATE usuarios SET idSede = 2 WHERE documento = '1000000010';
 
 INSERT INTO usuarios_roles (documento, idRol) VALUES
-('1000000001', 1),  -- Laura: Administrador
+('1000000001', 1),  -- Laura: Administrador (Bello)
+('1000000010', 1),  -- Diana: Administrador (Copacabana)
 ('1000000002', 2),  -- Carlos: Instructor
 ('1000000003', 2),  -- Ana: Instructor
 ('1000000006', 4),  -- Valentina: Acudiente

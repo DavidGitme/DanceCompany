@@ -40,7 +40,8 @@ export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegister
     document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const register = () => (onRegisterClick ? onRegisterClick() : scrollTo('#alquiler'));
+  // No hay autorregistro: la inscripción se hace en persona, en la sede
+  const register = () => (onRegisterClick ? onRegisterClick() : scrollTo('#sedes'));
 
   // Sobre la imagen del hero el texto es siempre claro; al hacer scroll usa los tokens del tema
   const tone = scrolled || menuOpen ? 'text-text-soft' : 'text-purple-50';
@@ -80,7 +81,7 @@ export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegister
               Iniciar sesión
             </button>
             <span className="hidden lg:block">
-              <Button size="sm" onClick={register}>Regístrate</Button>
+              <Button size="sm" onClick={register}>Inscríbete</Button>
             </span>
             <button
               onClick={() => setMenuOpen((v) => !v)}
@@ -122,7 +123,7 @@ export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegister
               Iniciar sesión
             </button>
             <Button size="md" className="flex-1" onClick={() => { setMenuOpen(false); register(); }}>
-              Regístrate
+              Inscríbete
             </Button>
           </div>
         </div>

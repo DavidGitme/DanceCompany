@@ -118,6 +118,7 @@ export default function EstadosScreen() {
         onAdd={handleAdd}
         onEdit={handleEdit}
         onView={handleEdit}
+        sinVer
         onDelete={handleDelete}
       />
       <SlideOver

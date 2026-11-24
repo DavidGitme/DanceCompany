@@ -47,3 +47,54 @@ def edad_en(fecha_nacimiento, fecha) -> int:
     """Años cumplidos en `fecha`."""
     cumplio = (fecha.month, fecha.day) >= (fecha_nacimiento.month, fecha_nacimiento.day)
     return fecha.year - fecha_nacimiento.year - (0 if cumplio else 1)
+
+
+# ---------- Documento y teléfono ----------
+# Tipos colombianos que solo llevan números. Se comparan por nombre normalizado
+# (sin tildes ni mayúsculas) para no depender del id del script.
+CEDULA = "cedula de ciudadania"
+TARJETA_IDENTIDAD = "tarjeta de identidad"
+REGISTRO_CIVIL = "registro civil"
+TIPOS_NUMERICOS = (CEDULA, TARJETA_IDENTIDAD, REGISTRO_CIVIL)
+
+# Registraduría: registro civil de 0 a 6 años, tarjeta de 7 a 17 y cédula desde los 18.
+# Cédula de extranjería y pasaporte sirven a cualquier edad.
+EDADES_POR_TIPO = {REGISTRO_CIVIL: (0, 6), TARJETA_IDENTIDAD: (7, 17), CEDULA: (18, None)}
+
+
+def normalizar_documento(documento: str) -> str:
+    """Quita espacios, puntos y guiones ("1.000.234-5" -> "10002345") y pasa a mayúscula."""
+    return "".join(c for c in documento if c not in " .-").upper()
+
+
+def error_documento(tipo: str, documento: str) -> str | None:
+    """Mensaje de error si el número no corresponde al tipo; None si es válido."""
+    tipo = normalizar_texto(tipo)
+    if tipo in TIPOS_NUMERICOS and not documento.isdigit():
+        return "Este tipo de documento solo admite números."
+    if not documento.isalnum():
+        return "El documento solo admite letras y números."
+    return None
+
+
+def error_tipo_para_edad(tipo: str, edad: int) -> str | None:
+    """Mensaje de error si el tipo de documento no corresponde a la edad."""
+    rango = EDADES_POR_TIPO.get(normalizar_texto(tipo))
+    if not rango:
+        return None
+    minima, maxima = rango
+    if edad < minima or (maxima is not None and edad > maxima):
+        hasta = f"a {maxima} años" if maxima is not None else "años en adelante"
+        return f"Con {edad} años no corresponde ese tipo de documento (es de {minima} {hasta})."
+    return None
+
+
+def normalizar_telefono(telefono: str) -> str:
+    """Deja solo dígitos y un + inicial ("300 111-1111" -> "3001111111")."""
+    telefono = telefono.strip()
+    signo = "+" if telefono.startswith("+") else ""
+    return signo + "".join(c for c in telefono if c.isdigit())
+
+
+def telefono_valido(telefono: str) -> bool:
+    return 7 <= len(telefono.lstrip("+")) <= 15

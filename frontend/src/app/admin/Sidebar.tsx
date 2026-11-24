@@ -204,7 +204,9 @@ export default function Sidebar({
           {usuario && !compacto && (
             <div className="mb-1 rounded-xl bg-surface-alt px-3 py-2.5">
               <p className="truncate font-body text-sm font-semibold text-text">{usuario.nombre}</p>
-              <p className="truncate font-condensed text-[11px] uppercase tracking-wider text-text-muted">{usuario.roles.join(' · ')}</p>
+              <p className="truncate font-condensed text-[11px] uppercase tracking-wider text-text-muted">
+                {usuario.roles.join(' · ')}{usuario.sede ? ` · Sede ${usuario.sede}` : ''}
+              </p>
             </div>
           )}
           <button

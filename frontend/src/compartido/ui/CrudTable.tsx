@@ -12,6 +12,8 @@ interface CrudTableProps {
   onView: (row: any) => void;
   onDelete: (row: any) => void;
   loading?: boolean;
+  // Oculta "Ver detalle" cuando la pantalla no tiene una ficha distinta del formulario
+  sinVer?: boolean;
 }
 
 function Avatar({ name }: { name: string }) {
@@ -53,7 +55,7 @@ const PlusIcon = () => (
 const actionBtn =
   "w-8 h-8 rounded-full flex items-center justify-center text-text-soft transition-all cursor-pointer";
 
-export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelete, loading = false }: CrudTableProps) {
+export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelete, loading = false, sinVer = false }: CrudTableProps) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({});
 
@@ -168,9 +170,11 @@ export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelet
                     ))}
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => onView(row)} className={`${actionBtn} hover:text-accent hover:bg-accent/10`} title="Ver detalle" aria-label="Ver detalle">
-                          <ViewIcon />
-                        </button>
+                        {!sinVer && (
+                          <button onClick={() => onView(row)} className={`${actionBtn} hover:text-accent hover:bg-accent/10`} title="Ver detalle" aria-label="Ver detalle">
+                            <ViewIcon />
+                          </button>
+                        )}
                         {!config.hideEdit && (
                           <button onClick={() => onEdit(row)} className={`${actionBtn} hover:text-mist hover:bg-mist/10`} title="Editar" aria-label="Editar">
                             <EditIcon />

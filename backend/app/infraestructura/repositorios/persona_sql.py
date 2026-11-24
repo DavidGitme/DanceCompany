@@ -21,11 +21,11 @@ def filtro_buscar_persona() -> str:
 
 
 class PersonaSql(RepositorioBaseSql):
-    def tipo_documento_existe(self, id_tipo_documento):
+    def nombre_tipo_documento(self, id_tipo_documento):
         return self.sesion.execute(
-            text("SELECT 1 FROM tipo_documento WHERE idTipoDocumento = :id"),
+            text("SELECT nombre FROM tipo_documento WHERE idTipoDocumento = :id"),
             {"id": id_tipo_documento},
-        ).first() is not None
+        ).scalar()
 
     def documento_existe(self, documento, excluir_persona=None):
         return self.sesion.execute(
@@ -68,3 +68,41 @@ class PersonaSql(RepositorioBaseSql):
             ),
             {**datos, "idPersona": id_persona},
         )
+
+
+def condicion_persona_en_sede(id_persona: str) -> str:
+    """Condición SQL: la persona pertenece a la sede :sede.
+
+    Pertenece si es estudiante de la sede, instructor con esa sede o acudiente de un
+    estudiante de la sede. Una persona sin ningún vínculo (recién creada) se ve desde
+    ambas sedes. Las cuentas de administrador nunca: se gestionan por script.
+    """
+    p = id_persona
+    return f"""(
+        NOT EXISTS (
+            SELECT 1 FROM persona pa JOIN usuarios_roles ur ON ur.documento = pa.documento
+            JOIN roles r ON r.idRol = ur.idRol
+            WHERE pa.idPersona = {p} AND lower(trim(r.nombre)) = 'administrador'
+        )
+        AND (
+            EXISTS (SELECT 1 FROM estudiante e WHERE e.idPersona = {p} AND e.idSede = :sede)
+            OR EXISTS (
+                SELECT 1 FROM instructor i JOIN instructor_Sede ins ON ins.idInstructor = i.idInstructor
+                WHERE i.idPersona = {p} AND ins.idSede = :sede
+            )
+            OR EXISTS (
+                SELECT 1 FROM acudiente a
+                JOIN estudiante_responsable er ON er.idAcudiente = a.idAcudiente
+                JOIN estudiante e ON e.idEstudiante = er.idEstudiante
+                WHERE a.idPersona = {p} AND e.idSede = :sede
+            )
+            OR NOT (
+                EXISTS (SELECT 1 FROM estudiante e WHERE e.idPersona = {p})
+                OR EXISTS (SELECT 1 FROM instructor i WHERE i.idPersona = {p})
+                OR EXISTS (
+                    SELECT 1 FROM acudiente a JOIN estudiante_responsable er ON er.idAcudiente = a.idAcudiente
+                    WHERE a.idPersona = {p}
+                )
+            )
+        )
+    )"""

@@ -9,7 +9,6 @@ import Locations from "@/modulos/landing/componentes/Sedes"
 import RentalForm from "@/modulos/landing/componentes/Alquiler"
 import Footer from "@/modulos/landing/componentes/Footer"
 import Login from "@/modulos/autenticacion/paginas/Login"
-import Register from "@/modulos/autenticacion/paginas/Registro"
 import AdminPanel from "@/app/paginas/AdminPanel"
 import Button from "@/compartido/ui/Button"
 import RutaProtegida from "@/app/guardas/RutaProtegida"
@@ -55,7 +54,6 @@ export default function App() {
     <Login
       onBack={() => setPage("home")}
       onLogin={(usuario) => setPage(destinoSegunRol(usuario))}
-      onGoToRegister={() => setPage("register")}
     />
   )
 
@@ -65,23 +63,6 @@ export default function App() {
 
   if (page === "login") {
     return <div className={rootClass}>{loginConRedireccion}</div>
-  }
-
-  if (page === "register") {
-    return (
-      <div className={rootClass}>
-        <Register
-          onBack={() => setPage("home")}
-          onGoToLogin={() => setPage("login")}
-          onRegister={(data) => {
-            // Aquí luego se conecta al backend (persona -> usuarios -> usuarios_roles).
-            // Por ahora, solo visual: mandamos al usuario a iniciar sesión.
-            console.log("Registro (visual, sin backend aún):", data)
-            setPage("login")
-          }}
-        />
-      </div>
-    )
   }
 
   if (page === "instructor") {
@@ -128,7 +109,6 @@ export default function App() {
         isDark={isDark}
         onToggleTheme={() => setIsDark((d) => !d)}
         onLoginClick={() => setPage("login")}
-        onRegisterClick={() => setPage("register")}
       />
       <main>
         <Hero />
@@ -141,14 +121,14 @@ export default function App() {
       </main>
       <Footer />
 
-      {/* Floating CTA — always visible on mobile */}
+      {/* Botón flotante en móvil: la inscripción es presencial, en la sede */}
       <div className="fixed bottom-6 right-6 z-40 lg:hidden">
         <Button
           size="md"
-          onClick={() => setPage("register")}
+          onClick={() => document.querySelector("#sedes")?.scrollIntoView({ behavior: "smooth" })}
           className="shadow-2xl shadow-purple-700/40"
         >
-          Regístrate
+          Inscríbete
         </Button>
       </div>
     </div>

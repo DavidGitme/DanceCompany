@@ -94,7 +94,6 @@ export const navegacion: NodoNavegacion[] = [
     hijos: [
       { id: 'seg-usuarios', etiqueta: 'Usuarios', permiso: 'usuarios' },
       { id: 'seg-personas', etiqueta: 'Personas', permiso: 'usuarios', demo: true },
-      { id: 'seg-acudientes', etiqueta: 'Acudientes', permiso: 'usuarios', demo: true },
       { id: 'seg-roles-permisos', etiqueta: 'Roles y permisos', permiso: 'roles', demo: true },
       { id: 'seg-estados', etiqueta: 'Estados', permiso: 'roles', demo: true },
     ],

@@ -47,14 +47,15 @@ class RepositorioEstudiantesSql(PersonaSql, RepositorioEstudiantes):
             self.sesion, COLUMNAS, ORIGEN, filtros, parametros, "p.nombre", pagina, tamano
         )
 
-    def disponibles(self):
+    def disponibles(self, sede=None):
+        filtro_sede = "AND e.idSede = :sede" if sede is not None else ""
         filas = self.sesion.execute(
             text(
                 'SELECT e.idEstudiante AS "idEstudiante", p.nombre, p.documento FROM estudiante e '
                 "JOIN persona p ON p.idPersona = e.idPersona "
-                "WHERE e.idEstado = :activo ORDER BY p.nombre"
+                f"WHERE e.idEstado = :activo {filtro_sede} ORDER BY p.nombre"
             ),
-            {"activo": ESTADO_ACTIVO},
+            {"activo": ESTADO_ACTIVO, "sede": sede},
         ).mappings()
         return [dict(fila) for fila in filas]
 
@@ -97,6 +98,12 @@ class RepositorioEstudiantesSql(PersonaSql, RepositorioEstudiantes):
             self.sesion.rollback()
             raise
         return self.obtener(identificador)
+
+    def tiene_matricula_activa(self, id_estudiante):
+        return self.sesion.execute(
+            text("SELECT 1 FROM matricula WHERE idEstudiante = :id AND idEstado = :activo"),
+            {"id": id_estudiante, "activo": ESTADO_ACTIVO},
+        ).first() is not None
 
     def cambiar_estado(self, identificador, id_estado):
         self._guardar(

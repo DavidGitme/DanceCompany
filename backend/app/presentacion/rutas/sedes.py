@@ -9,9 +9,11 @@ from app.aplicacion.dtos.catalogos_dto import (
 from app.aplicacion.dtos.comun_dto import CambioEstadoSolicitud, ListaRespuesta
 from app.presentacion.dependencias.academicos import gestor_sedes
 from app.presentacion.dependencias.auth import get_usuario_actual, requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede
 
 router = APIRouter(prefix="/sedes", tags=["Sedes"])
-permiso = [Depends(requiere_permiso("sedes"))]
+# Todas las sedes se consultan; cada admin edita solo la suya y nadie con sede crea sedes
+permiso = [Depends(requiere_permiso("sedes")), Depends(alcance_sede("sedes", proteger_lectura=False, permite_crear=False))]
 
 
 @router.get("", response_model=ListaRespuesta[SedeRespuesta], dependencies=permiso)

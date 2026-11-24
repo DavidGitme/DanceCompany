@@ -16,19 +16,30 @@ from app.aplicacion.dtos.seguridad_dto import (
     UsuarioCrearSolicitud,
     UsuarioRespuesta,
 )
+from app.dominio.reglas import normalizar_documento
 from app.infraestructura.seguridad.hash_claves import HasherArgon2
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import proteger_cuentas_admin, sede_de_cuenta
 from app.presentacion.dependencias.servicios import obtener_gestor, obtener_repositorio
 
 # El permiso "usuarios" existe en la tabla permisos (el administrador entra siempre)
 router = APIRouter(
-    dependencies=[Depends(requiere_permiso("usuarios"))],
+    dependencies=[Depends(requiere_permiso("usuarios")), Depends(proteger_cuentas_admin)],
     tags=["Seguridad"],
 )
 
 
-def _listar(recurso: str, pagina: int, tamano: int, gestor):
-    return gestor.listar(recurso, pagina, tamano)
+def _listar(recurso: str, pagina: int, tamano: int, gestor, sede: int | None = None):
+    return gestor.listar(recurso, pagina, tamano, sede)
+
+
+def _persona_normalizada(solicitud: PersonaCrearSolicitud) -> dict:
+    # Mismo formato que la inscripción: "1.000.234" y "1000234" son el mismo documento
+    datos = solicitud.model_dump(mode="json")
+    datos["documento"] = normalizar_documento(datos["documento"])
+    if datos.get("email"):
+        datos["email"] = datos["email"].strip().lower()
+    return datos
 
 
 def _sin_hash(registro: dict):
@@ -36,8 +47,14 @@ def _sin_hash(registro: dict):
 
 
 @router.get("/personas", response_model=ListaRespuesta[PersonaRespuesta])
-def listar_personas(pagina: int = Query(1, ge=1), tamano: int = Query(20, ge=1, le=100), gestor=Depends(obtener_gestor)):
-    return _listar("personas", pagina, tamano, gestor)
+def listar_personas(
+    pagina: int = Query(1, ge=1),
+    tamano: int = Query(20, ge=1, le=100),
+    sede: int | None = Depends(sede_de_cuenta),
+    gestor=Depends(obtener_gestor),
+):
+    # Un administrador de sede solo ve las personas de su sede (o sin vínculos)
+    return _listar("personas", pagina, tamano, gestor, sede)
 
 
 @router.get("/personas/{identificador}", response_model=PersonaRespuesta)
@@ -47,12 +64,12 @@ def detalle_persona(identificador: int, gestor=Depends(obtener_gestor)):
 
 @router.post("/personas", response_model=PersonaRespuesta, status_code=status.HTTP_201_CREATED)
 def crear_persona(solicitud: PersonaCrearSolicitud, gestor=Depends(obtener_gestor)):
-    return gestor.crear("personas", solicitud.model_dump(mode="json"))
+    return gestor.crear("personas", _persona_normalizada(solicitud))
 
 
 @router.put("/personas/{identificador}", response_model=PersonaRespuesta)
 def actualizar_persona(identificador: int, solicitud: PersonaCrearSolicitud, gestor=Depends(obtener_gestor)):
-    return gestor.actualizar("personas", identificador, solicitud.model_dump(mode="json"))
+    return gestor.actualizar("personas", identificador, _persona_normalizada(solicitud))
 
 
 @router.delete("/personas/{identificador}", response_model=PersonaRespuesta)
@@ -61,8 +78,13 @@ def inactivar_persona(identificador: int, gestor=Depends(obtener_gestor)):
 
 
 @router.get("/usuarios", response_model=ListaRespuesta[UsuarioRespuesta])
-def listar_usuarios(pagina: int = Query(1, ge=1), tamano: int = Query(20, ge=1, le=100), gestor=Depends(obtener_gestor)):
-    respuesta = _listar("usuarios", pagina, tamano, gestor)
+def listar_usuarios(
+    pagina: int = Query(1, ge=1),
+    tamano: int = Query(20, ge=1, le=100),
+    sede: int | None = Depends(sede_de_cuenta),
+    gestor=Depends(obtener_gestor),
+):
+    respuesta = _listar("usuarios", pagina, tamano, gestor, sede)
     respuesta["datos"] = [_sin_hash(registro) for registro in respuesta["datos"]]
     return respuesta
 

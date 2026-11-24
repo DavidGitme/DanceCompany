@@ -4,8 +4,9 @@ import Dashboard from "@/app/admin/Dashboard"
 import AvisoDemo from "@/app/admin/AvisoDemo"
 import { buscarModulo } from "@/app/admin/navegacion"
 import * as recursos from "@/app/admin/recursos"
-import PantallaRecurso, { type DefinicionRecurso } from "@/compartido/ui/PantallaRecurso"
-import AcudientesScreen from "@/modulos/estudiantes/paginas/AcudientesScreen"
+import PantallaRecurso, { Icono, claseBotonIcono, hoverNeutro, type DefinicionRecurso } from "@/compartido/ui/PantallaRecurso"
+import { useAuth } from "@/nucleo/auth/useAuth"
+import { FichaEstudiante, InscripcionEstudiante, type EstudianteFicha } from "@/modulos/estudiantes"
 import HorariosGrupoScreen from "@/modulos/grupos/paginas/HorariosGrupoScreen"
 import NoticiasScreen from "@/modulos/landing/paginas/NoticiasScreen"
 import MatriculasScreen from "@/modulos/matriculas/paginas/MatriculasScreen"
@@ -51,7 +52,6 @@ const PANTALLAS_DEMO: Record<string, ReactElement> = {
   "adm-postulaciones": <PostulacionesScreen />,
   "adm-contenidos": <NoticiasScreen />,
   "seg-personas": <PersonasScreen />,
-  "seg-acudientes": <AcudientesScreen />,
   "seg-roles-permisos": <RolesPermisosScreen />,
   "seg-estados": <EstadosScreen />,
 }
@@ -61,7 +61,14 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ onExit }: AdminPanelProps) {
+  const { usuario } = useAuth()
+  // Administrador de sede: todo el panel trabaja sobre su sede
+  const sedeFija = usuario?.idSede ?? null
   const [activeModule, setActiveModule] = useState("dashboard")
+  const [inscribiendo, setInscribiendo] = useState(false)
+  const [ficha, setFicha] = useState<EstudianteFicha | null>(null)
+  const [recargarEstudiantes, setRecargarEstudiantes] = useState(0)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [crearAlEntrar, setCrearAlEntrar] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [menuMovil, setMenuMovil] = useState(false)
@@ -79,12 +86,43 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
   }, [activeModule])
 
   const cerrarMenuMovil = useCallback(() => setMenuMovil(false), [])
+  const abrirInscripcion = useCallback(() => setInscribiendo(true), [])
+
+  useEffect(() => {
+    if (!aviso) return
+    const espera = window.setTimeout(() => setAviso(null), 5000)
+    return () => window.clearTimeout(espera)
+  }, [aviso])
   const terminarCrear = useCallback(() => setCrearAlEntrar(false), [])
   const actual = buscarModulo(activeModule)
 
   let contenido: ReactElement
   if (activeModule === "dashboard") {
     contenido = <Dashboard onNavigate={handleModuleChange} />
+  } else if (activeModule === "estudiantes") {
+    // Estudiantes: "Nuevo" abre la inscripción presencial y "Ver" la ficha con acudientes
+    contenido = (
+      <PantallaRecurso
+        key={activeModule}
+        definicion={recursos.estudiantes}
+        abrirCrear={crearAlEntrar}
+        onCrearAbierto={terminarCrear}
+        sedeFija={sedeFija}
+        alCrear={abrirInscripcion}
+        recargar={recargarEstudiantes}
+        accionesFila={(fila: recursos.Estudiante) => (
+          <button
+            type="button"
+            onClick={() => setFicha(fila as unknown as EstudianteFicha)}
+            className={`${claseBotonIcono} ${hoverNeutro}`}
+            aria-label={`Ver ficha y acudientes de ${fila.nombre}`}
+            title="Ver ficha y acudientes"
+          >
+            <Icono nombre="ojo" />
+          </button>
+        )}
+      />
+    )
   } else if (PANTALLAS_API[activeModule]) {
     contenido = (
       <PantallaRecurso
@@ -92,6 +130,12 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
         definicion={PANTALLAS_API[activeModule]}
         abrirCrear={crearAlEntrar}
         onCrearAbierto={terminarCrear}
+        sedeFija={sedeFija}
+        // Sedes: el administrador de sede consulta todas, pero solo gestiona la suya y no crea sedes
+        permiteCrear={!(activeModule === "sedes" && sedeFija)}
+        puedeGestionar={
+          activeModule === "sedes" && sedeFija ? (fila: recursos.Sede) => fila.idSede === sedeFija : undefined
+        }
       />
     )
   } else if (PANTALLAS_PROPIAS[activeModule]) {
@@ -157,8 +201,30 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
           >
             <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">{contenido}</div>
           </main>
+          {aviso && (
+            <p role="status" className="fixed right-6 top-4 z-[70] rounded-2xl border border-emerald-500/30 bg-surface px-5 py-4 font-body text-sm font-semibold text-emerald-700 shadow-2xl dark:text-emerald-300">
+              {aviso}
+            </p>
+          )}
         </div>
       </div>
+      {inscribiendo && (
+        <InscripcionEstudiante
+          sedeFija={sedeFija}
+          nombreSede={usuario?.sede}
+          cargarCatalogo={recursos.opcionesCatalogo}
+          onCerrar={() => setInscribiendo(false)}
+          onInscrito={(r) => {
+            setInscribiendo(false)
+            setRecargarEstudiantes((n) => n + 1)
+            const extras = [r.idMatricula ? "matriculado" : "", r.cuentaCreada ? "con cuenta del portal" : ""].filter(Boolean)
+            setAviso(`${r.estudiante.nombre} quedó inscrito${extras.length ? ` (${extras.join(" y ")})` : ""}.`)
+          }}
+        />
+      )}
+      {ficha && (
+        <FichaEstudiante estudiante={ficha} cargarCatalogo={recursos.opcionesCatalogo} onCerrar={() => setFicha(null)} />
+      )}
     </AdministrationProvider>
   )
 }

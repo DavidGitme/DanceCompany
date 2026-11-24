@@ -73,19 +73,18 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 const opcionesDe = async <T,>(ruta: string, valor: keyof T, etiqueta: (item: T) => string): Promise<Opcion[]> =>
   (await recursoApi.opciones<T>(ruta)).map((item) => ({ valor: String(item[valor]), etiqueta: etiqueta(item) }))
 
-// Catálogo tipo_documento de 02_datos_iniciales.sql (la API aún no expone una ruta para listarlo)
-const tiposDocumento: Opcion[] = [
-  { valor: "1", etiqueta: "Cédula de ciudadanía" },
-  { valor: "2", etiqueta: "Tarjeta de identidad" },
-  { valor: "3", etiqueta: "Cédula de extranjería" },
-  { valor: "4", etiqueta: "Pasaporte" },
-]
+// Catálogos de la base (tipo_documento y parentesco), en orden de la API
+export const opcionesCatalogo = async (ruta: string): Promise<Opcion[]> =>
+  (await recursoApi.opciones<{ id: number; nombre: string }>(ruta)).map((c) => ({
+    valor: String(c.id),
+    etiqueta: c.nombre,
+  }))
 
 const fuentesComunes = {
   sedes: () => opcionesDe<{ idSede: number; nombre: string }>("/sedes/disponibles", "idSede", (s) => s.nombre),
   niveles: () => opcionesDe<{ idNivel: number; nombre: string }>("/niveles/disponibles", "idNivel", (n) => n.nombre),
   estilos: () => opcionesDe<{ idEstilo: number; nombre: string }>("/estilos/disponibles", "idEstilo", (e) => e.nombre),
-  tiposDocumento: async () => tiposDocumento,
+  tiposDocumento: () => opcionesCatalogo("/catalogos/tipos-documento"),
 }
 
 /* ─── Datos personales compartidos por instructores y estudiantes ─── */
@@ -271,7 +270,7 @@ export const estudiantes: DefinicionRecurso<Estudiante> = {
   singular: "estudiante",
   genero: "m",
   grupo: "Personas",
-  descripcion: "Datos del estudiante y su sede. Las matrículas en grupos se gestionan en Matrículas.",
+  descripcion: "Los estudiantes se registran con la inscripción presencial. Aquí se editan sus datos, acudientes y sede.",
   ruta: "/estudiantes",
   idClave: "idEstudiante",
   nombreFila: (e) => e.nombre,
@@ -287,10 +286,18 @@ export const estudiantes: DefinicionRecurso<Estudiante> = {
     { clave: "sede", etiqueta: "Sede" },
     { clave: "grupos", etiqueta: "Grupos", render: (e) => e.grupos.map((g) => g.nombre).join(", ") || "Sin matrícula" },
   ],
+  // Teléfono y fecha de nacimiento son obligatorios para el estudiante (el backend también lo exige)
   campos: [
-    ...camposPersona,
-    { clave: "idSede", etiqueta: "Sede", tipo: "seleccion", fuente: "sedes", requerido: true, seccion: "Datos del estudiante", ancho: "mitad" },
+    ...camposPersona.map((c) =>
+      c.clave === "telefono" || c.clave === "fecha_nacimiento" ? { ...c, requerido: true } : c,
+    ),
+    {
+      clave: "idSede", etiqueta: "Sede", tipo: "seleccion", fuente: "sedes", requerido: true,
+      seccion: "Datos del estudiante", ancho: "mitad",
+      ayuda: "Cambiarla es un traslado: primero inactiva su matrícula activa.",
+    },
   ],
+  permiteCambiarSede: true,
   aFormulario: (e) => ({ ...personaAFormulario(e), idSede: String(e.idSede) }),
   aSolicitud: (v) => ({ ...personaASolicitud(v), idSede: numero(v, "idSede") }),
   validar: validarNacimiento,
