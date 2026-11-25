@@ -85,7 +85,7 @@ st,ins=call("GET","/instructores?tamano=100",B)
 solo_copa=[i for i in ins["datos"] if [s["idSede"] for s in i["sedes"]]==[2]]
 if solo_copa:
     i=solo_copa[0]["idInstructor"]
-    esperar(f"PUT nombre del instructor {i} (solo Copacabana)", call("PUT",f"/instructores/{i}",B,{"nombre":"Cambiado"}), [404])
+    esperar(f"PUT nombre del instructor {i} (solo Copacabana)", call("PUT",f"/instructores/{i}",B,{"nombre":"Cambiado"}), [403])
     esperar(f"PUT solo agregar Bello al instructor {i}", call("PUT",f"/instructores/{i}",B,{"sedes":[1,2]}), [200])
 else:
     print("  (no hay instructor solo de Copacabana en la semilla)")
