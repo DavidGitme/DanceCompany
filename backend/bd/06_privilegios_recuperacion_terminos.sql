@@ -12,6 +12,20 @@ ALTER TABLE roles_permisos ADD COLUMN IF NOT EXISTS puede_crear    BOOLEAN NOT N
 ALTER TABLE roles_permisos ADD COLUMN IF NOT EXISTS puede_editar   BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE roles_permisos ADD COLUMN IF NOT EXISTS puede_eliminar BOOLEAN NOT NULL DEFAULT TRUE;
 
+-- 1b. Los roles que no son Administrador quedan solo con "ver" en sus modulos actuales
+--     (Instructor > reportes y Acudiente > pagos en los datos iniciales). Es mas restrictivo
+--     que antes y evita que esas cuentas creen, editen o borren sin que nadie lo decida.
+--     Si la academia quiere darles mas, lo marca en Roles y privilegios.
+--     Solo corre la primera vez (antes de que exista usuarios.terminos_version, que crea el
+--     paso 3): al repetir el script no deshace lo que la academia haya marcado despues.
+UPDATE roles_permisos rp
+SET puede_crear = FALSE, puede_editar = FALSE, puede_eliminar = FALSE
+FROM roles r
+WHERE r.idRol = rp.idRol
+  AND lower(trim(r.nombre)) <> 'administrador'
+  AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'usuarios' AND column_name = 'terminos_version');
+
 -- 2. Enlaces de un solo uso para crear o recuperar la contraseña (solo el hash).
 CREATE TABLE IF NOT EXISTS recuperacion_clave (
     idRecuperacion SERIAL PRIMARY KEY,

@@ -93,7 +93,7 @@ const camposPersona = [
   { clave: "nombre", etiqueta: "Nombre completo", requerido: true, min: 2, max: 100, seccion: "Datos personales" },
   { clave: "idTipoDocumento", etiqueta: "Tipo de documento", tipo: "seleccion", fuente: "tiposDocumento", requerido: true, ancho: "mitad" },
   { clave: "documento", etiqueta: "Número de documento", requerido: true, min: 5, max: 20, ancho: "mitad" },
-  { clave: "telefono", etiqueta: "Teléfono", tipo: "tel", min: 7, max: 20, ancho: "mitad" },
+  { clave: "telefono", etiqueta: "Teléfono", tipo: "tel", max: 10, ancho: "mitad", placeholder: "3001234567", ayuda: "10 dígitos, sin espacios." },
   { clave: "email", etiqueta: "Correo electrónico", tipo: "email", max: 100, ancho: "mitad" },
   { clave: "fecha_nacimiento", etiqueta: "Fecha de nacimiento", tipo: "fecha", ancho: "mitad" },
 ] as const
@@ -116,10 +116,34 @@ const personaASolicitud = (v: Valores) => ({
   fecha_nacimiento: opcional(v, "fecha_nacimiento"),
 })
 
-const validarNacimiento = (v: Valores): Record<string, string> =>
+const validarFecha = (v: Valores): Record<string, string> =>
   texto(v, "fecha_nacimiento") && new Date(texto(v, "fecha_nacimiento")) > new Date()
     ? { fecha_nacimiento: "La fecha de nacimiento no puede ser futura." }
     : {}
+
+// Teléfono colombiano: exactamente 10 dígitos (el backend aplica la misma regla)
+export const errorTelefono = (valor: string): string | undefined =>
+  valor && !/^\d{10}$/.test(valor.replace(/[\s-]/g, "")) ? "El teléfono debe tener exactamente 10 dígitos." : undefined
+
+// Cédula, tarjeta de identidad y registro civil: solo números (el pasaporte admite letras)
+export const errorDocumento = (valor: string, tipo: string | undefined): string | undefined => {
+  const limpio = valor.replace(/[\s.-]/g, "")
+  if (!limpio) return undefined
+  if (!/^[A-Za-z0-9]+$/.test(limpio)) return "Usa solo letras y números."
+  if (!/pasaporte/i.test(tipo ?? "") && !/^\d+$/.test(limpio)) return "Este tipo de documento solo admite números."
+  if (limpio.length < 5 || limpio.length > 20) return "El documento debe tener entre 5 y 20 caracteres."
+  return undefined
+}
+
+const validarNacimiento = (v: Valores, opciones: Record<string, Opcion[]> = {}): Record<string, string> => {
+  const errores: Record<string, string> = { ...validarFecha(v) }
+  const telefono = errorTelefono(texto(v, "telefono"))
+  if (telefono) errores.telefono = telefono
+  const tipo = opciones.tiposDocumento?.find((o) => o.valor === texto(v, "idTipoDocumento"))?.etiqueta
+  const documento = errorDocumento(texto(v, "documento"), tipo)
+  if (documento) errores.documento = documento
+  return errores
+}
 
 const avisoGrupos = (n: number) => (n > 0 ? `Tiene ${plural(n, "grupo activo", "grupos activos")}; revisa esos grupos antes de continuar.` : undefined)
 
@@ -432,4 +456,377 @@ export const metodosPago: DefinicionRecurso<MetodoPago> = {
   aSolicitud: (v) => ({ nombre: texto(v, "nombre") }),
   bloqueoEliminar: (m) =>
     m.registrosAsociados > 0 ? `No se puede eliminar: tiene ${plural(m.registrosAsociados, "pago registrado", "pagos registrados")}.` : undefined,
+}
+
+
+/* ─── Matrículas, convocatorias, postulaciones y grupos de competencia ─── */
+
+export interface Matricula extends ConEstado {
+  idMatricula: number
+  idEstudiante: number
+  estudiante: string
+  documento: string
+  idGrupo: number
+  grupo: string
+  idSede: number
+  sede: string
+  nivel: string
+  estilo: string
+  fecha_matricula: string
+  valor_matricula: string | number
+  valorPagado: string | number
+  saldo: string | number
+  mensualidades: number
+}
+
+export interface Convocatoria {
+  idConvocatoria: number
+  nombre: string
+  fecha_inicio: string
+  fecha_fin: string | null
+  descripcion: string | null
+  idTipoConvocatoria: number
+  tipoConvocatoria: string
+  vigencia: string
+  postulados: number
+  aceptados: number
+}
+
+export interface Postulacion {
+  idPostulacion: number
+  idConvocatoria: number
+  convocatoria: string
+  vigencia: string
+  idEstudiante: number
+  estudiante: string
+  documento: string
+  sede: string
+  idEstado: number
+  estado: string
+  beneficio: string | null
+}
+
+export interface GrupoCompetencia {
+  idGrupoCompetencia: number
+  idGrupo: number
+  grupo: string
+  idSede: number
+  sede: string
+  idConvocatoria: number
+  convocatoria: string
+  vigencia: string
+  integrantes: number
+  estudiantes: { idEstudiante: number; nombre: string; documento: string }[]
+}
+
+export interface PersonaSeguridad {
+  idPersona: number
+  nombre: string
+  idTipoDocumento: number | null
+  documento: string
+  telefono: string | null
+  email: string | null
+  fecha_nacimiento: string | null
+  idEstado: number
+}
+
+export interface EstadoCatalogo {
+  idEstado: number
+  nombre: string
+  categoria: string
+  descripcion: string | null
+  orden: number | null
+}
+
+// Estados de una postulación (tabla estados, categoría postulacion)
+export const POSTULACION = { postulado: 7, aceptado: 8, rechazado: 9 } as const
+
+const fecha = (valor: string | null) =>
+  valor ? new Date(`${valor}T00:00:00`).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "—"
+
+const fuentesAcademicas = {
+  ...fuentesComunes,
+  estudiantesActivos: () =>
+    opcionesDe<{ idEstudiante: number; nombre: string; documento: string | null }>(
+      "/estudiantes/disponibles", "idEstudiante", (e) => `${e.nombre}${e.documento ? ` · ${e.documento}` : ""}`,
+    ),
+  gruposActivos: () =>
+    opcionesDe<{ idGrupo: number; nombre: string; sede: string }>("/grupos/disponibles", "idGrupo", (g) => `${g.nombre} · ${g.sede}`),
+  convocatoriasAbiertas: () =>
+    opcionesDe<{ idConvocatoria: number; nombre: string; tipoConvocatoria: string }>(
+      "/convocatorias/disponibles", "idConvocatoria", (c) => `${c.nombre} (${c.tipoConvocatoria})`,
+    ),
+  // Todas las convocatorias, para filtrar listas (incluye cerradas)
+  convocatorias: async () =>
+    (await recursoApi.listar<Convocatoria>("/convocatorias", { tamano: 100 })).datos.map((c) => ({
+      valor: String(c.idConvocatoria),
+      etiqueta: c.nombre,
+    })),
+  tiposConvocatoria: () =>
+    opcionesDe<{ idTipoConvocatoria: number; nombre: string }>("/tipos-convocatoria/disponibles", "idTipoConvocatoria", (t) => t.nombre),
+  vigencias: async () => [
+    { valor: "proxima", etiqueta: "Próximas" },
+    { valor: "abierta", etiqueta: "Abiertas" },
+    { valor: "cerrada", etiqueta: "Cerradas" },
+  ],
+  estadosPostulacion: async () => [
+    { valor: String(POSTULACION.postulado), etiqueta: "Postulado" },
+    { valor: String(POSTULACION.aceptado), etiqueta: "Aceptado" },
+    { valor: String(POSTULACION.rechazado), etiqueta: "Rechazado" },
+  ],
+  candidatos: async (v: Valores) =>
+    (
+      await recursoApi.opciones<{ idEstudiante: number; nombre: string; documento: string }>("/grupos-competencia/candidatos", {
+        convocatoria: texto(v, "idConvocatoria"),
+        grupo: texto(v, "idGrupo"),
+      })
+    ).map((e) => ({ valor: String(e.idEstudiante), etiqueta: `${e.nombre} · ${e.documento}` })),
+}
+
+export const matriculas: DefinicionRecurso<Matricula> = {
+  id: "matriculas",
+  titulo: "Matrículas",
+  singular: "matrícula",
+  genero: "f",
+  grupo: "Finanzas",
+  descripcion: "Une a un estudiante con un grupo de su sede. Valida el cupo, la edad del nivel y que el grupo esté activo.",
+  ruta: "/matriculas",
+  idClave: "idMatricula",
+  nombreFila: (m) => `${m.estudiante} en ${m.grupo}`,
+  conEstado: true,
+  buscarPlaceholder: "Buscar por estudiante, documento o grupo…",
+  filtros: [
+    { clave: "sede", etiqueta: "Sede", fuente: "sedes" },
+    { clave: "grupo", etiqueta: "Grupo", fuente: "gruposActivos" },
+  ],
+  fuentes: fuentesAcademicas,
+  valoresIniciales: { fecha_matricula: new Date().toISOString().slice(0, 10) },
+  columnas: [
+    { clave: "estudiante", etiqueta: "Estudiante", render: (m) => `${m.estudiante} · ${m.documento}` },
+    { clave: "grupo", etiqueta: "Grupo", render: (m) => `${m.grupo} (${m.nivel} · ${m.estilo})` },
+    { clave: "sede", etiqueta: "Sede" },
+    { clave: "fecha_matricula", etiqueta: "Fecha", render: (m) => fecha(m.fecha_matricula) },
+    { clave: "valor_matricula", etiqueta: "Valor", alinear: "derecha", render: (m) => formatoPesos(m.valor_matricula) },
+    { clave: "saldo", etiqueta: "Saldo", alinear: "derecha", render: (m) => formatoPesos(m.saldo) },
+  ],
+  campos: [
+    { clave: "idEstudiante", etiqueta: "Estudiante", tipo: "seleccion", fuente: "estudiantesActivos", requerido: true, ayuda: "Solo estudiantes activos." },
+    { clave: "idGrupo", etiqueta: "Grupo", tipo: "seleccion", fuente: "gruposActivos", requerido: true, ayuda: "Debe ser de la misma sede del estudiante y tener cupo." },
+    { clave: "fecha_matricula", etiqueta: "Fecha de matrícula", tipo: "fecha", requerido: true, ancho: "mitad" },
+    { clave: "valor_matricula", etiqueta: "Valor de la matrícula (COP)", tipo: "numero", requerido: true, min: 0, max: 99999999, ancho: "mitad" },
+  ],
+  aFormulario: (m) => ({
+    idEstudiante: String(m.idEstudiante),
+    idGrupo: String(m.idGrupo),
+    fecha_matricula: m.fecha_matricula,
+    valor_matricula: String(Number(m.valor_matricula)),
+  }),
+  aSolicitud: (v) => ({
+    idEstudiante: numero(v, "idEstudiante"),
+    idGrupo: numero(v, "idGrupo"),
+    fecha_matricula: texto(v, "fecha_matricula"),
+    valor_matricula: numero(v, "valor_matricula"),
+  }),
+  validar: (v): Record<string, string> =>
+    texto(v, "fecha_matricula") && new Date(texto(v, "fecha_matricula")) > new Date(Date.now() + 366 * 864e5)
+      ? { fecha_matricula: "La fecha no puede ser de más de un año en el futuro." }
+      : {},
+  avisoInactivar: (m) => (m.mensualidades > 0 ? `Tiene ${plural(m.mensualidades, "mensualidad", "mensualidades")} registradas.` : undefined),
+}
+
+export const convocatorias: DefinicionRecurso<Convocatoria> = {
+  id: "convocatorias",
+  titulo: "Convocatorias",
+  singular: "convocatoria",
+  genero: "f",
+  grupo: "Comunicación",
+  descripcion: "Becas, audiciones y competencias. La vigencia sale de las fechas: próxima, abierta o cerrada.",
+  ruta: "/convocatorias",
+  idClave: "idConvocatoria",
+  nombreFila: (c) => c.nombre,
+  eliminable: true,
+  buscarPlaceholder: "Buscar por nombre…",
+  filtros: [
+    { clave: "tipo", etiqueta: "Tipo", fuente: "tiposConvocatoria" },
+    { clave: "vigencia", etiqueta: "Vigencia", fuente: "vigencias" },
+  ],
+  fuentes: fuentesAcademicas,
+  columnas: [
+    { clave: "nombre", etiqueta: "Convocatoria" },
+    { clave: "tipoConvocatoria", etiqueta: "Tipo" },
+    { clave: "fechas", etiqueta: "Fechas", render: (c) => `${fecha(c.fecha_inicio)} – ${c.fecha_fin ? fecha(c.fecha_fin) : "sin cierre"}` },
+    { clave: "vigencia", etiqueta: "Vigencia" },
+    { clave: "postulados", etiqueta: "Postulados / aceptados", alinear: "derecha", render: (c) => `${c.postulados} / ${c.aceptados}` },
+  ],
+  campos: [
+    { clave: "nombre", etiqueta: "Nombre", requerido: true, min: 3, max: 50 },
+    { clave: "idTipoConvocatoria", etiqueta: "Tipo", tipo: "seleccion", fuente: "tiposConvocatoria", requerido: true },
+    { clave: "fecha_inicio", etiqueta: "Fecha de inicio", tipo: "fecha", requerido: true, ancho: "mitad" },
+    { clave: "fecha_fin", etiqueta: "Fecha de cierre", tipo: "fecha", ancho: "mitad", ayuda: "Vacía = sin fecha de cierre." },
+    { clave: "descripcion", etiqueta: "Descripción", tipo: "area", max: 300 },
+  ],
+  aFormulario: (c) => ({
+    nombre: c.nombre,
+    idTipoConvocatoria: String(c.idTipoConvocatoria),
+    fecha_inicio: c.fecha_inicio,
+    fecha_fin: c.fecha_fin ?? "",
+    descripcion: c.descripcion ?? "",
+  }),
+  aSolicitud: (v) => ({
+    nombre: texto(v, "nombre"),
+    idTipoConvocatoria: numero(v, "idTipoConvocatoria"),
+    fecha_inicio: texto(v, "fecha_inicio"),
+    fecha_fin: opcional(v, "fecha_fin") ?? null,
+    descripcion: opcional(v, "descripcion") ?? null,
+  }),
+  validar: (v): Record<string, string> =>
+    texto(v, "fecha_fin") && texto(v, "fecha_fin") < texto(v, "fecha_inicio")
+      ? { fecha_fin: "El cierre no puede ser antes del inicio." }
+      : {},
+  bloqueoEliminar: (c) =>
+    c.postulados > 0 ? `Tiene ${plural(c.postulados, "postulado", "postulados")}: no se puede eliminar.` : undefined,
+}
+
+export const postulaciones: DefinicionRecurso<Postulacion> = {
+  id: "postulaciones",
+  titulo: "Postulaciones",
+  singular: "postulación",
+  genero: "f",
+  grupo: "Comunicación",
+  descripcion: "Estudiantes postulados a una convocatoria abierta. Se aceptan o rechazan con los botones de cada fila.",
+  ruta: "/postulaciones",
+  idClave: "idPostulacion",
+  nombreFila: (p) => `${p.estudiante} en ${p.convocatoria}`,
+  eliminable: true,
+  buscarPlaceholder: "Buscar por estudiante o documento…",
+  filtros: [
+    { clave: "sede", etiqueta: "Sede", fuente: "sedes" },
+    { clave: "convocatoria", etiqueta: "Convocatoria", fuente: "convocatorias" },
+    { clave: "estado", etiqueta: "Estado", fuente: "estadosPostulacion" },
+  ],
+  fuentes: fuentesAcademicas,
+  columnas: [
+    { clave: "estudiante", etiqueta: "Estudiante", render: (p) => `${p.estudiante} · ${p.documento}` },
+    { clave: "convocatoria", etiqueta: "Convocatoria", render: (p) => `${p.convocatoria} (${p.vigencia.toLowerCase()})` },
+    { clave: "sede", etiqueta: "Sede" },
+    { clave: "estado", etiqueta: "Estado" },
+    { clave: "beneficio", etiqueta: "Beneficio", render: (p) => p.beneficio ?? "—" },
+  ],
+  campos: [
+    { clave: "idConvocatoria", etiqueta: "Convocatoria", tipo: "seleccion", fuente: "convocatoriasAbiertas", requerido: true, soloCrear: true, ayuda: "Solo convocatorias abiertas hoy." },
+    { clave: "idEstudiante", etiqueta: "Estudiante", tipo: "seleccion", fuente: "estudiantesActivos", requerido: true, soloCrear: true },
+    { clave: "beneficio", etiqueta: "Beneficio", max: 50, placeholder: "Ej. Beca del 50 %" },
+  ],
+  aFormulario: (p) => ({ beneficio: p.beneficio ?? "" }),
+  aSolicitud: (v, modo) =>
+    modo === "crear"
+      ? { idConvocatoria: numero(v, "idConvocatoria"), idEstudiante: numero(v, "idEstudiante"), beneficio: opcional(v, "beneficio") }
+      : { beneficio: opcional(v, "beneficio") ?? null },
+  bloqueoEliminar: (p) =>
+    p.idEstado !== POSTULACION.postulado ? "Solo se puede retirar una postulación que todavía no se ha decidido." : undefined,
+}
+
+export const gruposCompetencia: DefinicionRecurso<GrupoCompetencia> = {
+  id: "grupos-competencia",
+  titulo: "Grupos de competencia",
+  singular: "grupo de competencia",
+  genero: "m",
+  grupo: "Comunicación",
+  descripcion: "Grupo que representa a la academia en una convocatoria. Sus integrantes son estudiantes de la sede con la postulación aceptada.",
+  ruta: "/grupos-competencia",
+  idClave: "idGrupoCompetencia",
+  nombreFila: (g) => `${g.grupo} en ${g.convocatoria}`,
+  eliminable: true,
+  buscarPlaceholder: "Buscar por grupo o convocatoria…",
+  filtros: [
+    { clave: "sede", etiqueta: "Sede", fuente: "sedes" },
+    { clave: "convocatoria", etiqueta: "Convocatoria", fuente: "convocatorias" },
+  ],
+  fuentes: fuentesAcademicas,
+  valoresIniciales: { estudiantes: [] },
+  columnas: [
+    { clave: "grupo", etiqueta: "Grupo" },
+    { clave: "convocatoria", etiqueta: "Convocatoria", render: (g) => `${g.convocatoria} (${g.vigencia.toLowerCase()})` },
+    { clave: "sede", etiqueta: "Sede" },
+    {
+      clave: "integrantes",
+      etiqueta: "Integrantes",
+      render: (g) => (g.estudiantes.length ? g.estudiantes.map((e) => e.nombre).join(", ") : "Sin integrantes"),
+    },
+  ],
+  campos: [
+    { clave: "idConvocatoria", etiqueta: "Convocatoria", tipo: "seleccion", fuente: "convocatorias", requerido: true },
+    { clave: "idGrupo", etiqueta: "Grupo", tipo: "seleccion", fuente: "gruposActivos", requerido: true, soloCrear: true, ayuda: "Un grupo compite en una sola convocatoria a la vez." },
+    {
+      clave: "estudiantes", etiqueta: "Integrantes", tipo: "multiple", fuente: "candidatos", dependeDe: "idConvocatoria,idGrupo",
+      ayuda: "Aparecen los estudiantes de la sede del grupo con la postulación aceptada en la convocatoria.",
+    },
+  ],
+  aFormulario: (g) => ({
+    idConvocatoria: String(g.idConvocatoria),
+    idGrupo: String(g.idGrupo),
+    estudiantes: g.estudiantes.map((e) => String(e.idEstudiante)),
+  }),
+  aSolicitud: (v, modo) => {
+    const integrantes = ((v.estudiantes as string[]) ?? []).map(Number)
+    return modo === "crear"
+      ? { idConvocatoria: numero(v, "idConvocatoria"), idGrupo: numero(v, "idGrupo"), estudiantes: integrantes }
+      : { idConvocatoria: numero(v, "idConvocatoria"), estudiantes: integrantes }
+  },
+}
+
+export const personas: DefinicionRecurso<PersonaSeguridad> = {
+  id: "personas",
+  titulo: "Personas",
+  singular: "persona",
+  genero: "f",
+  grupo: "Seguridad",
+  descripcion: "Datos personales de estudiantes, acudientes, instructores y administradores. Se crean desde la inscripción, Instructores o Usuarios; aquí se corrigen.",
+  ruta: "/personas",
+  idClave: "idPersona",
+  nombreFila: (p) => p.nombre,
+  buscarPlaceholder: "Buscar por nombre o documento…",
+  fuentes: fuentesComunes,
+  textoVacio: "Las personas aparecen al inscribir estudiantes o registrar instructores.",
+  columnas: [
+    { clave: "nombre", etiqueta: "Nombre" },
+    { clave: "documento", etiqueta: "Documento" },
+    { clave: "telefono", etiqueta: "Teléfono", render: (p) => p.telefono ?? "—" },
+    { clave: "email", etiqueta: "Correo", render: (p) => p.email ?? "—" },
+    { clave: "fecha_nacimiento", etiqueta: "Nacimiento", render: (p) => fecha(p.fecha_nacimiento) },
+  ],
+  campos: [...camposPersona],
+  aFormulario: (p) => ({
+    nombre: p.nombre,
+    idTipoDocumento: String(p.idTipoDocumento ?? 1),
+    documento: p.documento,
+    telefono: p.telefono ?? "",
+    email: p.email ?? "",
+    fecha_nacimiento: p.fecha_nacimiento ?? "",
+    // Se conserva el estado al guardar (no se edita desde aquí)
+    idEstado: String(p.idEstado),
+  }),
+  aSolicitud: (v) => ({ ...personaASolicitud(v), idEstado: numero(v, "idEstado") || 1 }),
+  validar: validarNacimiento,
+}
+
+export const estados: DefinicionRecurso<EstadoCatalogo> = {
+  id: "estados",
+  titulo: "Estados",
+  singular: "estado",
+  genero: "m",
+  grupo: "Seguridad",
+  descripcion: "Catálogo de estados que usa el sistema (activo, mensualidades, postulaciones, noticias). Es de solo lectura: las reglas del backend dependen de estos valores.",
+  ruta: "/estados",
+  idClave: "idEstado",
+  nombreFila: (e) => e.nombre,
+  sinBusqueda: true,
+  columnas: [
+    { clave: "nombre", etiqueta: "Estado" },
+    { clave: "categoria", etiqueta: "Categoría" },
+    { clave: "descripcion", etiqueta: "Descripción", render: (e) => e.descripcion ?? "—" },
+  ],
+  campos: [],
+  aFormulario: () => ({}),
+  aSolicitud: () => ({}),
 }

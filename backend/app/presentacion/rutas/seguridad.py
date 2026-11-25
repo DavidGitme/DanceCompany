@@ -19,7 +19,7 @@ from app.aplicacion.dtos.seguridad_dto import (
     UsuarioRespuesta,
 )
 from app.dominio.excepciones.errores import DatoInvalido
-from app.dominio.reglas import ROL_ADMINISTRADOR, normalizar_documento, normalizar_telefono, telefono_valido
+from app.dominio.reglas import ROL_ADMINISTRADOR, error_clave, normalizar_documento, normalizar_telefono, telefono_valido
 from app.infraestructura.seguridad.hash_claves import HasherArgon2
 from app.presentacion.dependencias.auth import requiere_permiso
 from app.presentacion.dependencias.sede import proteger_cuentas_admin, sede_de_cuenta
@@ -32,8 +32,8 @@ router = APIRouter(
 )
 
 
-def _listar(recurso: str, pagina: int, tamano: int, gestor, sede: int | None = None):
-    return gestor.listar(recurso, pagina, tamano, sede)
+def _listar(recurso: str, pagina: int, tamano: int, gestor, sede: int | None = None, buscar: str | None = None):
+    return gestor.listar(recurso, pagina, tamano, sede, buscar)
 
 
 def _persona_normalizada(solicitud: PersonaCrearSolicitud) -> dict:
@@ -57,11 +57,12 @@ def _sin_hash(registro: dict):
 def listar_personas(
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=100),
+    buscar: str | None = Query(None, max_length=60, description="Busca por nombre o documento"),
     sede: int | None = Depends(sede_de_cuenta),
     gestor=Depends(obtener_gestor),
 ):
     # Un administrador de sede solo ve las personas de su sede (o sin vínculos)
-    return _listar("personas", pagina, tamano, gestor, sede)
+    return _listar("personas", pagina, tamano, gestor, sede, buscar)
 
 
 @router.get("/personas/{identificador}", response_model=PersonaRespuesta)
@@ -109,6 +110,8 @@ def crear_usuario(
     sede: int | None = Depends(sede_de_cuenta),
 ):
     datos = solicitud.model_dump()
+    if error := error_clave(datos["clave"]):
+        raise DatoInvalido(error)
     datos["password_hash"] = HasherArgon2().crear_hash(datos.pop("clave"))
     creado = _sin_hash(gestor.crear("usuarios", datos))
     _fijar_sede(repositorio, creado["documento"], sede)
@@ -129,8 +132,8 @@ def actualizar_usuario(
 
 
 def _fijar_sede(repositorio, documento: str, sede: int | None):
-    # La cuenta que crea o edita un admin de sede queda en esa sede: si su rol recibe
-    # privilegios en módulos del panel, solo verá los registros de esa sede
+    # La cuenta de instructor que crea o edita un admin de sede queda en esa sede: si su
+    # rol recibe privilegios en módulos del panel, solo verá los registros de esa sede
     if sede is not None and hasattr(repositorio, "fijar_sede_si_vacia"):
         repositorio.fijar_sede_si_vacia(documento, sede)
 

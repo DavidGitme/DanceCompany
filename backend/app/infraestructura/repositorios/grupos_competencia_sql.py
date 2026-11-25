@@ -35,10 +35,14 @@ class RepositorioGruposCompetenciaSql(RepositorioBaseSql, RepositorioGruposCompe
         if filtros.get("sede") is not None:
             condiciones.append("g.idSede = :sede")
             parametros["sede"] = filtros["sede"]
-        return listar_paginado(
+        filas, total = listar_paginado(
             self.sesion, COLUMNAS, ORIGEN, condiciones, parametros,
             "c.fecha_inicio DESC, g.nombre", pagina, tamano,
         )
+        # Los integrantes viajan en la lista: el formulario de edición los necesita
+        for fila in filas:
+            fila["estudiantes"] = self._integrantes(fila["idGrupoCompetencia"])
+        return filas, total
 
     def obtener(self, identificador):
         fila = self.sesion.execute(
@@ -47,7 +51,11 @@ class RepositorioGruposCompetenciaSql(RepositorioBaseSql, RepositorioGruposCompe
         if not fila:
             return None
         registro = dict(fila)
-        registro["estudiantes"] = [
+        registro["estudiantes"] = self._integrantes(identificador)
+        return registro
+
+    def _integrantes(self, identificador):
+        return [
             dict(e)
             for e in self.sesion.execute(
                 text(
@@ -60,7 +68,6 @@ class RepositorioGruposCompetenciaSql(RepositorioBaseSql, RepositorioGruposCompe
                 {"id": identificador},
             ).mappings()
         ]
-        return registro
 
     def grupo(self, id_grupo):
         fila = self.sesion.execute(

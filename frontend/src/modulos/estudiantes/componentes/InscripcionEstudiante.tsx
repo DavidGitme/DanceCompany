@@ -28,7 +28,7 @@ import {
  * La API guarda todo junto o nada (POST /inscripciones).
  */
 
-const MAX_ACUDIENTES = 3
+const MAX_ACUDIENTES = 1
 const EDAD_ADULTO = 18
 
 interface Props {
@@ -63,9 +63,10 @@ const datosVacios = {
 
 export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCatalogo, onCerrar, onInscrito }: Props) {
   const [datos, setDatos] = useState({ ...datosVacios, idSede: sedeFija ? String(sedeFija) : "" })
-  const [acudientes, setAcudientes] = useState<AcudienteFormulario[]>([acudienteVacio()])
+  const [acudientes, setAcudientes] = useState<AcudienteFormulario[]>([])
   const [matricular, setMatricular] = useState(false)
-  const [crearCuenta, setCrearCuenta] = useState(false)
+  // Acceso al portal: sin cuenta, invitación por correo o contraseña asignada por la sede
+  const [cuenta, setCuenta] = useState<"ninguna" | "invitar" | "clave">("ninguna")
   const [tipos, setTipos] = useState<Opcion[]>([])
   const [parentescos, setParentescos] = useState<Opcion[]>([])
   const [sedes, setSedes] = useState<Opcion[]>([])
@@ -126,20 +127,22 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
       const valor = Number(datos.valor_matricula)
       if (datos.valor_matricula === "" || Number.isNaN(valor) || valor < 0) e.valor_matricula = "Escribe un valor válido."
     }
-    if (crearCuenta) {
-      if (!datos.email) e.email = "El estudiante entra al portal con su correo: es obligatorio para crear la cuenta."
+    if (cuenta === "invitar" && !datos.email) {
+      e.email = "La invitación llega a este correo: es obligatorio para enviarla."
+    }
+    if (cuenta === "clave") {
       if (datos.clave.length < 8) e.clave = "Mínimo 8 caracteres."
-      else if (datos.clave !== datos.confirmarClave) e.confirmarClave = "Las claves no coinciden."
+      else if (!/[A-Za-z]/.test(datos.clave) || !/\d/.test(datos.clave)) e.clave = "Usa al menos una letra y un número."
+      else if (datos.clave !== datos.confirmarClave) e.confirmarClave = "Las contraseñas no coinciden."
     }
 
     const porAcudiente: Record<number, Record<string, string>> = {}
-    // Un adulto puede no tener acudiente: los bloques vacíos se ignoran
-    const conDatos = acudientes.filter((a) => menor || a.encontrada || a.nuevo || a.idParentesco)
+    // El acudiente es opcional: un bloque sin datos se ignora
+    const conDatos = acudientes.filter((a) => a.encontrada || a.nuevo || a.idParentesco || a.documentoBusqueda.trim())
     conDatos.forEach((a) => {
       const errorA = validarAcudiente(a, tipos)
       if (Object.keys(errorA).length) porAcudiente[a.clave] = errorA
     })
-    if (menor && conDatos.length === 0) e.acudientes = "Un estudiante menor de edad necesita al menos un acudiente."
 
     setErrores(e)
     setErroresAcudientes(porAcudiente)
@@ -163,7 +166,8 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
       idSede: Number(datos.idSede),
       acudientes: conDatos.map(acudienteASolicitud),
       ...(matricular ? { idGrupo: Number(datos.idGrupo), valor_matricula: Number(datos.valor_matricula) } : {}),
-      ...(crearCuenta ? { clave: datos.clave } : {}),
+      ...(cuenta === "invitar" ? { crearCuenta: true } : {}),
+      ...(cuenta === "clave" ? { crearCuenta: true, clave: datos.clave } : {}),
     }
     setGuardando(true)
     try {
@@ -219,10 +223,10 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
         <Campo id="insc-documento" etiqueta="Número de documento" requerido error={errores.documento}>
           {(p) => <input {...p} value={datos.documento} maxLength={20} autoComplete="off" disabled={guardando} onChange={(e) => cambiar("documento", e.target.value)} className={claseEntrada} />}
         </Campo>
-        <Campo id="insc-telefono" etiqueta="Teléfono" requerido error={errores.telefono}>
-          {(p) => <input {...p} type="tel" inputMode="tel" value={datos.telefono} maxLength={20} disabled={guardando} onChange={(e) => cambiar("telefono", e.target.value)} className={claseEntrada} />}
+        <Campo id="insc-telefono" etiqueta="Teléfono" requerido error={errores.telefono} ayuda="10 dígitos, por ejemplo 3001234567.">
+          {(p) => <input {...p} type="tel" inputMode="numeric" value={datos.telefono} maxLength={10} disabled={guardando} onChange={(e) => cambiar("telefono", e.target.value.replace(/\D/g, ""))} className={claseEntrada} />}
         </Campo>
-        <Campo id="insc-email" etiqueta="Correo electrónico" requerido={crearCuenta} error={errores.email}>
+        <Campo id="insc-email" etiqueta="Correo electrónico" requerido={cuenta === "invitar"} error={errores.email}>
           {(p) => <input {...p} type="email" value={datos.email} maxLength={100} disabled={guardando} onChange={(e) => cambiar("email", e.target.value)} className={claseEntrada} />}
         </Campo>
         {!sedeFija && (
@@ -236,7 +240,12 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
           </Campo>
         )}
 
-        <Seccion>Acudientes {menor ? "(obligatorio para menores de edad)" : "(opcional)"}</Seccion>
+        <Seccion>Acudiente (opcional)</Seccion>
+        {acudientes.length === 0 && (
+          <p className="font-body text-xs text-text-muted sm:col-span-2">
+            {menor ? "Es menor de edad: se recomienda registrar a un acudiente." : "Puedes registrar un acudiente si el estudiante lo necesita."}
+          </p>
+        )}
         {errores.acudientes && <p role="alert" className="font-body text-xs font-medium text-red-600 dark:text-red-300 sm:col-span-2">{errores.acudientes}</p>}
         {acudientes.map((a, indice) => (
           <CamposAcudiente
@@ -252,13 +261,13 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
               // El error se recalcula al volver a enviar
               setErroresAcudientes((prev) => ({ ...prev, [a.clave]: {} }))
             }}
-            onQuitar={acudientes.length > 1 ? () => setAcudientes((prev) => prev.filter((x) => x.clave !== a.clave)) : undefined}
+            onQuitar={() => setAcudientes((prev) => prev.filter((x) => x.clave !== a.clave))}
           />
         ))}
         {acudientes.length < MAX_ACUDIENTES && (
           <button type="button" disabled={guardando} onClick={() => setAcudientes((prev) => [...prev, acudienteVacio()])}
             className={`${claseBotonSecundario} sm:col-span-2`}>
-            Agregar otro acudiente
+            Agregar acudiente
           </button>
         )}
 
@@ -283,16 +292,30 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
             </Campo>
           </>
         )}
-        <label className="flex items-center gap-3 font-body text-sm text-text sm:col-span-2">
-          <input type="checkbox" checked={crearCuenta} disabled={guardando} onChange={(e) => setCrearCuenta(e.target.checked)} className="h-4 w-4 accent-[var(--color-accent)]" />
-          Crear la cuenta del portal del estudiante
-        </label>
-        {crearCuenta && (
+        <fieldset className="flex flex-col gap-2 sm:col-span-2">
+          <legend className="mb-1 font-condensed text-xs font-semibold uppercase tracking-wider text-text-soft">
+            Acceso al portal del estudiante
+          </legend>
+          <p className="font-body text-xs text-text-muted">El usuario para iniciar sesión es el número de documento.</p>
+          {([
+            ["ninguna", "Sin cuenta por ahora"],
+            ["invitar", "Enviar invitación al correo (el estudiante crea su contraseña)"],
+            ["clave", "Asignar una contraseña y entregarla en la sede"],
+          ] as const).map(([valor, etiqueta]) => (
+            <label key={valor} className="flex items-center gap-3 font-body text-sm text-text">
+              <input type="radio" name="insc-cuenta" value={valor} checked={cuenta === valor} disabled={guardando}
+                onChange={() => { setCuenta(valor); setErrores((prev) => ({ ...prev, email: "", clave: "", confirmarClave: "" })) }}
+                className="h-4 w-4 accent-[var(--color-accent)]" />
+              {etiqueta}
+            </label>
+          ))}
+        </fieldset>
+        {cuenta === "clave" && (
           <>
-            <Campo id="insc-clave" etiqueta="Clave inicial" requerido error={errores.clave} ayuda="Entrégala al estudiante; inicia sesión con su correo.">
+            <Campo id="insc-clave" etiqueta="Contraseña inicial" requerido error={errores.clave} ayuda="Mínimo 8 caracteres, con letras y números.">
               {(p) => <input {...p} type="password" autoComplete="new-password" value={datos.clave} maxLength={128} disabled={guardando} onChange={(e) => cambiar("clave", e.target.value)} className={claseEntrada} />}
             </Campo>
-            <Campo id="insc-clave2" etiqueta="Confirmar clave" requerido error={errores.confirmarClave}>
+            <Campo id="insc-clave2" etiqueta="Confirmar contraseña" requerido error={errores.confirmarClave}>
               {(p) => <input {...p} type="password" autoComplete="new-password" value={datos.confirmarClave} maxLength={128} disabled={guardando} onChange={(e) => cambiar("confirmarClave", e.target.value)} className={claseEntrada} />}
             </Campo>
           </>

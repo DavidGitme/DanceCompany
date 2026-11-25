@@ -51,7 +51,8 @@ export function errorTipoParaEdad(tipo: string, edad: number | null): string | u
 export function errorTelefono(telefono: string, requerido = true): string | undefined {
   const digitos = telefono.replace(/\D/g, "")
   if (!telefono.trim()) return requerido ? "Este campo es obligatorio." : undefined
-  if (digitos.length < 7 || digitos.length > 15) return "Debe tener entre 7 y 15 dígitos."
+  if (/[^\d\s+-]/.test(telefono)) return "Escribe solo números."
+  if (digitos.length !== 10) return "El teléfono debe tener exactamente 10 dígitos."
   return undefined
 }
 

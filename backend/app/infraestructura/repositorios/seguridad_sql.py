@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.dominio.reglas import ESTADO_ACTIVO, ESTADO_INACTIVO
 from app.dominio.repositorios.repositorio_seguridad import RepositorioSeguridad
+from app.infraestructura.bd.consultas import sin_tildes
 from app.infraestructura.repositorios.persona_sql import condicion_persona_en_sede
 from app.infraestructura.repositorios.autenticacion_sql import RepositorioAutenticacionSql
 
@@ -73,12 +74,18 @@ class RepositorioSeguridadSql(RepositorioSeguridad):
 
     # ─── CRUD genérico ─────────────────────────────────
 
-    def listar(self, recurso: str, pagina: int, tamano: int, sede: int | None = None):
+    def listar(self, recurso: str, pagina: int, tamano: int, sede: int | None = None, buscar: str | None = None):
         config = RECURSOS[recurso]
-        donde, parametros = "", {"tamano": tamano, "inicio": (pagina - 1) * tamano}
+        condiciones, parametros = [], {"tamano": tamano, "inicio": (pagina - 1) * tamano}
         if sede is not None and recurso in PERSONA_DE:
-            donde = f"WHERE {condicion_persona_en_sede(PERSONA_DE[recurso])}"
+            condiciones.append(condicion_persona_en_sede(PERSONA_DE[recurso]))
             parametros["sede"] = sede
+        if buscar and recurso == "personas":
+            condiciones.append(
+                f"({sin_tildes('nombre')} LIKE {sin_tildes(':buscar')} OR documento LIKE :buscar)"
+            )
+            parametros["buscar"] = f"%{buscar.strip()}%"
+        donde = f"WHERE {' AND '.join(condiciones)}" if condiciones else ""
         total = self.sesion.execute(
             text(f"SELECT COUNT(*) FROM {config['tabla']} {donde}"), parametros
         ).scalar_one()
@@ -244,8 +251,14 @@ class RepositorioSeguridadSql(RepositorioSeguridad):
         return self.privilegios_de_rol(id_rol)
 
     def fijar_sede_si_vacia(self, documento: str, sede: int) -> None:
+        # Solo cuentas de instructor: estudiantes y acudientes tienen su propio portal y,
+        # sin sede, no entran a los módulos del panel aunque su rol tenga privilegios
         self.sesion.execute(
-            text("UPDATE usuarios SET idSede = :sede WHERE documento = :documento AND idSede IS NULL"),
+            text(
+                "UPDATE usuarios SET idSede = :sede WHERE documento = :documento AND idSede IS NULL "
+                "AND EXISTS (SELECT 1 FROM usuarios_roles ur JOIN roles r ON r.idRol = ur.idRol "
+                "WHERE ur.documento = :documento AND lower(trim(r.nombre)) = 'instructor')"
+            ),
             {"documento": documento, "sede": sede},
         )
         self.sesion.commit()

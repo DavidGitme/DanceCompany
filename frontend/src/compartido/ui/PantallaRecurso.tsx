@@ -28,9 +28,11 @@ export interface CampoFormulario {
   seccion?: string
   // Nombre de la fuente de opciones (selección y selección múltiple)
   fuente?: string
-  // Campo del que dependen las opciones (se recargan al cambiarlo)
+  // Campo(s) del que dependen las opciones, separados por coma (se recargan al cambiarlos)
   dependeDe?: string
   placeholder?: string
+  // Solo aparece al crear (por ejemplo, el grupo de un grupo de competencia no cambia)
+  soloCrear?: boolean
 }
 
 export interface ColumnaTabla<T> {
@@ -79,6 +81,23 @@ export interface DefinicionRecurso<T> {
   bloqueoEliminar?: (fila: T) => string | undefined
   // Con sede fija, el campo idSede sigue visible al editar (traslado de estudiante)
   permiteCambiarSede?: boolean
+  // La API de este módulo no busca por texto: se oculta el buscador
+  sinBusqueda?: boolean
+  // Texto cuando no hay registros (por defecto invita a crear el primero)
+  textoVacio?: string
+}
+
+// Valor de los campos padre ("" si falta alguno)
+const padresDe = (campo: CampoFormulario, valores: Valores) => {
+  const partes = (campo.dependeDe ?? "").split(",").map((clave) => comoTexto(valores[clave.trim()]))
+  return partes.some((parte) => !parte) ? "" : partes.join("|")
+}
+const dependeDeCampo = (campo: CampoFormulario, clave: string) =>
+  (campo.dependeDe ?? "").split(",").map((c) => c.trim()).includes(clave)
+
+// Campos visibles según el modo del formulario
+export function camposDelModo<T>(definicion: DefinicionRecurso<T>, modo: "crear" | "editar"): DefinicionRecurso<T> {
+  return modo === "editar" ? { ...definicion, campos: definicion.campos.filter((c) => !c.soloCrear) } : definicion
 }
 
 /*
@@ -193,11 +212,11 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
 
   // Opciones que dependen de otro campo (aulas e instructores según la sede)
   const dependientes = definicion.campos.filter((c) => c.fuente && c.dependeDe)
-  const llaveDependencias = dependientes.map((c) => comoTexto(valores[c.dependeDe!])).join("|")
+  const llaveDependencias = dependientes.map((c) => padresDe(c, valores)).join("#")
 
   useEffect(() => {
     dependientes.forEach((campo) => {
-      const padre = comoTexto(valores[campo.dependeDe!])
+      const padre = padresDe(campo, valores)
       const cargar = definicion.fuentes?.[campo.fuente!]
       if (!cargar) return
       if (!padre) {
@@ -247,7 +266,7 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
       const siguiente = { ...prev, [clave]: valor }
       // Al cambiar el campo padre se limpian sus dependientes
       definicion.campos
-        .filter((c) => c.dependeDe === clave)
+        .filter((c) => dependeDeCampo(c, clave))
         .forEach((c) => {
           siguiente[c.clave] = c.tipo === "multiple" ? [] : ""
         })
@@ -357,7 +376,7 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
               const lista = campo.fuente ? opciones[campo.fuente] ?? [] : []
               const valor = valores[campo.clave]
               const cargandoLista = cargandoOpciones[campo.clave]
-              const sinPadre = campo.dependeDe && !comoTexto(valores[campo.dependeDe])
+              const sinPadre = campo.dependeDe && !padresDe(campo, valores)
               const nuevaSeccion = campo.seccion && campo.seccion !== seccionAnterior
               if (campo.seccion) seccionAnterior = campo.seccion
               const comunes = {
@@ -375,7 +394,15 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
                 control = (
                   <fieldset aria-describedby={describe} aria-invalid={error ? true : undefined} className="flex flex-wrap gap-2">
                     <legend className="sr-only">{campo.etiqueta}</legend>
-                    {lista.length === 0 && <span className="font-body text-sm text-text-muted">{cargandoLista ? "Cargando…" : "No hay opciones activas."}</span>}
+                    {lista.length === 0 && (
+                      <span className="font-body text-sm text-text-muted">
+                        {cargandoLista
+                          ? "Cargando…"
+                          : sinPadre
+                            ? `Primero elige ${definicion.campos.filter((c) => dependeDeCampo(campo, c.clave)).map((c) => c.etiqueta.toLowerCase()).join(" y ")}.`
+                            : "No hay opciones disponibles."}
+                      </span>
+                    )}
                     {lista.map((opcion) => {
                       const marcado = seleccion.includes(opcion.valor)
                       return (
@@ -410,7 +437,7 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
                   >
                     <option value="">
                       {sinPadre
-                        ? `Primero elige ${definicion.campos.find((c) => c.clave === campo.dependeDe)?.etiqueta.toLowerCase()}`
+                        ? `Primero elige ${definicion.campos.filter((c) => dependeDeCampo(campo, c.clave)).map((c) => c.etiqueta.toLowerCase()).join(" y ")}`
                         : cargandoLista
                           ? "Cargando opciones…"
                           : lista.length
@@ -506,6 +533,8 @@ interface PantallaRecursoProps<T> {
   permiteCrear?: boolean
   // false oculta editar, inactivar y eliminar en esa fila (registros de otra sede)
   puedeGestionar?: (fila: T) => boolean
+  // Privilegios del rol en el módulo (nivel 3). Sin valor = todos
+  privilegios?: string[]
 }
 
 type Accion<T> = { tipo: "estado" | "eliminar"; fila: T } | null
@@ -518,9 +547,13 @@ export default function PantallaRecurso<T extends FilaBase>({
   alCrear,
   accionesFila,
   recargar,
-  permiteCrear = true,
+  permiteCrear: permiteCrearProp = true,
   puedeGestionar,
+  privilegios,
 }: PantallaRecursoProps<T>) {
+  // Lo que el rol puede hacer en el módulo; el backend vuelve a validar cada acción
+  const permitido = (accion: string) => !privilegios || privilegios.includes(accion)
+  const permiteCrear = permiteCrearProp && permitido("crear")
   const definicion = useMemo(() => conSedeFija(definicionBase, sedeFija), [definicionBase, sedeFija])
   const [contexto, setContexto] = useState<ContextoLista>(() => contextos.get(definicion.id) ?? contextoInicial)
   const [busqueda, setBusqueda] = useState(contexto.buscar)
@@ -694,10 +727,12 @@ export default function PantallaRecurso<T extends FilaBase>({
     return (
       <div className="flex items-center justify-end gap-1">
         {accionesFila?.(fila)}
-        <button type="button" className={`${claseBotonIcono} ${hoverNeutro}`} onClick={() => setFormulario({ modo: "editar", fila })} aria-label={`Editar ${nombre}`} title="Editar">
-          <Icono nombre="editar" />
-        </button>
-        {definicion.conEstado && (
+        {permitido("editar") && (
+          <button type="button" className={`${claseBotonIcono} ${hoverNeutro}`} onClick={() => setFormulario({ modo: "editar", fila })} aria-label={`Editar ${nombre}`} title="Editar">
+            <Icono nombre="editar" />
+          </button>
+        )}
+        {definicion.conEstado && permitido("editar") && (
           <button
             type="button"
             className={`${claseBotonIcono} ${activo ? hoverPeligro : hoverExito}`}
@@ -711,7 +746,7 @@ export default function PantallaRecurso<T extends FilaBase>({
             <Icono nombre={activo ? "apagar" : "encender"} />
           </button>
         )}
-        {definicion.eliminable && (
+        {definicion.eliminable && permitido("eliminar") && (
           <button
             type="button"
             className={`${claseBotonIcono} ${hoverPeligro}`}
@@ -788,6 +823,7 @@ export default function PantallaRecurso<T extends FilaBase>({
 
       {/* Búsqueda y filtros */}
       <div role="search" className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-3 md:flex-row md:flex-wrap md:items-center">
+        {!definicion.sinBusqueda && (
         <label className="relative min-w-0 flex-1 md:min-w-64">
           <span className="sr-only">Buscar {definicion.titulo.toLowerCase()}</span>
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><Icono nombre="buscar" /></span>
@@ -799,6 +835,7 @@ export default function PantallaRecurso<T extends FilaBase>({
             className={`${claseEntrada} pl-9`}
           />
         </label>
+        )}
         {definicion.conEstado && (
           <label className="flex flex-col gap-1 md:w-48">
             <span className="sr-only">Estado</span>
@@ -859,7 +896,9 @@ export default function PantallaRecurso<T extends FilaBase>({
             <span className="grid h-12 w-12 place-items-center rounded-2xl border border-accent/20 bg-accent/10 text-accent"><Icono nombre="vacio" clase="h-6 w-6" /></span>
             <h2 className="font-display text-xl uppercase text-text">{filtrosActivos ? "Sin resultados" : `Aún no hay ${definicion.titulo.toLowerCase()}`}</h2>
             <p className="max-w-md font-body text-sm text-text-soft">
-              {filtrosActivos ? "Ningún registro coincide con la búsqueda o los filtros." : `Crea ${definicion.genero === "f" ? "la primera" : "el primer"} ${definicion.singular} para empezar.`}
+              {filtrosActivos
+                ? "Ningún registro coincide con la búsqueda o los filtros."
+                : definicion.textoVacio ?? (permiteCrear ? `Crea ${definicion.genero === "f" ? "la primera" : "el primer"} ${definicion.singular} para empezar.` : "Todavía no hay registros.")}
             </p>
             {filtrosActivos ? (
               <button type="button" onClick={limpiarFiltros} className={claseBotonSecundario}>Limpiar filtros</button>
@@ -949,7 +988,7 @@ export default function PantallaRecurso<T extends FilaBase>({
 
       {formulario && (
         <FormularioRecurso
-          definicion={conSedeFija(definicionBase, sedeFija, formulario.modo)}
+          definicion={camposDelModo(conSedeFija(definicionBase, sedeFija, formulario.modo), formulario.modo)}
           modo={formulario.modo}
           valoresIniciales={formulario.fila ? definicion.aFormulario(formulario.fila) : { ...(definicion.valoresIniciales ?? {}) }}
           opcionesBase={opcionesFiltro}

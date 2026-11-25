@@ -9,8 +9,7 @@ import type { ErrorApi } from '@/nucleo/http/clienteHttp';
 import { estadoBadge, seguridadServicio } from '@/modulos/seguridad';
 import { useAuth } from '@/nucleo/auth/useAuth';
 
-// La API pagina de a 100 como máximo; la tabla pagina en pantalla de a 10
-const TAMANO_CARGA = 100;
+// La API pagina de a 100 como máximo: se cargan todas las páginas y la tabla pagina en pantalla
 
 const mensajeDe = (error: unknown) =>
   (error as ErrorApi)?.mensaje ?? 'No fue posible completar la operación.';
@@ -80,15 +79,15 @@ export default function UsuariosScreen() {
     setError(null);
     try {
       const [u, p, r, e] = await Promise.all([
-        seguridadServicio.listar<Usuario>('usuarios', 1, TAMANO_CARGA),
-        seguridadServicio.listar<Persona>('personas', 1, TAMANO_CARGA),
-        seguridadServicio.listar<Rol>('roles', 1, TAMANO_CARGA),
-        seguridadServicio.listar<Estado>('estados', 1, TAMANO_CARGA),
+        seguridadServicio.listarTodo<Usuario>('usuarios'),
+        seguridadServicio.listarTodo<Persona>('personas'),
+        seguridadServicio.listarTodo<Rol>('roles'),
+        seguridadServicio.listarTodo<Estado>('estados'),
       ]);
-      setUsuarios(u.datos);
-      setPersonas(p.datos);
-      setRoles(r.datos);
-      setEstados(e.datos);
+      setUsuarios(u);
+      setPersonas(p);
+      setRoles(r);
+      setEstados(e);
     } catch (err) {
       setError(mensajeDe(err));
     } finally {
@@ -208,6 +207,8 @@ export default function UsuariosScreen() {
     const errores: Record<string, string> = {};
     if (slideOver.mode === 'create' && String(form.clave ?? '').length < 8) {
       errores.clave = 'Mínimo 8 caracteres';
+    } else if (slideOver.mode === 'create' && !(/[A-Za-z]/.test(String(form.clave)) && /\d/.test(String(form.clave)))) {
+      errores.clave = 'Usa al menos una letra y un número';
     }
     if (selectedRoles.length === 0) errores.idEstado = 'Selecciona al menos un rol';
     return errores;
