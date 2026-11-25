@@ -4,6 +4,7 @@ import { grupoMock, nombreEstudiante, sedeMock } from "../datos/administracion"
 import { useAdministration } from "../datos/ContextoAdministracion"
 import StatusBadge from "@/compartido/ui/StatusBadge"
 import { useState } from "react"
+import SimuladorPago from "../componentes/SimuladorPago"
 export default function MensualidadesScreen() {
   const { data, setTable } = useAdministration()
   const [generatorOpen, setGeneratorOpen] = useState(false)
@@ -53,6 +54,6 @@ export default function MensualidadesScreen() {
       const fecha_limite = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-15`
       return { ...f, idMatricula: Number(f.idMatricula), valor_pagar: Number(f.valor_pagar), fecha_limite: f.fecha_limite || fecha_limite, fecha_pago: f.fecha_pago || null, idEstado: Number(f.idEstado) }
     }}
-    extraDetail={(r) => <p className="font-body text-sm text-text-muted">Para registrar el pago, abre Pagos y selecciona la mensualidad #{r.idMensualidad}.</p>}
+    extraDetail={(r) => <div className="flex flex-col gap-3"><p className="font-body text-sm text-text-muted">Para registrar el pago, abre Pagos y selecciona la mensualidad #{r.idMensualidad}.</p><SimuladorPago key={r.idMensualidad} mensualidad={r} /></div>}
   />
 }
