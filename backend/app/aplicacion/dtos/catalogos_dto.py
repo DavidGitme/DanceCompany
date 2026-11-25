@@ -92,12 +92,12 @@ class NivelOpcion(BaseModel):
 
 # ---------- Talleres ----------
 class TallerCreateDto(BaseModel):
-    descripcion: Texto(200)
+    descripcion: Texto(50)
     valor: Decimal = Field(ge=0, max_digits=10, decimal_places=2)
 
 
 class TallerUpdateDto(BaseModel):
-    descripcion: Texto(200) | None = None
+    descripcion: Texto(50) | None = None
     valor: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
 
 
