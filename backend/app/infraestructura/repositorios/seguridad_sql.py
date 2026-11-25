@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.dominio.reglas import ESTADO_ACTIVO, ESTADO_INACTIVO
 from app.dominio.repositorios.repositorio_seguridad import RepositorioSeguridad
 from app.infraestructura.repositorios.persona_sql import condicion_persona_en_sede
+from app.infraestructura.repositorios.autenticacion_sql import RepositorioAutenticacionSql
 
 # Expresión del idPersona de cada recurso, para limitar las listas a una sede
 PERSONA_DE = {
@@ -197,6 +198,60 @@ class RepositorioSeguridadSql(RepositorioSeguridad):
             {"roles": list(roles), "activo": ESTADO_ACTIVO},
         ).scalars()
         return list(nombres), list(permisos)
+
+    # El login comparte estas consultas con el repositorio de autenticación
+    privilegios_de_roles = RepositorioAutenticacionSql.privilegios_de_roles
+    tiene_privilegio = RepositorioAutenticacionSql.tiene_privilegio
+    aceptar_terminos = RepositorioAutenticacionSql.aceptar_terminos
+
+    # ─── Privilegios por módulo ────────────────────────
+
+    def privilegios_de_rol(self, id_rol: int) -> list[dict]:
+        """Todos los módulos con lo que el rol puede hacer en cada uno (False si no lo tiene)."""
+        filas = self.sesion.execute(
+            text(
+                'SELECT p.idPermiso AS "idPermiso", p.descripcion AS modulo, '
+                "COALESCE(rp.puede_ver, false) AS ver, COALESCE(rp.puede_crear, false) AS crear, "
+                "COALESCE(rp.puede_editar, false) AS editar, COALESCE(rp.puede_eliminar, false) AS eliminar "
+                "FROM permisos p "
+                "LEFT JOIN roles_permisos rp ON rp.idPermiso = p.idPermiso AND rp.idRol = :rol "
+                "ORDER BY p.idPermiso"
+            ),
+            {"rol": id_rol},
+        ).mappings()
+        return [dict(fila) for fila in filas]
+
+    def guardar_privilegios_rol(self, id_rol: int, privilegios: list[dict]) -> list[dict]:
+        """Reemplaza la matriz del rol en una sola transacción.
+        Un módulo sin "ver" no se guarda: sin ver no tiene sentido crear ni editar."""
+        try:
+            self.sesion.execute(text("DELETE FROM roles_permisos WHERE idRol = :rol"), {"rol": id_rol})
+            for fila in privilegios:
+                if not fila["ver"]:
+                    continue
+                self.sesion.execute(
+                    text(
+                        "INSERT INTO roles_permisos (idRol, idPermiso, puede_ver, puede_crear, puede_editar, puede_eliminar) "
+                        "VALUES (:rol, :permiso, TRUE, :crear, :editar, :eliminar)"
+                    ),
+                    {"rol": id_rol, "permiso": fila["idPermiso"], "crear": fila["crear"],
+                     "editar": fila["editar"], "eliminar": fila["eliminar"]},
+                )
+            self.sesion.commit()
+        except Exception:
+            self.sesion.rollback()
+            raise
+        return self.privilegios_de_rol(id_rol)
+
+    def fijar_sede_si_vacia(self, documento: str, sede: int) -> None:
+        self.sesion.execute(
+            text("UPDATE usuarios SET idSede = :sede WHERE documento = :documento AND idSede IS NULL"),
+            {"documento": documento, "sede": sede},
+        )
+        self.sesion.commit()
+
+    def ids_permisos(self) -> set[int]:
+        return set(self.sesion.execute(text("SELECT idPermiso FROM permisos")).scalars())
 
     # ─── Roles y permisos ──────────────────────────────
 

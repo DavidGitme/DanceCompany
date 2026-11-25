@@ -133,9 +133,10 @@ INSERT INTO usuarios_roles (documento, idRol) VALUES
 INSERT INTO roles_permisos (idRol, idPermiso)
 SELECT 1, idPermiso FROM permisos;
 
-INSERT INTO roles_permisos (idRol, idPermiso) VALUES
-(2, 11),
-(4, 4);
+-- Instructor y Acudiente solo consultan su modulo
+INSERT INTO roles_permisos (idRol, idPermiso, puede_ver, puede_crear, puede_editar, puede_eliminar) VALUES
+(2, 11, TRUE, FALSE, FALSE, FALSE),
+(4, 4,  TRUE, FALSE, FALSE, FALSE);
 
 INSERT INTO acudiente (idPersona, idEstado) VALUES
 (6, 1),  -- 1 Valentina

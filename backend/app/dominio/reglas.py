@@ -89,12 +89,46 @@ def error_tipo_para_edad(tipo: str, edad: int) -> str | None:
     return None
 
 
+TELEFONO_DIGITOS = 10
+
+
 def normalizar_telefono(telefono: str) -> str:
-    """Deja solo dígitos y un + inicial ("300 111-1111" -> "3001111111")."""
-    telefono = telefono.strip()
-    signo = "+" if telefono.startswith("+") else ""
-    return signo + "".join(c for c in telefono if c.isdigit())
+    """Deja solo los dígitos ("300 111-1111" -> "3001111111").
+    Quita el indicativo de Colombia si viene ("+57 300 111 1111" -> "3001111111")."""
+    digitos = "".join(c for c in telefono if c.isdigit())
+    if len(digitos) == TELEFONO_DIGITOS + 2 and digitos.startswith("57"):
+        digitos = digitos[2:]
+    return digitos
 
 
 def telefono_valido(telefono: str) -> bool:
-    return 7 <= len(telefono.lstrip("+")) <= 15
+    """Celular o fijo colombiano: exactamente 10 dígitos."""
+    return telefono.isdigit() and len(telefono) == TELEFONO_DIGITOS
+
+
+def error_clave(clave: str) -> str | None:
+    """Contraseña de 8 a 128 caracteres con al menos una letra y un número."""
+    if not 8 <= len(clave) <= 128:
+        return "La contraseña debe tener entre 8 y 128 caracteres."
+    if not any(c.isalpha() for c in clave) or not any(c.isdigit() for c in clave):
+        return "La contraseña debe tener al menos una letra y un número."
+    return None
+
+
+# ---------- Privilegios por módulo (nivel 3: rol -> módulo -> acción) ----------
+ACCIONES = ("ver", "crear", "editar", "eliminar")
+# Cada método HTTP exige un privilegio del módulo
+ACCION_POR_METODO = {
+    "GET": "ver",
+    "HEAD": "ver",
+    "OPTIONS": "ver",
+    "POST": "crear",
+    "PUT": "editar",
+    "PATCH": "editar",
+    "DELETE": "eliminar",
+}
+ROL_ADMINISTRADOR = "administrador"
+
+# ---------- Términos y condiciones ----------
+# Al cambiar el texto se sube la versión y cada cuenta los vuelve a aceptar
+TERMINOS_VERSION = "2026-11"

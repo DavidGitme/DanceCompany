@@ -87,3 +87,34 @@ class PostulacionRespuesta(BaseModel):
     idEstado: int
     estado: str
     beneficio: str | None
+
+
+# ---------- Grupos de competencia ----------
+class GrupoCompetenciaCreateDto(BaseModel):
+    idGrupo: int = Field(gt=0)
+    idConvocatoria: int = Field(gt=0)
+    estudiantes: list[int] = Field(default_factory=list, max_length=60)
+
+
+class GrupoCompetenciaUpdateDto(BaseModel):
+    idConvocatoria: int | None = Field(default=None, gt=0)
+    estudiantes: list[int] | None = Field(default=None, max_length=60)
+
+
+class IntegranteCompetencia(BaseModel):
+    idEstudiante: int
+    nombre: str
+    documento: str
+
+
+class GrupoCompetenciaRespuesta(BaseModel):
+    idGrupoCompetencia: int
+    idGrupo: int
+    grupo: str
+    idSede: int
+    sede: str
+    idConvocatoria: int
+    convocatoria: str
+    vigencia: str
+    integrantes: int
+    estudiantes: list[IntegranteCompetencia] = Field(default_factory=list)

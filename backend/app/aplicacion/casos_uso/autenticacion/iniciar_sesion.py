@@ -5,7 +5,7 @@ from app.aplicacion.dtos.auth_dto import (
 )
 from app.aplicacion.servicios.seguridad import EmisorTokens, HasherClaves
 from app.dominio.excepciones.errores import NoAutenticado
-from app.dominio.reglas import ESTADO_ACTIVO, normalizar_documento
+from app.dominio.reglas import ESTADO_ACTIVO, TERMINOS_VERSION, normalizar_documento
 from app.dominio.repositorios.repositorio_autenticacion import RepositorioAutenticacion
 
 
@@ -52,6 +52,8 @@ class IniciarSesion:
                 permisos=permisos,
                 idSede=id_sede,
                 sede=registro.get("sede"),
+                privilegios=self.repositorio.privilegios_de_roles(registro["roles"]),
+                terminosPendientes=registro.get("terminosVersion") != TERMINOS_VERSION,
             ),
         )
         return respuesta, refresh, refresh_expira_en

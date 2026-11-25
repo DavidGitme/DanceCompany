@@ -3,6 +3,10 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from app.aplicacion.casos_uso.autenticacion.recuperar_clave import RecuperarClave
+from app.config.settings import obtener_configuracion
+from app.infraestructura.correo.smtp import CorreoSmtp
+from app.infraestructura.repositorios.recuperacion_sql import RepositorioRecuperacionSql
 from app.aplicacion.casos_uso.estilos.gestionar_estilos import GestionarEstilos
 from app.aplicacion.casos_uso.estudiantes.gestionar_estudiantes import GestionarEstudiantes
 from app.aplicacion.casos_uso.grupos.gestionar_grupos import GestionarGrupos
@@ -60,4 +64,8 @@ def gestor_inscripciones(sesion: Session = Depends(obtener_sesion)):
         RepositorioInscripcionesSql(sesion),
         GestionarMatriculas(RepositorioMatriculasSql(sesion)),
         HasherArgon2(),
+        RecuperarClave(
+            RepositorioRecuperacionSql(sesion), HasherArgon2(),
+            CorreoSmtp(obtener_configuracion()), obtener_configuracion().frontend_url,
+        ),
     )

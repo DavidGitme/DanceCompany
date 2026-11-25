@@ -104,6 +104,21 @@ class RepositorioSeguridadMemoria(RepositorioSeguridad):
         permisos = [p["descripcion"] for p in self.datos["permisos"] if p["idPermiso"] in ids]
         return [r["nombre"] for r in roles_encontrados], permisos
 
+    def privilegios_de_roles(self, roles: list[int]):
+        _, permisos = self.permisos_de_roles(roles)
+        return {permiso: ["ver", "crear", "editar", "eliminar"] for permiso in permisos}
+
+    def tiene_privilegio(self, documento: str, modulo: str, accion: str):
+        usuario = next((u for u in self.datos["usuarios"] if u["documento"] == documento), None)
+        if not usuario:
+            return False
+        return modulo in self.privilegios_de_roles(usuario.get("roles", []))
+
+    def aceptar_terminos(self, documento: str, version: str):
+        usuario = next((u for u in self.datos["usuarios"] if u["documento"] == documento), None)
+        if usuario:
+            usuario["terminosVersion"] = version
+
     def asignar_permisos_rol(self, id_rol: int, permisos: list[int]):
         rol = self.obtener("roles", id_rol)
         if not rol:

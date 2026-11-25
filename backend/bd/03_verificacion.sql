@@ -1,7 +1,7 @@
 -- DanceFlow - Verificacion (solo lectura)
 -- Ejecutar despues de 01 y 02. Ninguna consulta modifica datos.
 
--- 1. Debe devolver 34 tablas.
+-- 1. Debe devolver 35 tablas.
 SELECT COUNT(*) AS total_tablas
 FROM information_schema.tables
 WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
@@ -28,7 +28,7 @@ JOIN roles r           ON r.idRol = ur.idRol
 JOIN estados e         ON e.idEstado = u.idEstado
 ORDER BY u.documento;
 
--- 4. Permisos efectivos por usuario (lo que ira dentro del token).
+-- 4. Modulos de cada usuario (lo que ira dentro del token).
 SELECT ur.documento, STRING_AGG(DISTINCT pe.descripcion, ', ') AS permisos
 FROM usuarios_roles ur
 JOIN roles r           ON r.idRol = ur.idRol AND r.idEstado = 1
@@ -46,3 +46,14 @@ JOIN grupo g       ON g.idGrupo = m.idGrupo
 JOIN nivel n       ON n.idNivel = g.idNivel
 WHERE m.idEstado = 1
 ORDER BY p.nombre;
+
+-- 6. Privilegios por rol y modulo (V = ver, C = crear, E = editar, X = eliminar).
+SELECT r.nombre AS rol, pe.descripcion AS modulo,
+       CASE WHEN rp.puede_ver THEN 'V' ELSE '-' END ||
+       CASE WHEN rp.puede_crear THEN 'C' ELSE '-' END ||
+       CASE WHEN rp.puede_editar THEN 'E' ELSE '-' END ||
+       CASE WHEN rp.puede_eliminar THEN 'X' ELSE '-' END AS privilegios
+FROM roles_permisos rp
+JOIN roles r     ON r.idRol = rp.idRol
+JOIN permisos pe ON pe.idPermiso = rp.idPermiso
+ORDER BY r.idRol, pe.idPermiso;
