@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useCallback, useEffect, useState, type ReactNode } from "react"
 import { recursoApi } from "@/compartido/api/recursos"
 import { Icono } from "@/compartido/ui/PantallaRecurso"
@@ -42,7 +43,6 @@ const hoy = new Date()
 const aIso = (fecha: Date) =>
   `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${String(fecha.getDate()).padStart(2, "0")}`
 const inicioMes = aIso(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
-const nombreMes = hoy.toLocaleDateString("es-CO", { month: "long", year: "numeric" })
 const fechaCorta = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" })
 
@@ -70,8 +70,8 @@ function useDato<T>(cargar: () => Promise<T>, habilitado: boolean, version: numb
 }
 
 function Valor<T>({ dato, children }: { dato: Dato<T>; children: (valor: T) => ReactNode }) {
-  if (dato.estado === "cargando") return <span className="esqueleto inline-block h-9 w-20 rounded-lg align-middle" aria-label="Cargando" />
-  if (dato.estado === "error") return <span className="text-text-muted" title="Sin datos o sin permiso">—</span>
+  if (dato.estado === "cargando") return <span className="esqueleto inline-block h-9 w-20 rounded-lg align-middle" aria-label={tr("Cargando")} />
+  if (dato.estado === "error") return <span className="text-text-muted" title={tr("Sin datos o sin permiso")}>—</span>
   return <>{children(dato.valor)}</>
 }
 
@@ -83,12 +83,12 @@ function Tarjeta({ etiqueta, dato, detalle, onClick }: { etiqueta: string; dato:
       disabled={!onClick}
       className="group flex flex-col gap-3 rounded-[20px] border border-border bg-surface p-5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/50 disabled:pointer-events-none"
     >
-      <span className="font-condensed text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">{etiqueta}</span>
+      <span className="font-condensed text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">{tr(etiqueta)}</span>
       <span className="display text-5xl text-text">
         <Valor dato={dato}>{(v) => v.toLocaleString("es-CO")}</Valor>
       </span>
       <span className="flex items-center justify-between font-body text-xs text-text-soft">
-        {detalle}
+        {tr(detalle)}
         {onClick && <span className="font-condensed text-sm uppercase tracking-wider text-accent transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>}
       </span>
     </button>
@@ -155,24 +155,24 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="font-condensed text-xs font-semibold uppercase tracking-[0.25em] text-accent">
-            {hoy.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}
+            {hoy.toLocaleDateString(tr("es-CO"), { weekday: "long", day: "numeric", month: "long" })}
           </p>
           <h1 className="display mt-2 text-5xl text-text sm:text-6xl">
-            Hola{nombre ? "," : ""} <span className="text-blush">{nombre}</span>
+            {tr("Hola")}{nombre ? "," : ""} <span className="text-blush">{nombre}</span>
           </h1>
-          <p className="mt-2 font-body text-sm text-text-soft">Resumen de la academia con datos reales de la base de datos.</p>
+          <p className="mt-2 font-body text-sm text-text-soft">{tr("Resumen de la academia con datos reales de la base de datos.")}</p>
         </div>
         <button
           type="button"
           onClick={() => setVersion((v) => v + 1)}
           className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 font-condensed text-sm font-semibold uppercase tracking-wider text-text-soft transition-colors hover:border-accent hover:text-text"
         >
-          <Icono nombre="recargar" /> Actualizar
+          <Icono nombre="recargar" /> {tr("Actualizar")}
         </button>
       </header>
 
       {accesos.length > 0 && (
-        <nav aria-label="Accesos rápidos" className="flex flex-wrap gap-2">
+        <nav aria-label={tr("Accesos rápidos")} className="flex flex-wrap gap-2">
           {accesos.map((a) => (
             <button
               key={a.modulo}
@@ -180,14 +180,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               onClick={() => onNavigate(a.modulo, true)}
               className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 font-condensed text-sm font-bold uppercase tracking-wider text-on-accent transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-strong"
             >
-              <Icono nombre="mas" /> {a.etiqueta}
+              <Icono nombre="mas" /> {tr(a.etiqueta)}
             </button>
           ))}
         </nav>
       )}
 
-      <section aria-label="Indicadores" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Tarjeta etiqueta="Estudiantes activos" dato={estudiantes} detalle={usuario?.sede ? `Sede ${usuario.sede}` : "En todas las sedes"} onClick={puede("estudiantes") ? () => onNavigate("estudiantes") : undefined} />
+      <section aria-label={tr("Indicadores")} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Tarjeta etiqueta="Estudiantes activos" dato={estudiantes} detalle={usuario?.sede ? `${tr("Sede")} ${usuario.sede}` : "En todas las sedes"} onClick={puede("estudiantes") ? () => onNavigate("estudiantes") : undefined} />
         <Tarjeta etiqueta="Grupos activos" dato={grupos} detalle="Con cupos e instructor" onClick={puede("grupos") ? () => onNavigate("grupos") : undefined} />
         <Tarjeta etiqueta="Instructores activos" dato={instructores} detalle="Asignados a sedes" onClick={puede("instructores") ? () => onNavigate("instructores") : undefined} />
         <Tarjeta etiqueta="Convocatorias abiertas" dato={convocatorias} detalle="Recibiendo postulaciones" />
@@ -197,9 +197,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         {/* Cartera */}
         <section aria-labelledby="titulo-cartera" className="rounded-[20px] border border-border bg-surface p-6 lg:col-span-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="titulo-cartera" className="font-display text-2xl uppercase text-text">Mensualidades por cobrar</h2>
+            <h2 id="titulo-cartera" className="font-display text-2xl uppercase text-text">{tr("Mensualidades por cobrar")}</h2>
             <p className="font-body text-xs text-text-muted">
-              <Valor dato={cartera}>{(c) => `${c.pendientes} pendiente${c.pendientes === 1 ? "" : "s"} · ${c.totalAtrasadas} vencida${c.totalAtrasadas === 1 ? "" : "s"} o en mora`}</Valor>
+              <Valor dato={cartera}>{(c) => tr("{p} pendientes · {v} vencidas o en mora", { p: c.pendientes, v: c.totalAtrasadas })}</Valor>
             </p>
           </div>
           <div className="mt-4">
@@ -207,7 +207,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               {(c) =>
                 c.atrasadas.length === 0 ? (
                   <p className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-4 font-body text-sm text-emerald-700 dark:text-emerald-300">
-                    No hay mensualidades vencidas ni en mora.
+                    {tr("No hay mensualidades vencidas ni en mora.")}
                   </p>
                 ) : (
                   <ul className="divide-y divide-border">
@@ -216,12 +216,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                         <div className="min-w-0">
                           <p className="font-body text-sm font-semibold text-text">{m.estudiante}</p>
                           <p className="truncate font-body text-xs text-text-muted">
-                            {m.grupo} · periodo {m.periodo} · venció el {fechaCorta(m.fecha_limite)}
+                            {tr("{grupo} · periodo {periodo} · venció el {fecha}", { grupo: m.grupo, periodo: m.periodo, fecha: fechaCorta(m.fecha_limite) })}
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="font-body text-sm font-semibold tabular-nums text-text">{formatoPesos(m.saldo)}</span>
-                          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-0.5 font-condensed text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-300">{m.estado}</span>
+                          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-0.5 font-condensed text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-300">{tr(m.estado)}</span>
                         </div>
                       </li>
                     ))}
@@ -234,19 +234,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
         {/* Estudiantes por sede */}
         <section aria-labelledby="titulo-sedes" className="rounded-[20px] border border-border bg-surface p-6 lg:col-span-2">
-          <h2 id="titulo-sedes" className="font-display text-2xl uppercase text-text">Estudiantes por sede</h2>
+          <h2 id="titulo-sedes" className="font-display text-2xl uppercase text-text">{tr("Estudiantes por sede")}</h2>
           <div className="mt-5 flex flex-col gap-4">
             <Valor dato={sedes}>
               {(lista) => {
                 const maximo = Math.max(1, ...lista.map((s) => s.estudiantesActivos))
                 return lista.length === 0 ? (
-                  <p className="font-body text-sm text-text-muted">No hay sedes activas.</p>
+                  <p className="font-body text-sm text-text-muted">{tr("No hay sedes activas.")}</p>
                 ) : (
                   lista.map((s) => (
                     <div key={s.idSede}>
                       <div className="mb-1.5 flex justify-between font-condensed text-sm uppercase tracking-wider">
                         <span className="text-text">{s.nombre}</span>
-                        <span className="tabular-nums text-text-soft">{s.estudiantesActivos} · {s.gruposActivos} grupos</span>
+                        <span className="tabular-nums text-text-soft">{tr("{e} · {g} grupos", { e: s.estudiantesActivos, g: s.gruposActivos })}</span>
                       </div>
                       <div className="h-2.5 overflow-hidden rounded-full bg-surface-alt" role="presentation">
                         <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${(s.estudiantesActivos / maximo) * 100}%` }} />
@@ -263,14 +263,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       {/* Pagos */}
       <section aria-labelledby="titulo-pagos" className="rounded-[20px] border border-border bg-surface p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="titulo-pagos" className="font-display text-2xl uppercase text-text">Pagos</h2>
+          <h2 id="titulo-pagos" className="font-display text-2xl uppercase text-text">{tr("Pagos")}</h2>
           <p className="font-body text-sm text-text-soft">
-            Recaudo de {nombreMes}:{" "}
+            {tr("Recaudo de {mes}:", { mes: hoy.toLocaleDateString(tr("es-CO"), { month: "long", year: "numeric" }) })}{" "}
             <Valor dato={pagosMes}>
               {(p) => (
                 <strong className="text-text">
-                  {formatoPesos(p.total)} · {p.cantidad} pago{p.cantidad === 1 ? "" : "s"}
-                  {p.incompleto ? " (primeros 100)" : ""}
+                  {formatoPesos(p.total)} · {tr(p.cantidad === 1 ? "{n} pago" : "{n} pagos", { n: p.cantidad })}
+                  {p.incompleto ? ` ${tr("(primeros 100)")}` : ""}
                 </strong>
               )}
             </Valor>
@@ -280,7 +280,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           <Valor dato={ultimosPagos}>
             {(lista) =>
               lista.length === 0 ? (
-                <p className="font-body text-sm text-text-muted">Todavía no hay pagos registrados.</p>
+                <p className="font-body text-sm text-text-muted">{tr("Todavía no hay pagos registrados.")}</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {lista.map((p) => (

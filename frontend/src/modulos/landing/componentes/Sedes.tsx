@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Reveal, { MaskLine } from '@/compartido/ui/Reveal';
+import { useIdioma } from '@/nucleo/i18n/useIdioma';
 
 interface Sede {
   name: string;
@@ -58,13 +59,14 @@ function IconoReloj({ className = 'h-5 w-5' }: { className?: string }) {
 
 // Imagen de la sede con respaldo de marca si no existe o no carga
 function ImagenSede({ sede }: { sede: Sede }) {
+  const { t } = useIdioma();
   const [fallo, setFallo] = useState(false);
 
   if (sede.photo && !fallo) {
     return (
       <img
         src={sede.photo}
-        alt={sede.photoAlt ?? `Instalaciones de la sede ${sede.name} de F&A Dance Company`}
+        alt={sede.photoAlt ?? t('Instalaciones de la sede {sede} de F&A Dance Company', { sede: sede.name })}
         loading="lazy"
         decoding="async"
         onError={() => setFallo(true)}
@@ -76,15 +78,12 @@ function ImagenSede({ sede }: { sede: Sede }) {
   return (
     <div
       className="absolute inset-0 grid place-items-center bg-[#2e2240] pb-20 sm:pb-16"
-      style={{
-        // Cuadrícula tenue fija: se ve igual en modo claro y oscuro
-        backgroundImage:
-          'linear-gradient(to right, rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(135deg, #5a4577, #2e2240 55%, #0c0a11)',
-        backgroundSize: '72px 72px, 72px 72px, 100% 100%',
-      }}
+      style={{ backgroundImage: 'linear-gradient(135deg, #5a4577, #2e2240 55%, #1a1624)' }}
       aria-hidden="true"
     >
-      <span className="grid h-20 w-20 place-items-center rounded-full border border-white/20 bg-white/5 text-white/70 transition-transform duration-700 group-hover:scale-110 motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:h-28 sm:w-28">
+      {/* Cuadrícula decorativa solo en modo oscuro */}
+      <span className="absolute inset-0 hidden dark:block bg-[linear-gradient(to_right,rgba(255,255,255,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.07)_1px,transparent_1px)] bg-[size:72px_72px]" />
+      <span className="relative grid h-20 w-20 place-items-center rounded-full border border-white/20 bg-white/5 text-white/70 transition-transform duration-700 group-hover:scale-110 motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:h-28 sm:w-28">
         <IconoUbicacion className="h-9 w-9 sm:h-12 sm:w-12" />
       </span>
     </div>
@@ -92,17 +91,18 @@ function ImagenSede({ sede }: { sede: Sede }) {
 }
 
 export default function Locations() {
+  const { t } = useIdioma();
   return (
     <section id="sedes" aria-labelledby="titulo-sedes" className="relative py-28 bg-page overflow-hidden">
       <div className="max-w-[88rem] mx-auto px-6">
         <div className="mb-16">
           <Reveal>
-            <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(05) Dónde entrenar</span>
+            <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(06) {t('Dónde entrenar')}</span>
           </Reveal>
           <Reveal variant="mask" as="h2" className="display text-[clamp(3rem,9vw,8rem)] text-text mt-4">
             <span id="titulo-sedes">
-              <MaskLine>Nuestras</MaskLine>
-              <MaskLine delay={150}><span className="text-blush">sedes</span></MaskLine>
+              <MaskLine>{t('Nuestras')}</MaskLine>
+              <MaskLine delay={150}><span className="text-blush">{t('sedes')}</span></MaskLine>
             </span>
           </Reveal>
         </div>
@@ -118,11 +118,11 @@ export default function Locations() {
                   <div className="absolute top-4 left-4 flex items-center gap-3">
                     <span className="font-condensed text-sm text-white/80" aria-hidden="true">({String(i + 1).padStart(2, '0')})</span>
                     <span className="bg-white/15 backdrop-blur border border-white/25 font-condensed text-xs uppercase tracking-widest text-white px-3 py-1">
-                      {loc.tag}
+                      {t(loc.tag)}
                     </span>
                   </div>
                   <h3 id={`sede-${i}`} className="absolute bottom-5 left-6 display text-6xl md:text-7xl text-white">
-                    <span className="sr-only">Sede </span>{loc.name}
+                    <span className="sr-only">{t('Sede')} </span>{loc.name}
                   </h3>
                 </div>
 
@@ -130,26 +130,26 @@ export default function Locations() {
                   <dl className="flex flex-col gap-3 mb-4 font-body text-sm text-text-soft">
                     <div className="flex gap-3">
                       <dt className="flex w-28 shrink-0 items-center gap-2 font-condensed uppercase tracking-wider text-accent">
-                        <IconoUbicacion className="h-4 w-4" /> Dirección
+                        <IconoUbicacion className="h-4 w-4" /> {t('Dirección')}
                       </dt>
                       <dd>{loc.address}</dd>
                     </div>
                     <div className="flex gap-3">
                       <dt className="flex w-28 shrink-0 items-center gap-2 font-condensed uppercase tracking-wider text-accent">
-                        <IconoReloj className="h-4 w-4" /> Horario
+                        <IconoReloj className="h-4 w-4" /> {t('Horario')}
                       </dt>
-                      <dd>{loc.schedule}</dd>
+                      <dd>{t(loc.schedule)}</dd>
                     </div>
                   </dl>
-                  <p className="font-body text-sm text-text-soft leading-relaxed mb-5">{loc.description}</p>
+                  <p className="font-body text-sm text-text-soft leading-relaxed mb-5">{t(loc.description)}</p>
                   <a
                     href={mapsUrl(loc.address)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`Cómo llegar a la sede ${loc.name} (abre Google Maps en una pestaña nueva)`}
+                    aria-label={t('Cómo llegar a la sede {sede} (abre Google Maps en una pestaña nueva)', { sede: loc.name })}
                     className="mt-auto inline-flex w-fit items-center justify-center gap-2 rounded-full border border-accent px-5 py-2 font-condensed text-sm font-bold uppercase tracking-wider text-accent transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent hover:text-on-accent active:translate-y-0 motion-reduce:hover:translate-y-0"
                   >
-                    <IconoUbicacion className="h-4 w-4" /> Cómo llegar
+                    <IconoUbicacion className="h-4 w-4" /> {t('Cómo llegar')}
                     <span aria-hidden="true">→</span>
                   </a>
                 </div>

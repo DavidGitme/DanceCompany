@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 const tones: Record<string, string> = {
   activo: "border-emerald-500/30 bg-emerald-500/15 text-emerald-400",
   activa: "border-emerald-500/30 bg-emerald-500/15 text-emerald-400",
@@ -23,7 +24,7 @@ export default function StatusBadge({ status }: { status: string }) {
   const tone = tones[status.toLocaleLowerCase()] ?? "border-purple-400/30 bg-purple-400/10 text-purple-400"
   return (
     <span className={`inline-flex rounded-full border px-2.5 py-0.5 font-condensed text-xs font-semibold uppercase tracking-wider ${tone}`}>
-      {status}
+      {tr(status)}
     </span>
   )
 }

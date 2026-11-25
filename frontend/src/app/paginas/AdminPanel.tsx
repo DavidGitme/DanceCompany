@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react"
 import Sidebar from "@/app/admin/Sidebar"
 import Dashboard from "@/app/admin/Dashboard"
@@ -139,7 +140,7 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
             onClick={() => setFicha(fila as unknown as EstudianteFicha)}
             className={`${claseBotonIcono} ${hoverNeutro}`}
             aria-label={`Ver ficha y acudientes de ${fila.nombre}`}
-            title="Ver ficha y acudientes"
+            title={tr("Ver ficha y acudientes")}
           >
             <Icono nombre="ojo" />
           </button>
@@ -177,10 +178,10 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
             ? (fila: any) => // eslint-disable-line @typescript-eslint/no-explicit-any
                 fila.idEstado === recursos.POSTULACION.postulado ? (
                   <>
-                    <button type="button" onClick={() => decidirPostulacion(fila, recursos.POSTULACION.aceptado)} className={`${claseBotonIcono} hover:bg-emerald-500/10 hover:text-emerald-500`} aria-label={`Aceptar a ${fila.estudiante}`} title="Aceptar">
+                    <button type="button" onClick={() => decidirPostulacion(fila, recursos.POSTULACION.aceptado)} className={`${claseBotonIcono} hover:bg-emerald-500/10 hover:text-emerald-500`} aria-label={`Aceptar a ${fila.estudiante}`} title={tr("Aceptar")}>
                       <Icono nombre="check" />
                     </button>
-                    <button type="button" onClick={() => decidirPostulacion(fila, recursos.POSTULACION.rechazado)} className={`${claseBotonIcono} hover:bg-red-500/10 hover:text-red-500`} aria-label={`Rechazar a ${fila.estudiante}`} title="Rechazar">
+                    <button type="button" onClick={() => decidirPostulacion(fila, recursos.POSTULACION.rechazado)} className={`${claseBotonIcono} hover:bg-red-500/10 hover:text-red-500`} aria-label={`Rechazar a ${fila.estudiante}`} title={tr("Rechazar")}>
                       <Icono nombre="cerrar" />
                     </button>
                   </>
@@ -200,7 +201,7 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
     )
   } else {
     contenido = (
-      <div className="flex h-64 items-center justify-center font-body text-text-muted">Módulo no encontrado</div>
+      <div className="flex h-64 items-center justify-center font-body text-text-muted">{tr("Módulo no encontrado")}</div>
     )
   }
 
@@ -211,7 +212,7 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
           href="#contenido-admin"
           className="sr-only z-[80] rounded-full bg-accent px-4 py-2 font-condensed text-sm uppercase tracking-wider text-on-accent focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
         >
-          Saltar al contenido
+          {tr("Saltar al contenido")}
         </a>
 
         <Sidebar
@@ -233,14 +234,14 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
               aria-expanded={menuMovil}
               aria-controls="menu-admin"
               className="grid h-10 w-10 place-items-center rounded-full text-text hover:bg-accent/10"
-              aria-label="Abrir menú"
+              aria-label={tr("Abrir menú")}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-6 w-6" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             </button>
             <span className="truncate font-condensed text-sm font-semibold uppercase tracking-wider text-text">
-              {actual?.etiqueta ?? "Panel"}
+              {actual?.etiqueta ? tr(actual.etiqueta) : tr("Panel")}
             </span>
           </header>
 
@@ -268,9 +269,9 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
           onInscrito={(r) => {
             setInscribiendo(false)
             setRecargarEstudiantes((n) => n + 1)
-            const extras = [r.idMatricula ? "matriculado" : "", r.cuentaCreada ? "con cuenta del portal" : ""].filter(Boolean)
-            const correo = r.correoEnviado ? " Le enviamos un correo con su acceso." : r.aviso ? ` ${r.aviso}` : ""
-            setAviso(`${r.estudiante.nombre} quedó inscrito${extras.length ? ` (${extras.join(" y ")})` : ""}.${correo}`)
+            const extras = [r.idMatricula ? tr("matriculado") : "", r.cuentaCreada ? tr("con cuenta del portal") : ""].filter(Boolean)
+            const correo = r.correoEnviado ? ` ${tr("Le enviamos un correo con su acceso.")}` : r.aviso ? ` ${tr(r.aviso)}` : ""
+            setAviso(`${tr("{nombre} quedó inscrito", { nombre: r.estudiante.nombre })}${extras.length ? ` (${extras.join(tr(" y "))})` : ""}.${correo}`)
           }}
         />
       )}

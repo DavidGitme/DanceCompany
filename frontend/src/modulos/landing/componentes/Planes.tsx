@@ -1,5 +1,6 @@
 import Button from '@/compartido/ui/Button';
 import Reveal, { MaskLine } from '@/compartido/ui/Reveal';
+import { useIdioma } from '@/nucleo/i18n/useIdioma';
 
 const plans = [
   {
@@ -38,22 +39,23 @@ const plans = [
 ];
 
 export default function Plans() {
+  const { t } = useIdioma();
   return (
     <section id="planes" className="relative py-28 bg-surface-alt overflow-hidden">
       <div className="relative max-w-[88rem] mx-auto px-6">
         <div className="mb-16 grid lg:grid-cols-[1.4fr_1fr] gap-8 items-end">
           <div>
             <Reveal>
-              <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(04) Membresías</span>
+              <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(05) {t('Membresías')}</span>
             </Reveal>
             <Reveal variant="mask" as="h2" className="display text-[clamp(3rem,9vw,8rem)] text-text mt-4">
-              <MaskLine>Elige tu</MaskLine>
-              <MaskLine delay={150}><span className="text-blush">ritmo</span></MaskLine>
+              <MaskLine>{t('Elige tu')}</MaskLine>
+              <MaskLine delay={150}><span className="text-blush">{t('ritmo')}</span></MaskLine>
             </Reveal>
           </div>
           <Reveal delay={200}>
             <p className="font-body text-text-soft text-lg leading-relaxed">
-              Sin excusas. Elige el plan que se adapta a tu estilo de vida y empieza a bailar hoy.
+              {t('Sin excusas. Elige el plan que se adapta a tu estilo de vida y empieza a bailar hoy.')}
             </p>
           </Reveal>
         </div>
@@ -71,20 +73,20 @@ export default function Plans() {
                   <span className="font-condensed text-sm text-text-muted">({String(i + 1).padStart(2, '0')})</span>
                   {plan.recommended && (
                     <span className="bg-accent text-on-accent font-condensed font-bold text-xs uppercase tracking-widest px-3 py-1">
-                      Recomendado
+                      {t('Recomendado')}
                     </span>
                   )}
                 </div>
 
-                <div className="font-condensed text-sm uppercase tracking-[0.25em] text-accent mb-2">{plan.tagline}</div>
-                <h3 className="display text-6xl md:text-7xl text-text mb-6">{plan.name}</h3>
-                <p className="font-body text-base text-text-soft leading-relaxed mb-8">{plan.description}</p>
+                <div className="font-condensed text-sm uppercase tracking-[0.25em] text-accent mb-2">{t(plan.tagline)}</div>
+                <h3 className="display text-6xl md:text-7xl text-text mb-6">{t(plan.name)}</h3>
+                <p className="font-body text-base text-text-soft leading-relaxed mb-8">{t(plan.description)}</p>
 
                 <ul className="flex flex-col mb-10 flex-1 border-t border-border">
                   {plan.benefits.map((b) => (
                     <li key={b} className="flex items-start gap-4 py-3 border-b border-border">
                       <span className="font-condensed text-accent leading-6" aria-hidden="true">+</span>
-                      <span className="font-body text-sm text-text-soft">{b}</span>
+                      <span className="font-body text-sm text-text-soft">{t(b)}</span>
                     </li>
                   ))}
                 </ul>
@@ -95,7 +97,7 @@ export default function Plans() {
                   fullWidth
                   onClick={() => document.querySelector('#alquiler')?.scrollIntoView({ behavior: 'smooth' })}
                 >
-                  {plan.cta}
+                  {t(plan.cta)}
                 </Button>
               </div>
             </Reveal>
@@ -103,7 +105,7 @@ export default function Plans() {
         </div>
 
         <p className="mt-8 font-body text-xs text-text-soft">
-          Consulta disponibilidad y condiciones en cada sede. Los planes incluyen acceso a clases regulares de lunes a sábado.
+          {t('Consulta disponibilidad y condiciones en cada sede. Los planes incluyen acceso a clases regulares de lunes a sábado.')}
         </p>
       </div>
     </section>

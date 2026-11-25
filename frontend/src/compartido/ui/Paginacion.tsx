@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 interface PaginacionProps {
   total: number
   pagina: number
@@ -39,11 +40,11 @@ export default function Paginacion({
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3">
       <div className="flex items-center gap-4">
         <span className="font-condensed text-xs uppercase tracking-wider text-text-soft">
-          ({desde}–{hasta}) de {total} registro{total !== 1 ? "s" : ""}
+          {tr(total === 1 ? "({desde}–{hasta}) de {total} registro" : "({desde}–{hasta}) de {total} registros", { desde, hasta, total })}
         </span>
         {onTamano && (
           <label className="flex items-center gap-2 font-condensed text-xs uppercase tracking-wider text-text-soft">
-            Filas
+            {tr("Filas")}
             <select
               value={tamano}
               onChange={(e) => onTamano(Number(e.target.value))}
@@ -60,14 +61,14 @@ export default function Paginacion({
       </div>
 
       {totalPaginas > 1 && (
-        <nav aria-label="Paginación" className="flex items-center gap-1.5">
+        <nav aria-label={tr("Paginación")} className="flex items-center gap-1.5">
           <button
             type="button"
             className={`${btn} border-border text-text-soft hover:border-accent hover:text-text`}
             disabled={pagina === 1}
             onClick={() => onPagina(pagina - 1)}
           >
-            Anterior
+            {tr("Anterior")}
           </button>
           {paginasVisibles(pagina, totalPaginas).map((p, i) =>
             p === "..." ? (
@@ -96,7 +97,7 @@ export default function Paginacion({
             disabled={pagina === totalPaginas}
             onClick={() => onPagina(pagina + 1)}
           >
-            Siguiente
+            {tr("Siguiente")}
           </button>
         </nav>
       )}

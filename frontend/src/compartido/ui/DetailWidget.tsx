@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { ModuleConfig } from '@/app/admin/tipos';
 
 interface DetailWidgetProps {
@@ -121,7 +122,7 @@ export default function DetailWidget({ open, config, row, onEdit, onClose, onDel
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-purple-700 text-white hover:bg-purple-900 active:scale-[0.98] font-condensed font-600 text-sm uppercase tracking-wider transition-all cursor-pointer shadow-lg shadow-purple-700/20"
             >
               <EditIcon />
-              Editar
+              {tr("Editar")}
             </button>}
           </div>
         </div>

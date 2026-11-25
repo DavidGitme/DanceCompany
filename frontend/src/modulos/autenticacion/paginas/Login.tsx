@@ -1,3 +1,5 @@
+import SelectorIdioma from "@/compartido/ui/SelectorIdioma"
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useState } from "react"
 import logoFna from "@/recursos/logo-fna.png"
 import Button from "@/compartido/ui/Button"
@@ -26,14 +28,14 @@ export default function Login({ onBack, onLogin }: LoginProps) {
     setError("")
     const documento = email.replace(/[\s.-]/g, "")
     if (!/^[A-Za-z0-9]{5,20}$/.test(documento)) {
-      setError("Escribe tu número de documento (5 a 20 caracteres, sin espacios).")
+      setError(tr("Escribe tu número de documento (5 a 20 caracteres, sin espacios)."))
       return
     }
     setEnviando(true)
     try {
       setMensajeRecuperacion(await autenticacionServicio.solicitarRecuperacion(documento))
     } catch (err) {
-      setError((err as { mensaje?: string })?.mensaje ?? "No fue posible enviar la solicitud. Intenta de nuevo.")
+      setError((err as { mensaje?: string })?.mensaje ?? tr("No fue posible enviar la solicitud. Intenta de nuevo."))
     } finally {
       setEnviando(false)
     }
@@ -49,7 +51,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
     } catch (err) {
       // La API ya trae un mensaje claro (clave incorrecta, demasiados intentos, cuenta bloqueada)
       const mensaje = (err as { mensaje?: string })?.mensaje
-      setError(mensaje ?? "Documento o clave incorrectos.")
+      setError(mensaje ?? tr("Documento o clave incorrectos."))
     } finally {
       setEnviando(false)
     }
@@ -65,7 +67,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
         {/* Background image */}
         <img
           src="https://images.unsplash.com/photo-1761882619891-6529ff92df0a?w=960&h=1200&fit=crop&auto=format"
-          alt="Hip hop dancer"
+          alt={tr("Hip hop dancer")}
           className="absolute inset-0 w-full h-full object-cover opacity-40"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#49225B]/80 via-[#0D0A10]/60 to-[#0D0A10]" />
@@ -75,52 +77,55 @@ export default function Login({ onBack, onLogin }: LoginProps) {
             onClick={onBack}
             className="text-purple-400/60 hover:text-purple-400 font-condensed text-sm uppercase tracking-widest transition-colors cursor-pointer flex items-center gap-2"
           >
-            ← Volver al inicio
+            ← {tr("Volver al inicio")}
           </button>
         </div>
 
         <div className="relative z-10 p-10">
           <h2 className="font-display text-6xl uppercase text-purple-50 leading-none mb-4">
-            BAILA.
+            {tr("BAILA.")}
             <br />
-            <span className="text-purple-400">CRECE.</span>
+            <span className="text-purple-400">{tr("CRECE.")}</span>
             <br />
-            REGRESA.
+            {tr("REGRESA.")}
           </h2>
           <p className="font-body text-purple-100/50 text-sm leading-relaxed">
-            Tu cuenta F&A te da acceso a horarios, progreso, comunidad y mucho
-            más.
+            {tr("Tu cuenta F&A te da acceso a horarios, progreso, comunidad y mucho más.")}
           </p>
         </div>
       </div>
 
       {/* Right — form */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
+      <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16">
         {/* Mobile back */}
         <button
           onClick={onBack}
           className="lg:hidden absolute top-6 left-6 text-purple-400/60 hover:text-purple-400 font-condensed text-sm uppercase tracking-widest transition-colors cursor-pointer"
         >
-          ← Volver
+          ← {tr("Volver")}
         </button>
+        {/* Idioma */}
+        <div className="absolute top-5 right-6 text-purple-100/70">
+          <SelectorIdioma />
+        </div>
 
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex justify-center mb-10">
             <img
               src={logoFna}
-              alt="F&A Dance Company"
+              alt={tr("F&A Dance Company")}
               className="h-14 w-auto object-contain"
             />
           </div>
 
           <h1 className="font-display text-4xl uppercase text-purple-50 text-center mb-2">
-            {recuperando ? "RECUPERAR ACCESO" : "BIENVENIDO"}
+            {recuperando ? tr("RECUPERAR ACCESO") : tr("BIENVENIDO")}
           </h1>
           <p className="font-body text-purple-100/50 text-sm text-center mb-10">
             {recuperando
               ? "Te enviaremos un enlace al correo registrado en tu cuenta."
-              : "Inicia sesión con tu número de documento"}
+              : tr("Inicia sesión con tu número de documento")}
           </p>
 
           {recuperando ? (
@@ -133,7 +138,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
                 <>
                   <div>
                     <label htmlFor="recuperar-documento" className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
-                      Número de documento
+                      {tr("Número de documento")}
                     </label>
                     <input
                       id="recuperar-documento"
@@ -141,7 +146,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
                       inputMode="numeric"
                       autoComplete="username"
                       className={inputClass}
-                      placeholder="Ej. 1000000001"
+                      placeholder={tr("Ej. 1000000001")}
                       value={email}
                       maxLength={20}
                       onChange={(e) => setEmail(e.target.value)}
@@ -150,7 +155,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
                     />
                   </div>
                   <Button type="submit" size="lg" fullWidth className="mt-2">
-                    {enviando ? "Enviando..." : "Enviar enlace"}
+                    {enviando ? tr("Enviando...") : tr("Enviar enlace")}
                   </Button>
                 </>
               )}
@@ -172,7 +177,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
             {/* Documento: es el usuario de todas las cuentas */}
             <div>
               <label htmlFor="login-documento" className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
-                Número de documento
+                {tr("Número de documento")}
               </label>
               <input
                 id="login-documento"
@@ -180,7 +185,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
                 inputMode="numeric"
                 autoComplete="username"
                 className={inputClass}
-                placeholder="Ej. 1000000001"
+                placeholder={tr("Ej. 1000000001")}
                 value={email}
                 maxLength={30}
                 onChange={(e) => setEmail(e.target.value)}
@@ -191,7 +196,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
             {/* Password */}
             <div>
               <label htmlFor="login-clave" className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
-                Contraseña
+                {tr("Contraseña")}
               </label>
               <div className="relative">
                 <input
@@ -207,7 +212,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-label={showPass ? tr("Ocultar contraseña") : tr("Mostrar contraseña")}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400/50 hover:text-purple-400 transition-colors cursor-pointer"
                 >
                   {showPass ? (
@@ -254,13 +259,13 @@ export default function Login({ onBack, onLogin }: LoginProps) {
                 onClick={() => { setRecuperando(true); setError("") }}
                 className="font-body text-sm text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
               >
-                ¿Olvidaste tu contraseña?
+                {tr("¿Olvidaste tu contraseña?")}
               </button>
             </div>
 
             {/* Submit */}
             <Button type="submit" size="lg" fullWidth className="mt-2">
-              {enviando ? "Ingresando..." : "Iniciar sesión"}
+              {enviando ? tr("Ingresando...") : tr("Iniciar sesión")}
             </Button>
             {error && (
               <p role="alert" className="font-body text-sm text-red-400">
@@ -270,7 +275,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
 
             {/* Las cuentas las crea la academia al inscribir al estudiante */}
             <p className="text-center font-body text-sm text-purple-100/40 mt-2">
-              ¿No tienes cuenta? La academia la crea cuando te inscribes en tu sede.
+              {tr("¿No tienes cuenta? La academia la crea cuando te inscribes en tu sede.")}
             </p>
           </form>
           )}

@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useEffect, useId, useRef } from "react"
 import { ES_BORRADOR, type SeccionLegal } from "./textosLegales"
 
@@ -25,13 +26,13 @@ export default function DocumentoLegal({ titulo, secciones, onCerrar }: Props) {
         <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <h2 id={tituloId} className="font-display text-2xl uppercase text-text">{titulo}</h2>
           <button ref={cerrarRef} type="button" onClick={onCerrar} className="rounded-full px-3 py-1 font-condensed text-sm uppercase tracking-wider text-text-soft hover:text-text">
-            Cerrar
+            {tr("Cerrar")}
           </button>
         </header>
         <div className="overflow-y-auto px-6 py-5 font-body text-sm text-text-soft">
           {ES_BORRADOR && (
             <p className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/10 p-3 text-amber-800 dark:text-amber-200">
-              Borrador pendiente de aprobación por la academia.
+              {tr("Borrador pendiente de aprobación por la academia.")}
             </p>
           )}
           {secciones.map((s) => (

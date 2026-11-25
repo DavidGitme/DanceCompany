@@ -1,4 +1,5 @@
 import logoFna from "@/recursos/logo-fna.png"
+import { useIdioma } from "@/nucleo/i18n/useIdioma"
 
 const columns = [
   { title: "Compañía", links: ["Nosotros", "Historia", "Instructores", "Prensa", "Trabaja con nosotros"] },
@@ -47,14 +48,15 @@ const socials = [
 ]
 
 export default function Footer() {
+  const { t } = useIdioma()
   return (
     <footer className="relative bg-page border-t border-border overflow-hidden">
       <div className="max-w-[88rem] mx-auto px-6 pt-16 pb-8 relative z-10">
         <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-12 mb-16">
           <div className="lg:col-span-2">
-            <img src={logoFna} alt="F&A Dance Company" className="h-12 w-auto object-contain mb-4" />
+            <img src={logoFna} alt="F&A Dance Company" className="h-12 w-auto object-contain mb-4 brightness-0 opacity-85 dark:brightness-100 dark:opacity-100" />
             <p className="font-body text-sm text-text-soft leading-relaxed max-w-xs">
-              La academia de Hip Hop urbano más auténtica de Antioquia. Movimiento, cultura y comunidad desde 2016.
+              {t("La academia de Hip Hop urbano más auténtica de Antioquia. Movimiento, cultura y comunidad desde 2016.")}
             </p>
             <div className="flex gap-3 mt-6">
               {socials.map((s) => (
@@ -75,13 +77,13 @@ export default function Footer() {
           {columns.map((col, ci) => (
             <div key={col.title}>
               <h4 className="font-condensed font-bold text-xs uppercase tracking-[0.2em] text-accent mb-4">
-                ({String(ci + 1).padStart(2, "0")}) {col.title}
+                ({String(ci + 1).padStart(2, "0")}) {t(col.title)}
               </h4>
               <ul className="flex flex-col gap-2.5">
                 {col.links.map((link) => (
                   <li key={link}>
                     <a href="#" className="font-body text-sm text-text-soft hover:text-accent transition-colors duration-200">
-                      {link}
+                      {t(link)}
                     </a>
                   </li>
                 ))}
@@ -91,11 +93,11 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between gap-4 items-center">
-          <p className="font-body text-xs text-text-soft">© 2025 F&A Dance Company. Todos los derechos reservados.</p>
+          <p className="font-body text-xs text-text-soft">© {new Date().getFullYear()} F&A Dance Company. {t("Todos los derechos reservados.")}</p>
           <div className="flex gap-6">
             {["Privacidad", "Términos", "Cookies"].map((link) => (
               <a key={link} href="#" className="font-body text-xs text-text-soft hover:text-accent transition-colors">
-                {link}
+                {t(link)}
               </a>
             ))}
           </div>

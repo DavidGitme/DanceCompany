@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useEffect, useId, useRef, type FormEvent, type ReactNode } from "react"
 import { Icono, claseBotonIcono, hoverNeutro } from "@/compartido/ui/PantallaRecurso"
 
@@ -31,10 +32,10 @@ export function edadEn(fechaNacimiento: string, hoy = new Date()): number | null
 
 export function errorDocumento(tipo: string, documento: string): string | undefined {
   const limpio = documento.replace(/[\s.-]/g, "")
-  if (!limpio) return "Este campo es obligatorio."
-  if (limpio.length < 5 || limpio.length > 20) return "Debe tener entre 5 y 20 caracteres."
+  if (!limpio) return tr("Este campo es obligatorio.")
+  if (limpio.length < 5 || limpio.length > 20) return tr("Debe tener entre 5 y 20 caracteres.")
   if (TIPOS_SOLO_NUMEROS.includes(sinTildes(tipo)) && !/^\d+$/.test(limpio)) return "Este tipo de documento solo admite números."
-  if (!/^[A-Za-z0-9]+$/.test(limpio)) return "Solo letras y números."
+  if (!/^[A-Za-z0-9]+$/.test(limpio)) return tr("Solo letras y números.")
   return undefined
 }
 
@@ -50,9 +51,9 @@ export function errorTipoParaEdad(tipo: string, edad: number | null): string | u
 
 export function errorTelefono(telefono: string, requerido = true): string | undefined {
   const digitos = telefono.replace(/\D/g, "")
-  if (!telefono.trim()) return requerido ? "Este campo es obligatorio." : undefined
-  if (/[^\d\s+-]/.test(telefono)) return "Escribe solo números."
-  if (digitos.length !== 10) return "El teléfono debe tener exactamente 10 dígitos."
+  if (!telefono.trim()) return requerido ? tr("Este campo es obligatorio.") : undefined
+  if (/[^\d\s+-]/.test(telefono)) return tr("Escribe solo números.")
+  if (digitos.length !== 10) return tr("El teléfono debe tener exactamente 10 dígitos.")
   return undefined
 }
 
@@ -73,11 +74,11 @@ export function Campo({ id, etiqueta, requerido, error, ayuda, ancho = "mitad", 
   return (
     <div className={ancho === "mitad" ? "" : "sm:col-span-2"}>
       <label htmlFor={id} className={claseEtiqueta}>
-        {etiqueta}
+        {tr(etiqueta)}
         {requerido && <span className="ml-0.5 text-red-500" aria-hidden="true">*</span>}
       </label>
       {children({ id, "aria-invalid": error ? true : undefined, "aria-describedby": describe })}
-      {ayuda && <p id={`${id}-ayuda`} className="mt-1 font-body text-xs text-text-muted">{ayuda}</p>}
+      {ayuda && <p id={`${id}-ayuda`} className="mt-1 font-body text-xs text-text-muted">{tr(ayuda)}</p>}
       {error && <p id={`${id}-error`} className="mt-1 font-body text-xs font-medium text-red-600 dark:text-red-300">{error}</p>}
     </div>
   )
@@ -170,7 +171,7 @@ export function Dialogo({ antetitulo, titulo, ocupado = false, onCerrar, onEnvia
             <p className="font-condensed text-xs font-semibold uppercase tracking-[0.2em] text-accent">{antetitulo}</p>
             <h2 id={tituloId} className="mt-1 font-display text-2xl uppercase leading-none text-text">{titulo}</h2>
           </div>
-          <button type="button" onClick={onCerrar} disabled={ocupado} className={`${claseBotonIcono} ${hoverNeutro}`} aria-label="Cerrar">
+          <button type="button" onClick={onCerrar} disabled={ocupado} className={`${claseBotonIcono} ${hoverNeutro}`} aria-label={tr("Cerrar")}>
             <Icono nombre="cerrar" clase="h-5 w-5" />
           </button>
         </header>
