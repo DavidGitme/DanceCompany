@@ -117,6 +117,8 @@ def como_entero(valor) -> int | None:
         return None
 
 
+MENSAJE_INSTRUCTOR_OTRA_SEDE = "Este instructor es de otra sede: solo el administrador de esa sede puede modificarlo."
+
 def sedes_de(sesion: Session, recurso: str, identificador: int) -> set[int]:
     filas = sesion.execute(text(SEDE_DE[recurso]), {"id": identificador}).scalars()
     return {fila for fila in filas if fila is not None}
@@ -180,6 +182,11 @@ def alcance_sede(
         if recurso and identificador is not None and (escritura or proteger_lectura):
             if recurso == "instructores" and request.method == "PUT":
                 _validar_edicion_instructor(sesion, identificador, cuerpo, propia)
+            elif recurso == "instructores":
+                # Los instructores se listan en las dos sedes: se responde claro en vez de "no encontrado"
+                sedes = sedes_de(sesion, recurso, identificador)
+                if sedes and propia not in sedes:
+                    raise NoAutorizado(MENSAJE_INSTRUCTOR_OTRA_SEDE)
             else:
                 _exigir_sede(sesion, recurso, identificador, propia)
         es_creacion = request.method == "POST" and "identificador" not in request.path_params
@@ -218,7 +225,7 @@ def _validar_edicion_instructor(sesion: Session, identificador: int, cuerpo: dic
     if not actuales or propia in actuales:
         return
     if set(cuerpo) != {"sedes"}:
-        raise NoEncontrado("instructores", "No se encontró el registro.")
+        raise NoAutorizado(MENSAJE_INSTRUCTOR_OTRA_SEDE)
 
 
 def _validar_sedes_instructor(sesion: Session, nuevas: list, identificador, propia: int):

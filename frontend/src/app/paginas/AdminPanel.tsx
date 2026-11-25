@@ -164,7 +164,13 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
             ? () => false
             : activeModule === "sedes" && sedeFija
               ? (fila: any) => (fila as recursos.Sede).idSede === sedeFija // eslint-disable-line @typescript-eslint/no-explicit-any
-              : undefined
+              : activeModule === "instructores" && sedeFija
+                // Los instructores se ven en las dos sedes, pero cada administrador solo gestiona los de la suya
+                ? (fila: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+                    const sedes = (fila as recursos.Instructor).sedes ?? []
+                    return sedes.length === 0 || sedes.some((s) => s.idSede === sedeFija)
+                  }
+                : undefined
         }
         accionesFila={
           activeModule === "adm-postulaciones" && privilegiosModulo?.includes("editar")
