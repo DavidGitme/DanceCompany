@@ -17,3 +17,18 @@ async def limitar_inicio_sesion(request: Request):
     if len(ventana) >= 5:
         raise DemasiadosIntentos()
     ventana.append(ahora)
+
+
+recuperaciones: dict[str, deque[float]] = defaultdict(deque)
+
+
+async def limitar_recuperacion(request: Request):
+    """Máximo 3 solicitudes de recuperación por minuto desde la misma IP."""
+    cliente = request.client.host if request.client else "desconocido"
+    ahora = monotonic()
+    ventana = recuperaciones[cliente]
+    while ventana and ahora - ventana[0] > 60:
+        ventana.popleft()
+    if len(ventana) >= 3:
+        raise DemasiadosIntentos()
+    ventana.append(ahora)

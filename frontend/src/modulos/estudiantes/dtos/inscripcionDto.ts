@@ -27,6 +27,9 @@ export interface InscripcionSolicitudDto {
   acudientes: AcudienteSolicitudDto[]
   idGrupo?: number
   valor_matricula?: number
+  // Cuenta del portal: el usuario es el documento. Con clave la entrega la sede;
+  // sin clave le llega al estudiante un enlace por correo para crearla
+  crearCuenta?: boolean
   clave?: string
 }
 
@@ -47,6 +50,8 @@ export interface InscripcionRespuestaDto {
   acudientes: AcudienteDto[]
   idMatricula: number | null
   cuentaCreada: boolean
+  correoEnviado: boolean | null
+  aviso: string | null
 }
 
 // La API devuelve lo mínimo para reconocer a la persona (sin contacto)

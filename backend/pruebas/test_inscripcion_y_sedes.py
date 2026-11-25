@@ -36,11 +36,14 @@ def test_tipo_de_documento_segun_la_edad():
     assert error_tipo_para_edad("Pasaporte", 3) is None
 
 
-def test_telefono_se_normaliza():
+def test_telefono_tiene_exactamente_diez_digitos():
     assert normalizar_telefono("300 111-1111") == "3001111111"
-    assert normalizar_telefono("+57 300 111 1111") == "+573001111111"
+    # El indicativo de Colombia se quita
+    assert normalizar_telefono("+57 300 111 1111") == "3001111111"
     assert telefono_valido("3001111111")
     assert not telefono_valido("12345")
+    assert not telefono_valido("30011111112")
+    assert not telefono_valido("300111111a")
 
 
 # ---------- Filtro de sede de las listas ----------
@@ -161,16 +164,46 @@ MENOR = {
 MADRE = {"idPersona": 7, "persona": None, "idParentesco": 1}
 
 
-def test_menor_necesita_acudiente():
-    caso, _, _ = armar()
-    with pytest.raises(DatoInvalido, match="acudiente"):
-        caso.ejecutar({**MENOR, "acudientes": []})
+def test_acudiente_es_opcional_y_maximo_uno():
+    caso, repo, _ = armar()
+    caso.estudiantes.obtener = lambda i: {"idEstudiante": i}
+    caso.ejecutar({**MENOR, "acudientes": []})
+    assert ("estudiante", 1) in repo.confirmado
+    with pytest.raises(DatoInvalido, match="un solo acudiente"):
+        caso.ejecutar({**MENOR, "documento": "1112223335", "acudientes": [MADRE, MADRE]})
 
 
-def test_cuenta_exige_correo():
-    caso, _, _ = armar()
+def test_invitacion_exige_correo_pero_la_clave_no():
+    caso, repo, _ = armar()
+    caso.estudiantes.obtener = lambda i: {"idEstudiante": i}
     with pytest.raises(DatoInvalido, match="correo"):
-        caso.ejecutar({**MENOR, "acudientes": [MADRE], "clave": "Segura2026*"})
+        caso.ejecutar({**MENOR, "crearCuenta": True})
+    # Con clave asignada por la sede no hace falta correo: el usuario es el documento
+    resultado = caso.ejecutar({**MENOR, "clave": "Segura2026"})
+    assert resultado["cuentaCreada"] and ("cuenta", "1112223334") in repo.confirmado
+
+
+def test_clave_debe_tener_letra_y_numero():
+    caso, _, _ = armar()
+    with pytest.raises(DatoInvalido, match="letra y un número"):
+        caso.ejecutar({**MENOR, "clave": "soloLetras"})
+
+
+class CorreoQueFalla:
+    def invitar(self, *args):
+        return False
+
+    def bienvenida(self, *args):
+        return False
+
+
+def test_si_el_correo_falla_la_inscripcion_se_guarda_y_avisa():
+    caso, repo, _ = armar()
+    caso.correo = CorreoQueFalla()
+    caso.estudiantes.obtener = lambda i: {"idEstudiante": i}
+    resultado = caso.ejecutar({**MENOR, "email": "lucia@correo.com", "crearCuenta": True})
+    assert ("cuenta", "1112223334") in repo.confirmado
+    assert resultado["correoEnviado"] is False and "invitación" in resultado["aviso"]
 
 
 def test_inscripcion_normaliza_y_confirma():

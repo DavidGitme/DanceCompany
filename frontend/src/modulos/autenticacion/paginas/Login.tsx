@@ -3,6 +3,7 @@ import logoFna from "@/recursos/logo-fna.png"
 import Button from "@/compartido/ui/Button"
 import { useAuth } from "@/nucleo/auth/useAuth"
 import type { UsuarioSesion } from "../dtos/autenticacionDto"
+import { autenticacionServicio } from "../servicios/autenticacionServicio"
 
 interface LoginProps {
   onBack: () => void
@@ -13,10 +14,30 @@ export default function Login({ onBack, onLogin }: LoginProps) {
   const { iniciarSesion } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [remember, setRemember] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState("")
   const [enviando, setEnviando] = useState(false)
+  // "¿Olvidaste tu contraseña?" se resuelve en la misma tarjeta
+  const [recuperando, setRecuperando] = useState(false)
+  const [mensajeRecuperacion, setMensajeRecuperacion] = useState("")
+
+  const solicitarRecuperacion = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    const documento = email.replace(/[\s.-]/g, "")
+    if (!/^[A-Za-z0-9]{5,20}$/.test(documento)) {
+      setError("Escribe tu número de documento (5 a 20 caracteres, sin espacios).")
+      return
+    }
+    setEnviando(true)
+    try {
+      setMensajeRecuperacion(await autenticacionServicio.solicitarRecuperacion(documento))
+    } catch (err) {
+      setError((err as { mensaje?: string })?.mensaje ?? "No fue posible enviar la solicitud. Intenta de nuevo.")
+    } finally {
+      setEnviando(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,23 +115,74 @@ export default function Login({ onBack, onLogin }: LoginProps) {
           </div>
 
           <h1 className="font-display text-4xl uppercase text-purple-50 text-center mb-2">
-            BIENVENIDO
+            {recuperando ? "RECUPERAR ACCESO" : "BIENVENIDO"}
           </h1>
           <p className="font-body text-purple-100/50 text-sm text-center mb-10">
-            Inicia sesión en tu cuenta F&A
+            {recuperando
+              ? "Te enviaremos un enlace al correo registrado en tu cuenta."
+              : "Inicia sesión con tu número de documento"}
           </p>
 
+          {recuperando ? (
+            <form onSubmit={solicitarRecuperacion} className="flex flex-col gap-4" noValidate>
+              {mensajeRecuperacion ? (
+                <p role="status" className="border border-emerald-400/30 bg-emerald-400/10 p-4 font-body text-sm text-emerald-200">
+                  {mensajeRecuperacion}
+                </p>
+              ) : (
+                <>
+                  <div>
+                    <label htmlFor="recuperar-documento" className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
+                      Número de documento
+                    </label>
+                    <input
+                      id="recuperar-documento"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="username"
+                      className={inputClass}
+                      placeholder="Ej. 1000000001"
+                      value={email}
+                      maxLength={20}
+                      onChange={(e) => setEmail(e.target.value)}
+                      aria-invalid={error ? true : undefined}
+                      aria-describedby={error ? "login-error" : undefined}
+                    />
+                  </div>
+                  <Button type="submit" size="lg" fullWidth className="mt-2">
+                    {enviando ? "Enviando..." : "Enviar enlace"}
+                  </Button>
+                </>
+              )}
+              {error && (
+                <p id="login-error" role="alert" className="font-body text-sm text-red-400">
+                  {error}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => { setRecuperando(false); setMensajeRecuperacion(""); setError("") }}
+                className="font-body text-sm text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
+              >
+                ← Volver a iniciar sesión
+              </button>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {/* Email */}
+            {/* Documento: es el usuario de todas las cuentas */}
             <div>
-              <label className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
-                Documento o correo
+              <label htmlFor="login-documento" className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
+                Número de documento
               </label>
               <input
+                id="login-documento"
                 type="text"
+                inputMode="numeric"
+                autoComplete="username"
                 className={inputClass}
-                placeholder="Documento (admin e instructor) o correo (estudiante)"
+                placeholder="Ej. 1000000001"
                 value={email}
+                maxLength={30}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
@@ -118,12 +190,14 @@ export default function Login({ onBack, onLogin }: LoginProps) {
 
             {/* Password */}
             <div>
-              <label className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
+              <label htmlFor="login-clave" className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
                 Contraseña
               </label>
               <div className="relative">
                 <input
+                  id="login-clave"
                   type={showPass ? "text" : "password"}
+                  autoComplete="current-password"
                   className={inputClass + " pr-12"}
                   placeholder="••••••••"
                   value={password}
@@ -133,6 +207,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
+                  aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400/50 hover:text-purple-400 transition-colors cursor-pointer"
                 >
                   {showPass ? (
@@ -173,25 +248,14 @@ export default function Login({ onBack, onLogin }: LoginProps) {
               </div>
             </div>
 
-            {/* Remember + forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="accent-purple-400 w-4 h-4"
-                />
-                <span className="font-body text-sm text-purple-100/50">
-                  Recordarme
-                </span>
-              </label>
-              <a
-                href="#"
-                className="font-body text-sm text-purple-400 hover:text-purple-300 transition-colors"
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => { setRecuperando(true); setError("") }}
+                className="font-body text-sm text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
               >
                 ¿Olvidaste tu contraseña?
-              </a>
+              </button>
             </div>
 
             {/* Submit */}
@@ -209,6 +273,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
               ¿No tienes cuenta? La academia la crea cuando te inscribes en tu sede.
             </p>
           </form>
+          )}
         </div>
       </div>
     </div>

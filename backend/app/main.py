@@ -18,6 +18,7 @@ from app.presentacion.rutas import (
     convocatorias,
     ejemplos,
     estilos,
+    grupos_competencia,
     estudiantes,
     grupos,
     horarios,
@@ -67,7 +68,7 @@ for modulo in (sedes, estilos, niveles, talleres, instructores, estudiantes, gru
 # Módulos administrativos: aulas y horarios, matrículas, finanzas, convocatorias y noticias
 for modulo in (
     aulas, horarios, matriculas, inscripciones_taller,
-    mensualidades, pagos, convocatorias, postulaciones, noticias,
+    mensualidades, pagos, convocatorias, postulaciones, grupos_competencia, noticias,
 ):
     app.include_router(modulo.router, prefix="/api/v1")
 for router_catalogo in catalogos_simples.routers:

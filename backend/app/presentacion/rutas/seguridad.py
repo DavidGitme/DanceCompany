@@ -8,6 +8,8 @@ from app.aplicacion.dtos.seguridad_dto import (
     PermisoRespuesta,
     PersonaCrearSolicitud,
     PersonaRespuesta,
+    PrivilegiosRespuesta,
+    PrivilegiosSolicitud,
     RolCrearSolicitud,
     RolRespuesta,
     RolesPermisosRespuesta,
@@ -16,7 +18,8 @@ from app.aplicacion.dtos.seguridad_dto import (
     UsuarioCrearSolicitud,
     UsuarioRespuesta,
 )
-from app.dominio.reglas import normalizar_documento
+from app.dominio.excepciones.errores import DatoInvalido
+from app.dominio.reglas import ROL_ADMINISTRADOR, error_clave, normalizar_documento, normalizar_telefono, telefono_valido
 from app.infraestructura.seguridad.hash_claves import HasherArgon2
 from app.presentacion.dependencias.auth import requiere_permiso
 from app.presentacion.dependencias.sede import proteger_cuentas_admin, sede_de_cuenta
@@ -29,14 +32,18 @@ router = APIRouter(
 )
 
 
-def _listar(recurso: str, pagina: int, tamano: int, gestor, sede: int | None = None):
-    return gestor.listar(recurso, pagina, tamano, sede)
+def _listar(recurso: str, pagina: int, tamano: int, gestor, sede: int | None = None, buscar: str | None = None):
+    return gestor.listar(recurso, pagina, tamano, sede, buscar)
 
 
 def _persona_normalizada(solicitud: PersonaCrearSolicitud) -> dict:
     # Mismo formato que la inscripción: "1.000.234" y "1000234" son el mismo documento
     datos = solicitud.model_dump(mode="json")
     datos["documento"] = normalizar_documento(datos["documento"])
+    if datos.get("telefono"):
+        datos["telefono"] = normalizar_telefono(datos["telefono"])
+        if not telefono_valido(datos["telefono"]):
+            raise DatoInvalido("El teléfono debe tener exactamente 10 dígitos.")
     if datos.get("email"):
         datos["email"] = datos["email"].strip().lower()
     return datos
@@ -50,11 +57,12 @@ def _sin_hash(registro: dict):
 def listar_personas(
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=100),
+    buscar: str | None = Query(None, max_length=60, description="Busca por nombre o documento"),
     sede: int | None = Depends(sede_de_cuenta),
     gestor=Depends(obtener_gestor),
 ):
     # Un administrador de sede solo ve las personas de su sede (o sin vínculos)
-    return _listar("personas", pagina, tamano, gestor, sede)
+    return _listar("personas", pagina, tamano, gestor, sede, buscar)
 
 
 @router.get("/personas/{identificador}", response_model=PersonaRespuesta)
@@ -95,15 +103,39 @@ def detalle_usuario(identificador: str, gestor=Depends(obtener_gestor)):
 
 
 @router.post("/usuarios", response_model=UsuarioRespuesta, status_code=status.HTTP_201_CREATED)
-def crear_usuario(solicitud: UsuarioCrearSolicitud, gestor=Depends(obtener_gestor)):
+def crear_usuario(
+    solicitud: UsuarioCrearSolicitud,
+    gestor=Depends(obtener_gestor),
+    repositorio=Depends(obtener_repositorio),
+    sede: int | None = Depends(sede_de_cuenta),
+):
     datos = solicitud.model_dump()
+    if error := error_clave(datos["clave"]):
+        raise DatoInvalido(error)
     datos["password_hash"] = HasherArgon2().crear_hash(datos.pop("clave"))
-    return _sin_hash(gestor.crear("usuarios", datos))
+    creado = _sin_hash(gestor.crear("usuarios", datos))
+    _fijar_sede(repositorio, creado["documento"], sede)
+    return creado
 
 
 @router.put("/usuarios/{identificador}", response_model=UsuarioRespuesta)
-def actualizar_usuario(identificador: str, solicitud: UsuarioActualizarSolicitud, gestor=Depends(obtener_gestor)):
-    return _sin_hash(gestor.actualizar("usuarios", identificador, solicitud.model_dump()))
+def actualizar_usuario(
+    identificador: str,
+    solicitud: UsuarioActualizarSolicitud,
+    gestor=Depends(obtener_gestor),
+    repositorio=Depends(obtener_repositorio),
+    sede: int | None = Depends(sede_de_cuenta),
+):
+    actualizado = _sin_hash(gestor.actualizar("usuarios", identificador, solicitud.model_dump()))
+    _fijar_sede(repositorio, actualizado["documento"], sede)
+    return actualizado
+
+
+def _fijar_sede(repositorio, documento: str, sede: int | None):
+    # La cuenta de instructor que crea o edita un admin de sede queda en esa sede: si su
+    # rol recibe privilegios en módulos del panel, solo verá los registros de esa sede
+    if sede is not None and hasattr(repositorio, "fijar_sede_si_vacia"):
+        repositorio.fijar_sede_si_vacia(documento, sede)
 
 
 @router.delete("/usuarios/{identificador}", response_model=UsuarioRespuesta)
@@ -145,6 +177,49 @@ def obtener_roles_permisos(id_rol: int, gestor=Depends(obtener_gestor)):
 @router.put("/roles/{id_rol}/permisos", response_model=RolesPermisosRespuesta)
 def asignar_roles_permisos(id_rol: int, solicitud: RolesPermisosSolicitud, repositorio=Depends(obtener_repositorio)):
     return {"idRol": id_rol, "permisos": repositorio.asignar_permisos_rol(id_rol, solicitud.permisos)}
+
+
+def _matriz(id_rol: int, gestor, repositorio) -> dict:
+    rol = gestor.obtener("roles", id_rol)
+    es_admin = rol["nombre"].strip().lower() == ROL_ADMINISTRADOR
+    privilegios = repositorio.privilegios_de_rol(id_rol)
+    if es_admin:
+        # El administrador tiene todo siempre; la matriz se muestra completa y bloqueada
+        privilegios = [{**p, "ver": True, "crear": True, "editar": True, "eliminar": True} for p in privilegios]
+    return {"idRol": id_rol, "rol": rol["nombre"], "editable": not es_admin, "privilegios": privilegios}
+
+
+# Matriz rol -> módulo -> ver / crear / editar / eliminar
+@router.get("/roles/{id_rol}/privilegios", response_model=PrivilegiosRespuesta)
+def privilegios_rol(id_rol: int, gestor=Depends(obtener_gestor), repositorio=Depends(obtener_repositorio)):
+    return _matriz(id_rol, gestor, repositorio)
+
+
+@router.put("/roles/{id_rol}/privilegios", response_model=PrivilegiosRespuesta)
+def guardar_privilegios_rol(
+    id_rol: int,
+    solicitud: PrivilegiosSolicitud,
+    gestor=Depends(obtener_gestor),
+    repositorio=Depends(obtener_repositorio),
+):
+    rol = gestor.obtener("roles", id_rol)
+    if rol["nombre"].strip().lower() == ROL_ADMINISTRADOR:
+        raise DatoInvalido("El rol Administrador siempre tiene todos los privilegios.")
+    validos = repositorio.ids_permisos()
+    vistos = set()
+    filas = []
+    for fila in solicitud.privilegios:
+        if fila.idPermiso not in validos:
+            raise DatoInvalido(f"El módulo {fila.idPermiso} no existe.")
+        if fila.idPermiso in vistos:
+            raise DatoInvalido("Cada módulo debe aparecer una sola vez.")
+        vistos.add(fila.idPermiso)
+        datos = fila.model_dump()
+        if (datos["crear"] or datos["editar"] or datos["eliminar"]) and not datos["ver"]:
+            raise DatoInvalido("Para crear, editar o eliminar en un módulo, el rol también debe poder verlo.")
+        filas.append(datos)
+    repositorio.guardar_privilegios_rol(id_rol, filas)
+    return _matriz(id_rol, gestor, repositorio)
 
 
 @router.get("/permisos", response_model=ListaRespuesta[PermisoRespuesta])

@@ -19,6 +19,8 @@ interface AuthContexto {
   cargando: boolean
   iniciarSesion: (solicitud: InicioSesionSolicitudDto) => Promise<UsuarioSesion>
   cerrarSesion: () => Promise<void>
+  // Después de aceptar los términos vigentes
+  marcarTerminosAceptados: () => void
 }
 
 export const AuthContext = createContext<AuthContexto | null>(null)
@@ -63,9 +65,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [limpiarSesion])
 
+  const marcarTerminosAceptados = useCallback(() => {
+    setUsuario((actual) => (actual ? { ...actual, terminosPendientes: false } : actual))
+  }, [])
+
   const valor = useMemo(
-    () => ({ usuario, cargando, iniciarSesion, cerrarSesion }),
-    [usuario, cargando, iniciarSesion, cerrarSesion],
+    () => ({ usuario, cargando, iniciarSesion, cerrarSesion, marcarTerminosAceptados }),
+    [usuario, cargando, iniciarSesion, cerrarSesion, marcarTerminosAceptados],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

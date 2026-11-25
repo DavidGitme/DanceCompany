@@ -136,14 +136,17 @@ export default function CamposAcudiente({ valor, numero, tipos, parentescos, err
           requerido
           ancho="completo"
           error={errorBusqueda ?? errores.documentoBusqueda}
-          ayuda="Si ya está registrado (por ejemplo, por un hermano) se reutilizan sus datos."
+          ayuda="Solo números. Si ya está registrado (por ejemplo, por un hermano) se reutilizan sus datos."
         >
           {(props) => (
             <div className="flex gap-2">
               <input
                 {...props}
                 value={valor.documentoBusqueda}
-                onChange={(e) => onCambiar({ ...valor, documentoBusqueda: e.target.value })}
+                // Solo números: el acudiente se busca por cédula
+                onChange={(e) => onCambiar({ ...valor, documentoBusqueda: e.target.value.replace(/\D/g, "") })}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault()

@@ -2,7 +2,7 @@
 
 from sqlalchemy import text
 
-from app.dominio.reglas import ESTADO_ACTIVO
+from app.dominio.reglas import ACCIONES, ESTADO_ACTIVO, ROL_ADMINISTRADOR
 from app.dominio.repositorios.repositorio_autenticacion import RepositorioAutenticacion
 from app.infraestructura.bd.consultas import RepositorioBaseSql
 
@@ -12,7 +12,7 @@ class RepositorioAutenticacionSql(RepositorioBaseSql, RepositorioAutenticacion):
         fila = self.sesion.execute(
             text(
                 'SELECT u.documento, p.nombre, u.password_hash, u.idEstado AS "idEstado", '
-                'u.idSede AS "idSede", s.nombre AS sede '
+                'u.idSede AS "idSede", s.nombre AS sede, u.terminos_version AS "terminosVersion" '
                 "FROM usuarios u JOIN persona p ON p.documento = u.documento "
                 "LEFT JOIN sede s ON s.idSede = u.idSede "
                 "WHERE u.documento = :documento"
@@ -49,3 +49,51 @@ class RepositorioAutenticacionSql(RepositorioBaseSql, RepositorioAutenticacion):
             {"roles": roles, "activo": ESTADO_ACTIVO},
         ).scalars()
         return list(nombres), list(permisos)
+
+    def privilegios_de_roles(self, roles):
+        if not roles:
+            return {}
+        filas = self.sesion.execute(
+            text(
+                "SELECT p.descripcion AS modulo, lower(trim(r.nombre)) AS rol, "
+                "rp.puede_ver, rp.puede_crear, rp.puede_editar, rp.puede_eliminar "
+                "FROM roles_permisos rp "
+                "JOIN permisos p ON p.idPermiso = rp.idPermiso "
+                "JOIN roles r ON r.idRol = rp.idRol "
+                "WHERE rp.idRol = ANY(:roles) AND r.idEstado = :activo"
+            ),
+            {"roles": roles, "activo": ESTADO_ACTIVO},
+        ).mappings()
+        privilegios: dict[str, set[str]] = {}
+        for fila in filas:
+            # El administrador siempre tiene todo, aunque la fila diga otra cosa
+            admin = fila["rol"] == ROL_ADMINISTRADOR
+            marcas = (fila["puede_ver"], fila["puede_crear"], fila["puede_editar"], fila["puede_eliminar"])
+            acciones = privilegios.setdefault(fila["modulo"], set())
+            acciones.update(accion for accion, puede in zip(ACCIONES, marcas) if admin or puede)
+        return {modulo: [a for a in ACCIONES if a in acciones] for modulo, acciones in privilegios.items() if acciones}
+
+    def tiene_privilegio(self, documento, modulo, accion):
+        columna = {"ver": "rp.puede_ver", "crear": "rp.puede_crear", "editar": "rp.puede_editar", "eliminar": "rp.puede_eliminar"}[accion]
+        return self.sesion.execute(
+            text(
+                "SELECT 1 FROM usuarios u "
+                "JOIN usuarios_roles ur ON ur.documento = u.documento "
+                "JOIN roles r ON r.idRol = ur.idRol AND r.idEstado = :activo "
+                "JOIN roles_permisos rp ON rp.idRol = r.idRol "
+                "JOIN permisos p ON p.idPermiso = rp.idPermiso "
+                f"WHERE u.documento = :documento AND u.idEstado = :activo AND p.descripcion = :modulo AND {columna} "
+                "LIMIT 1"
+            ),
+            {"documento": documento, "modulo": modulo, "activo": ESTADO_ACTIVO},
+        ).first() is not None
+
+    def aceptar_terminos(self, documento, version):
+        self.sesion.execute(
+            text(
+                "UPDATE usuarios SET terminos_version = :version, terminos_fecha = LOCALTIMESTAMP "
+                "WHERE documento = :documento"
+            ),
+            {"documento": documento, "version": version},
+        )
+        self.sesion.commit()

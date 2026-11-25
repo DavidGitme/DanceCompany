@@ -58,7 +58,7 @@ export const navegacion: NodoNavegacion[] = [
     etiqueta: 'Matrícula y pagos',
     icono: icono('M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z'),
     hijos: [
-      { id: 'adm-matriculas', etiqueta: 'Matrículas', permiso: 'matriculas', demo: true },
+      { id: 'adm-matriculas', etiqueta: 'Matrículas', permiso: 'matriculas' },
       { id: 'adm-mensualidades', etiqueta: 'Mensualidades', permiso: 'pagos', demo: true },
       { id: 'adm-pagos', etiqueta: 'Pagos', permiso: 'pagos', demo: true },
       { id: 'adm-estado-cuenta', etiqueta: 'Estado de cuenta', permiso: 'pagos', demo: true },
@@ -83,8 +83,9 @@ export const navegacion: NodoNavegacion[] = [
     icono: icono('M10.34 15.84c-.69-.05-1.38-.08-2.09-.08H7.5a4.5 4.5 0 110-9h.75c.71 0 1.4-.03 2.09-.08m0 9.16c.25.96.59 1.88 1 2.75.26.54.06 1.2-.46 1.5l-.66.38a1.13 1.13 0 01-1.6-.48 17.98 17.98 0 01-1.31-3.76m3.03-.39a48.8 48.8 0 015.24-1.16m-5.24 1.16V6.66m5.24 9.62c.67.11 1.33.24 1.98.38a1.1 1.1 0 001.32-.9 18.12 18.12 0 000-8.52 1.1 1.1 0 00-1.32-.9c-.65.14-1.31.27-1.98.38m0 9.56a17.9 17.9 0 000-9.56m0 0a48.8 48.8 0 00-5.24-1.16'),
     hijos: [
       { id: 'adm-contenidos', etiqueta: 'Noticias', permiso: 'noticias', demo: true },
-      { id: 'adm-convocatorias', etiqueta: 'Convocatorias', permiso: 'convocatorias', demo: true },
-      { id: 'adm-postulaciones', etiqueta: 'Postulaciones', permiso: 'convocatorias', demo: true },
+      { id: 'adm-convocatorias', etiqueta: 'Convocatorias', permiso: 'convocatorias' },
+      { id: 'adm-postulaciones', etiqueta: 'Postulaciones', permiso: 'convocatorias' },
+      { id: 'adm-grupos-competencia', etiqueta: 'Grupos de competencia', permiso: 'convocatorias' },
     ],
   },
   {
@@ -93,19 +94,19 @@ export const navegacion: NodoNavegacion[] = [
     icono: icono('M9 12.75L11.25 15 15 9.75m-3-7.04A11.96 11.96 0 013.6 6 11.99 11.99 0 003 9.75c0 5.59 3.82 10.29 9 11.62 5.18-1.33 9-6.03 9-11.62 0-1.31-.21-2.57-.6-3.75h-.15c-3.2 0-6.1-1.25-8.25-3.29z'),
     hijos: [
       { id: 'seg-usuarios', etiqueta: 'Usuarios', permiso: 'usuarios' },
-      { id: 'seg-personas', etiqueta: 'Personas', permiso: 'usuarios', demo: true },
-      { id: 'seg-roles-permisos', etiqueta: 'Roles y permisos', permiso: 'roles', demo: true },
-      { id: 'seg-estados', etiqueta: 'Estados', permiso: 'roles', demo: true },
+      { id: 'seg-personas', etiqueta: 'Personas', permiso: 'usuarios' },
+      { id: 'seg-roles-permisos', etiqueta: 'Roles y privilegios', permiso: 'usuarios' },
+      { id: 'seg-estados', etiqueta: 'Estados', permiso: 'usuarios' },
     ],
   },
 ];
 
 // Busca la etiqueta y el grupo de un módulo (para el encabezado móvil)
-export function buscarModulo(id: string): { etiqueta: string; demo: boolean } | null {
+export function buscarModulo(id: string): { etiqueta: string; demo: boolean; permiso?: string } | null {
   for (const nodo of navegacion) {
-    if (nodo.id === id) return { etiqueta: nodo.etiqueta, demo: false };
+    if (nodo.id === id) return { etiqueta: nodo.etiqueta, demo: false, permiso: nodo.permiso };
     const hijo = nodo.hijos?.find((h) => h.id === id);
-    if (hijo) return { etiqueta: hijo.etiqueta, demo: Boolean(hijo.demo) };
+    if (hijo) return { etiqueta: hijo.etiqueta, demo: Boolean(hijo.demo), permiso: hijo.permiso };
   }
   return null;
 }

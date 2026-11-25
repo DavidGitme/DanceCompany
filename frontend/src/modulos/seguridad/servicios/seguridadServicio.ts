@@ -45,6 +45,19 @@ export const seguridadServicio = {
     return { datos, total: semillas[recurso].length, pagina, tamano }
   },
 
+  // Recorre todas las páginas (la API entrega máximo 100 por página): así el total
+  // y la paginación en pantalla coinciden con la base aunque haya más de 100 registros
+  async listarTodo<T>(recurso: RecursoSeguridad): Promise<T[]> {
+    const tamano = 100
+    const primera = await seguridadServicio.listar<T>(recurso, 1, tamano)
+    const datos = [...primera.datos]
+    const paginas = Math.ceil(primera.total / tamano)
+    for (let pagina = 2; pagina <= paginas; pagina += 1) {
+      datos.push(...(await seguridadServicio.listar<T>(recurso, pagina, tamano)).datos)
+    }
+    return datos
+  },
+
   async crear<T, S>(recurso: RecursoSeguridad, solicitud: S): Promise<T> {
     if (!env.usarMock) return clienteHttp.post<T>(`/${recurso}`, solicitud)
     return { ...solicitud } as T

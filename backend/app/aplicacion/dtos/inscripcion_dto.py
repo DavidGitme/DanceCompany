@@ -43,13 +43,16 @@ class InscripcionSolicitud(BaseModel):
     email: Correo | None = None
     fecha_nacimiento: date
     idSede: int = Field(gt=0)
-    # Menores de edad: al menos un acudiente
-    acudientes: list[AcudienteInscripcion] = Field(default_factory=list, max_length=3)
+    # Acudiente opcional (uno como máximo)
+    acudientes: list[AcudienteInscripcion] = Field(default_factory=list, max_length=1)
     # Matrícula opcional en un grupo de la misma sede
     idGrupo: int | None = Field(default=None, gt=0)
     valor_matricula: Decimal | None = Field(default=None, **DINERO)
     fecha_matricula: date | None = None
-    # Cuenta opcional para el portal del estudiante (entra con su correo)
+    # Cuenta para el portal del estudiante: su usuario es el número de documento.
+    # Con clave, la sede se la entrega en persona; sin clave, le llega un enlace al correo
+    # para que la cree él mismo.
+    crearCuenta: bool = False
     clave: str | None = Field(default=None, min_length=8, max_length=128)
 
     @model_validator(mode="after")
@@ -76,6 +79,9 @@ class InscripcionRespuesta(BaseModel):
     acudientes: list[AcudienteRespuesta]
     idMatricula: int | None
     cuentaCreada: bool
+    # None = no había correo que enviar
+    correoEnviado: bool | None = None
+    aviso: str | None = None
 
 
 class PersonaEncontrada(BaseModel):

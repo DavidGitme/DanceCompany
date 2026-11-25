@@ -17,6 +17,13 @@ import type { RutaAplicacion } from "@/app/rutas/rutas"
 import { PortalInstructor } from "@/app/instructores"
 import { PortalEstudiante, ROL_ESTUDIANTE } from "@/modulos/portal_estudiante"
 import type { UsuarioSesion } from "@/modulos/autenticacion/dtos/autenticacionDto"
+import RestablecerClave from "@/modulos/autenticacion/paginas/RestablecerClave"
+import AceptarTerminos from "@/modulos/autenticacion/legal/AceptarTerminos"
+import AvisoCookies from "@/modulos/autenticacion/legal/AvisoCookies"
+
+// Enlace del correo: /restablecer?token=...
+const tokenDelEnlace = () =>
+  window.location.pathname === "/restablecer" ? new URLSearchParams(window.location.search).get("token") : null
 
 // El instructor va a su portal; el resto de roles al panel administrativo
 function destinoSegunRol(usuario: UsuarioSesion): RutaAplicacion {
@@ -46,7 +53,8 @@ function SinVistaAsignada({ nombre, onSalir }: { nombre: string; onSalir: () => 
 export default function App() {
   const [isDark, setIsDark] = useState(true)
   const [page, setPage] = useState<RutaAplicacion>("home")
-  const { usuario, cerrarSesion } = useAuth()
+  const [token, setToken] = useState(tokenDelEnlace)
+  const { usuario, cerrarSesion, marcarTerminosAceptados } = useAuth()
   const salir = () => {
     cerrarSesion().finally(() => setPage("home"))
   }
@@ -61,8 +69,37 @@ export default function App() {
     " ",
   )
 
+  if (token) {
+    return (
+      <div className={rootClass}>
+        <RestablecerClave
+          token={token}
+          onIrALogin={() => {
+            window.history.replaceState(null, "", "/")
+            setToken(null)
+            setPage("login")
+          }}
+        />
+      </div>
+    )
+  }
+
+  // Antes de entrar a cualquier portal, la cuenta acepta los términos vigentes
+  if (usuario?.terminosPendientes && page !== "home" && page !== "login") {
+    return (
+      <div className={rootClass}>
+        <AceptarTerminos nombre={usuario.nombre} onAceptado={marcarTerminosAceptados} onSalir={salir} />
+      </div>
+    )
+  }
+
   if (page === "login") {
-    return <div className={rootClass}>{loginConRedireccion}</div>
+    return (
+      <div className={rootClass}>
+        {loginConRedireccion}
+        <AvisoCookies />
+      </div>
+    )
   }
 
   if (page === "instructor") {
@@ -88,7 +125,7 @@ export default function App() {
     return (
       <div className={rootClass}>
         <RutaProtegida
-          permiso="dashboard"
+          conModulos
           alNoAutorizado={
             usuario ? (
               <SinVistaAsignada nombre={usuario.nombre} onSalir={salir} />
@@ -120,6 +157,7 @@ export default function App() {
         <RentalForm />
       </main>
       <Footer />
+      <AvisoCookies />
 
       {/* Botón flotante en móvil: la inscripción es presencial, en la sede */}
       <div className="fixed bottom-6 right-6 z-40 lg:hidden">

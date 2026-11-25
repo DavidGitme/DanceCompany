@@ -74,7 +74,9 @@ esperar("buscar alumna de Copacabana (1000000009)", call("GET","/inscripciones/p
 esperar("buscar a la admin de Copacabana", call("GET","/inscripciones/personas?documento=1000000010",B), [404])
 r=call("GET","/inscripciones/personas?documento=1000000006",B)
 ok = r[0]==200 and "telefono" not in r[1]; res.append(ok); print(("✔" if ok else "✘"), "acudiente válida sin teléfono en la respuesta", r[1])
-esperar("vincular a la admin (idPersona 10) como acudiente", call("POST","/estudiantes/1/acudientes",B,{"idPersona":10,"idParentesco":1}), [400])
+# 400 si la persona no puede ser acudiente; 409 si el estudiante ya tiene su único acudiente.
+# En ambos casos no se vincula.
+esperar("vincular a la admin (idPersona 10) como acudiente", call("POST","/estudiantes/1/acudientes",B,{"idPersona":10,"idParentesco":1}), [400, 409])
 
 print("A3 · instructor solo de la otra sede")
 C=login("1000000010")
