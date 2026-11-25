@@ -5,7 +5,7 @@ Monorepo de DanceFlow para la landing pública y la operación de la academia.
 ## Estructura
 
 - `frontend/`: React 19, TypeScript, Vite y Tailwind CSS v4.
-- `backend/`: FastAPI con arquitectura limpia, JWT, RBAC y SQL Server.
+- `backend/`: FastAPI con arquitectura limpia, JWT, RBAC y PostgreSQL (Neon).
 - `docs/`: decisiones de arquitectura, API y flujo de Git.
 
 ## Inicio rápido

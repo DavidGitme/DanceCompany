@@ -11,9 +11,11 @@ from app.aplicacion.dtos.personas_rol_dto import (
 from app.infraestructura.seguridad.hash_claves import HasherArgon2
 from app.presentacion.dependencias.academicos import gestor_instructores
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede
 
 router = APIRouter(prefix="/instructores", tags=["Instructores"])
-permiso = [Depends(requiere_permiso("instructores"))]
+# Los instructores se comparten entre sedes: se ven desde ambas y cada admin maneja su sede
+permiso = [Depends(requiere_permiso("instructores")), Depends(alcance_sede("instructores", proteger_lectura=False))]
 
 
 @router.get("", response_model=ListaRespuesta[InstructorRespuesta], dependencies=permiso)

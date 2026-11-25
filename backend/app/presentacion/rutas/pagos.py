@@ -12,9 +12,10 @@ from app.aplicacion.dtos.financiero_dto import (
 )
 from app.presentacion.dependencias.administrativos import gestor_pagos
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede, filtro_sede
 
 router = APIRouter(prefix="/pagos", tags=["Pagos"])
-permiso = [Depends(requiere_permiso("pagos"))]
+permiso = [Depends(requiere_permiso("pagos")), Depends(alcance_sede("pagos"))]
 
 
 @router.get("", response_model=ListaRespuesta[PagoRespuesta], dependencies=permiso)
@@ -27,6 +28,7 @@ def listar_pagos(
     matricula: int | None = Query(None, gt=0),
     desde: date | None = Query(None),
     hasta: date | None = Query(None),
+    sede: int | None = Depends(filtro_sede),
     buscar: str | None = Query(None, max_length=60, description="Busca por pagador o estudiante"),
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=100),
@@ -35,6 +37,7 @@ def listar_pagos(
     filtros = {
         "tipo": tipo, "acudiente": acudiente, "metodo": metodo, "estudiante": estudiante,
         "mensualidad": mensualidad, "matricula": matricula, "desde": desde, "hasta": hasta,
+        "sede": sede,
     }
     return gestor.listar(buscar, pagina, tamano, filtros)
 

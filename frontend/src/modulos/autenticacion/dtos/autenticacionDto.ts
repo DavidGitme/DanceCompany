@@ -8,6 +8,9 @@ export interface UsuarioSesionDto {
   nombre: string
   roles: string[]
   permisos: string[]
+  // Sede que administra la cuenta (un administrador por sede); null sin restricción
+  idSede?: number | null
+  sede?: string | null
 }
 
 export interface TokenRespuestaDto {
@@ -22,6 +25,8 @@ export interface UsuarioSesion {
   nombre: string
   roles: string[]
   permisos: string[]
+  idSede: number | null
+  sede: string | null
 }
 
 export interface Sesion {
@@ -38,5 +43,7 @@ export const dtoAModelo = (dto: TokenRespuestaDto): Sesion => ({
     nombre: dto.usuario.nombre,
     roles: [...dto.usuario.roles],
     permisos: [...dto.usuario.permisos],
+    idSede: dto.usuario.idSede ?? null,
+    sede: dto.usuario.sede ?? null,
   },
 })

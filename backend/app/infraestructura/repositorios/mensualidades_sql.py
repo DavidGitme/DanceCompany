@@ -37,6 +37,7 @@ FILTROS = {
     "matricula": "me.idMatricula",
     "estudiante": "m.idEstudiante",
     "grupo": "m.idGrupo",
+    "sede": "g.idSede",
     "periodo": "to_char(me.fecha_pago, 'YYYY-MM')",
 }
 
@@ -63,15 +64,18 @@ class RepositorioMensualidadesSql(EstadoCategoriaSql, RepositorioBaseSql, Reposi
             "me.fecha_pago DESC, p.nombre", pagina, tamano,
         )
 
-    def disponibles(self):
+    def disponibles(self, sede=None):
         """Mensualidades con saldo pendiente, para el formulario de pagos."""
+        filtro_sede = "AND g.idSede = :sede" if sede is not None else ""
         filas = self.sesion.execute(
             text(
                 'SELECT me.idMensualidad AS "idMensualidad", me.idMatricula AS "idMatricula", '
                 "p.nombre AS estudiante, to_char(me.fecha_pago, 'YYYY-MM') AS periodo, "
                 f"{SALDO_MENSUALIDAD} AS saldo {ORIGEN} "
-                f"WHERE {PAGADO_MENSUALIDAD} < me.valor_pagar ORDER BY p.nombre, me.fecha_pago"
-            )
+                f"WHERE {PAGADO_MENSUALIDAD} < me.valor_pagar {filtro_sede} "
+                "ORDER BY p.nombre, me.fecha_pago"
+            ),
+            {"sede": sede},
         ).mappings()
         return [dict(fila) for fila in filas]
 
@@ -98,14 +102,22 @@ class RepositorioMensualidadesSql(EstadoCategoriaSql, RepositorioBaseSql, Reposi
             {"matricula": id_matricula, "fecha": fecha_cobro, "excluir": excluir_id or 0},
         ).first() is not None
 
-    def marcar_vencidas(self, hoy):
+    def marcar_vencidas(self, hoy, sede=None):
+        # Un administrador de sede solo actualiza las mensualidades de su sede
+        filtro_sede = (
+            "AND idMatricula IN (SELECT m.idMatricula FROM matricula m "
+            "JOIN grupo g ON g.idGrupo = m.idGrupo WHERE g.idSede = :sede)"
+            if sede is not None
+            else ""
+        )
         resultado = self._guardar(
             "UPDATE mensualidad SET idEstado = :vencida "
-            "WHERE idEstado = :pendiente AND fecha_limite < :hoy",
+            f"WHERE idEstado = :pendiente AND fecha_limite < :hoy {filtro_sede}",
             {
                 "vencida": self.id_estado(MENSUALIDAD_VENCIDA),
                 "pendiente": self.id_estado(MENSUALIDAD_PENDIENTE),
                 "hoy": hoy,
+                "sede": sede,
             },
         )
         return resultado.rowcount

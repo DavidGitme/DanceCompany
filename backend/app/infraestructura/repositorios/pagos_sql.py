@@ -54,6 +54,7 @@ FILTROS = {
     "desde": "pg.fecha_pago >= :desde",
     "hasta": "pg.fecha_pago <= :hasta",
     "tipo": f"{TIPO} = :tipo",
+    "sede": "COALESCE(gme.idSede, gma.idSede, est.idSede) = :sede",
 }
 
 

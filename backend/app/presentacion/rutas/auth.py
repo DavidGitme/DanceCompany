@@ -50,7 +50,7 @@ def refresh(response: Response, refresh_token: str | None = Cookie(default=None)
     if not registro or registro["idEstado"] != ESTADO_ACTIVO:
         raise NoAutenticado()
     roles, permisos = repositorio.permisos_de_roles(registro["roles"])
-    acceso, expira = emisor.emitir_acceso(contenido["sub"], roles, permisos)
+    acceso, expira = emisor.emitir_acceso(contenido["sub"], roles, permisos, registro.get("idSede"))
     nuevo_refresh, max_age = emisor.emitir_refresh(contenido["sub"])
     _guardar_cookie(response, nuevo_refresh, max_age)
     return {
@@ -62,6 +62,8 @@ def refresh(response: Response, refresh_token: str | None = Cookie(default=None)
             "nombre": registro["nombre"],
             "roles": roles,
             "permisos": permisos,
+            "idSede": registro.get("idSede"),
+            "sede": registro.get("sede"),
         },
     }
 
@@ -78,4 +80,5 @@ def me(usuario: dict = Depends(get_usuario_actual)):
         "nombre": usuario.get("nombre", ""),
         "roles": usuario.get("roles", []),
         "permisos": usuario.get("permisos", []),
+        "idSede": usuario.get("sede"),
     }

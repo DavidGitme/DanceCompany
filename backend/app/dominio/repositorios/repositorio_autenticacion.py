@@ -7,7 +7,7 @@ class RepositorioAutenticacion(ABC):
 
     @abstractmethod
     def buscar_usuario_por_documento(self, documento: str) -> dict[str, Any] | None:
-        """Devuelve nombre, password_hash, idEstado y roles (ids) de la cuenta."""
+        """Devuelve nombre, password_hash, idEstado, idSede, sede y roles (ids) de la cuenta."""
 
     @abstractmethod
     def permisos_de_roles(self, roles: list[int]) -> tuple[list[str], list[str]]:

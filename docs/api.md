@@ -28,6 +28,71 @@ Error:
 El access token dura 20 minutos por defecto y permanece solo en memoria del
 frontend. La cookie refresh es `httpOnly`, `Secure` y `SameSite=Strict`.
 
+La respuesta del login, del refresh y de `/auth/me` incluye `idSede` y `sede`: la sede
+que administra la cuenta (`usuarios.idSede`), o `null` si no tiene una.
+
+## Un administrador por sede
+
+Cada sede (Bello y Copacabana) tiene su administrador. La sede viaja en el token
+(`"sede"`) y el backend la aplica en todas las rutas del panel
+(`presentacion/dependencias/sede.py`):
+
+| Caso | Respuesta |
+| --- | --- |
+| Lista sin `?sede=` | Se filtra sola por la sede de la cuenta. |
+| `?sede=` o `idSede` en el cuerpo de otra sede | `403` (las sedes son públicas) |
+| Registro de otra sede por ruta (`/{id}`), filtro (`?estudiante=`, `?grupo=`...) o cuerpo (`idGrupo`, `idEstudiante`, `idAula`, `idMatricula`, `idMensualidad`) | `404` (no revela que existe) |
+| `POST /sedes` | `403` |
+| Personas y usuarios | Solo los de su sede (estudiantes, instructores con su sede, acudientes de sus estudiantes) o sin vínculos; nunca administradores |
+| Roles asignables al crear o editar cuentas | Solo Instructor, Estudiante y Acudiente (`403` con otro) |
+| Escribir en `/roles`, `/permisos` o `/estados` | `403`: solo la cuenta técnica |
+| Cuenta sin sede que no es administradora (rol con permisos del módulo) | `403` en todas las rutas por sede |
+
+Los ids se leen igual que FastAPI (`"2"`, `2.0` y `+2` valen 2), así el control revisa el
+mismo valor que llega al caso de uso. Las pruebas de ataque están en
+`pruebas_api/probar_alcance_sede.py`.
+
+Recursos por sede: estudiantes, grupos, aulas, horarios, matrículas, mensualidades,
+pagos, inscripciones a talleres y postulaciones. Se comparten entre sedes: sedes
+(lectura), instructores, estilos, niveles, talleres, métodos de pago, convocatorias y
+noticias. Con los instructores, cada administrador solo agrega o quita su propia sede.
+
+Las cuentas de administrador se crean con
+`python -m app.herramientas.crear_cuenta --rol administrador --sede <idSede> ...`; la cuenta
+técnica (roles, permisos y estados de toda la academia) con `--sin-sede`.
+Una cuenta de administrador sin sede (`idSede` NULL) conserva el acceso a todo; así
+funciona una base migrada hasta que se asignen las sedes (`bd/05_admin_por_sede.sql`).
+
+## Inscripción presencial
+
+No hay autorregistro público. El administrador inscribe al estudiante en la sede:
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| POST | `/inscripciones` | Crea persona, estudiante, acudientes y, si se envían, matrícula y cuenta. Todo o nada. |
+| GET | `/inscripciones/personas?documento=` | Busca a una persona para reutilizarla como acudiente. Devuelve solo id, nombre y documento; no encuentra administradores ni estudiantes de otra sede. |
+| GET | `/estudiantes/{id}/acudientes` | Acudientes del estudiante. |
+| POST | `/estudiantes/{id}/acudientes` | Agrega un acudiente (`idPersona` existente o `persona` nueva, más `idParentesco`). |
+| DELETE | `/estudiantes/{id}/acudientes/{idAcudiente}` | Quita el vínculo; un menor conserva al menos uno. |
+| GET | `/catalogos/tipos-documento` | Tipos de documento (requiere sesión). |
+| GET | `/catalogos/parentescos` | Parentescos (requiere sesión). |
+
+`POST /estudiantes` ya no existe: los estudiantes nuevos entran por `/inscripciones`.
+
+Reglas (las valida el backend; el formulario las repite para avisar antes):
+
+- Obligatorios: nombre, tipo y número de documento, teléfono, fecha de nacimiento y sede.
+  El correo es opcional, salvo si se crea la cuenta (el estudiante entra con su correo).
+- Documento: se quitan espacios, puntos y guiones. Cédula, tarjeta de identidad y
+  registro civil solo admiten números. Es único en todo el sistema (es la llave de `usuarios`).
+- Tipo según la edad: registro civil de 0 a 6 años, tarjeta de identidad de 7 a 17 y
+  cédula desde los 18. Cédula de extranjería y pasaporte, a cualquier edad.
+- Teléfono: de 7 a 15 dígitos. Correo en minúscula.
+- Menor de 18 años: al menos un acudiente (máximo 3), mayor de edad y distinto del estudiante.
+- Matrícula opcional (`idGrupo` y `valor_matricula`): mismas reglas de `/matriculas`
+  (sede, edad del nivel y cupo).
+- Traslado de sede (`PUT /estudiantes/{id}` con otra `idSede`): solo sin matrícula activa.
+
 ## Seguridad
 
 `personas`, `usuarios`, `roles`, `permisos` y `estados` implementan:
@@ -43,7 +108,7 @@ Relación RBAC:
 - `GET /roles/{idRol}/permisos`
 - `PUT /roles/{idRol}/permisos`
 
-Todas requieren el permiso `seguridad`.
+Todas requieren el permiso `usuarios` (el administrador entra siempre).
 
 Campos según las tablas de Neon:
 

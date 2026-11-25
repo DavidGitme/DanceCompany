@@ -55,14 +55,15 @@ class RepositorioMatriculasSql(EstadoCategoriaSql, PagadorSql, RepositorioBaseSq
             "m.fecha_matricula DESC, p.nombre", pagina, tamano,
         )
 
-    def disponibles(self):
+    def disponibles(self, sede=None):
+        filtro_sede = "AND g.idSede = :sede" if sede is not None else ""
         filas = self.sesion.execute(
             text(
                 'SELECT m.idMatricula AS "idMatricula", m.idEstudiante AS "idEstudiante", '
                 f"p.nombre AS estudiante, g.nombre AS grupo, m.valor_matricula, {SALDO_MATRICULA} AS saldo "
-                f"{ORIGEN} WHERE m.idEstado = :activo ORDER BY p.nombre, g.nombre"
+                f"{ORIGEN} WHERE m.idEstado = :activo {filtro_sede} ORDER BY p.nombre, g.nombre"
             ),
-            {"activo": ESTADO_ACTIVO},
+            {"activo": ESTADO_ACTIVO, "sede": sede},
         ).mappings()
         return [dict(fila) for fila in filas]
 

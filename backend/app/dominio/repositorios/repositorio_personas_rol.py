@@ -7,7 +7,8 @@ class RepositorioPersonaRol(RepositorioCatalogo):
     """Base de estudiantes e instructores: ambos guardan sus datos en `persona`."""
 
     @abstractmethod
-    def tipo_documento_existe(self, id_tipo_documento: int) -> bool: ...
+    def nombre_tipo_documento(self, id_tipo_documento: int) -> str | None:
+        """Nombre del tipo de documento, o None si no existe."""
 
     @abstractmethod
     def documento_existe(self, documento: str, excluir_persona: int | None = None) -> bool: ...

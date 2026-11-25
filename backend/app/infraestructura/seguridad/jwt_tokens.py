@@ -29,14 +29,12 @@ class EmisorJwt(EmisorTokens):
         )
         return token, int((expira - ahora).total_seconds())
 
-    def emitir_acceso(self, documento: str, roles: list[str], permisos: list[str]):
-        return self._emitir(
-            documento,
-            "acceso",
-            self.configuracion.access_token_minutos,
-            roles=roles,
-            permisos=permisos,
-        )
+    def emitir_acceso(self, documento: str, roles: list[str], permisos: list[str], sede: int | None = None):
+        # "sede" solo viaja cuando la cuenta administra una sede; limita lo que puede ver y cambiar
+        claims = {"roles": roles, "permisos": permisos}
+        if sede is not None:
+            claims["sede"] = sede
+        return self._emitir(documento, "acceso", self.configuracion.access_token_minutos, **claims)
 
     def emitir_refresh(self, documento: str):
         return self._emitir(

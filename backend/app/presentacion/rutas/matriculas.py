@@ -9,9 +9,10 @@ from app.aplicacion.dtos.matriculas_dto import (
 )
 from app.presentacion.dependencias.administrativos import gestor_matriculas
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede, filtro_sede
 
 router = APIRouter(prefix="/matriculas", tags=["Matrículas"])
-permiso = [Depends(requiere_permiso("matriculas"))]
+permiso = [Depends(requiere_permiso("matriculas")), Depends(alcance_sede("matriculas"))]
 
 
 @router.get("", response_model=ListaRespuesta[MatriculaRespuesta], dependencies=permiso)
@@ -19,7 +20,7 @@ def listar_matriculas(
     estado: int | None = Query(None, gt=0, description="Filtra por idEstado"),
     estudiante: int | None = Query(None, gt=0),
     grupo: int | None = Query(None, gt=0),
-    sede: int | None = Query(None, gt=0),
+    sede: int | None = Depends(filtro_sede),
     buscar: str | None = Query(
         None, max_length=60, description="Busca por estudiante, documento o grupo"
     ),
@@ -33,8 +34,8 @@ def listar_matriculas(
 
 # Solo activas, para selectores (mensualidades, pagos)
 @router.get("/disponibles", response_model=list[MatriculaOpcion], dependencies=permiso)
-def matriculas_disponibles(gestor=Depends(gestor_matriculas)):
-    return gestor.disponibles()
+def matriculas_disponibles(sede: int | None = Depends(filtro_sede), gestor=Depends(gestor_matriculas)):
+    return gestor.disponibles(sede)
 
 
 @router.get("/{identificador}", response_model=MatriculaRespuesta, dependencies=permiso)

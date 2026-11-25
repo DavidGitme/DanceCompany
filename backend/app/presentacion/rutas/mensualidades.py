@@ -10,9 +10,10 @@ from app.aplicacion.dtos.financiero_dto import (
 )
 from app.presentacion.dependencias.administrativos import gestor_mensualidades
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede, filtro_sede
 
 router = APIRouter(prefix="/mensualidades", tags=["Mensualidades"])
-permiso = [Depends(requiere_permiso("pagos"))]
+permiso = [Depends(requiere_permiso("pagos")), Depends(alcance_sede("mensualidades"))]
 
 
 @router.get("", response_model=ListaRespuesta[MensualidadRespuesta], dependencies=permiso)
@@ -21,26 +22,29 @@ def listar_mensualidades(
     matricula: int | None = Query(None, gt=0),
     estudiante: int | None = Query(None, gt=0),
     grupo: int | None = Query(None, gt=0),
+    sede: int | None = Depends(filtro_sede),
     periodo: str | None = Query(None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$", description="AAAA-MM"),
     buscar: str | None = Query(None, max_length=60, description="Busca por estudiante o documento"),
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=100),
     gestor=Depends(gestor_mensualidades),
 ):
-    filtros = {"matricula": matricula, "estudiante": estudiante, "grupo": grupo, "periodo": periodo}
+    filtros = {
+        "matricula": matricula, "estudiante": estudiante, "grupo": grupo, "periodo": periodo, "sede": sede,
+    }
     return gestor.listar(estado, buscar, pagina, tamano, filtros)
 
 
 # Con saldo pendiente, para el formulario de pagos
 @router.get("/disponibles", response_model=list[MensualidadOpcion], dependencies=permiso)
-def mensualidades_por_pagar(gestor=Depends(gestor_mensualidades)):
-    return gestor.disponibles()
+def mensualidades_por_pagar(sede: int | None = Depends(filtro_sede), gestor=Depends(gestor_mensualidades)):
+    return gestor.disponibles(sede)
 
 
 # Pasa a Vencida las pendientes cuya fecha límite ya pasó
 @router.post("/actualizar-vencidas", response_model=ActualizacionMasivaRespuesta, dependencies=permiso)
-def actualizar_mensualidades_vencidas(gestor=Depends(gestor_mensualidades)):
-    return gestor.actualizar_vencidas()
+def actualizar_mensualidades_vencidas(sede: int | None = Depends(filtro_sede), gestor=Depends(gestor_mensualidades)):
+    return gestor.actualizar_vencidas(sede)
 
 
 @router.get("/{identificador}", response_model=MensualidadRespuesta, dependencies=permiso)

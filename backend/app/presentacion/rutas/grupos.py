@@ -11,15 +11,16 @@ from app.aplicacion.dtos.grupos_dto import (
 )
 from app.presentacion.dependencias.academicos import gestor_grupos
 from app.presentacion.dependencias.auth import requiere_permiso
+from app.presentacion.dependencias.sede import alcance_sede, filtro_sede
 
 router = APIRouter(prefix="/grupos", tags=["Grupos"])
-permiso = [Depends(requiere_permiso("grupos"))]
+permiso = [Depends(requiere_permiso("grupos")), Depends(alcance_sede("grupos"))]
 
 
 @router.get("", response_model=ListaRespuesta[GrupoRespuesta], dependencies=permiso)
 def listar_grupos(
     estado: int | None = Query(None, gt=0, description="Filtra por idEstado"),
-    sede: int | None = Query(None, gt=0),
+    sede: int | None = Depends(filtro_sede),
     nivel: int | None = Query(None, gt=0),
     estilo: int | None = Query(None, gt=0),
     instructor: int | None = Query(None, gt=0),
@@ -33,8 +34,8 @@ def listar_grupos(
 
 
 @router.get("/disponibles", response_model=list[GrupoOpcion], dependencies=permiso)
-def grupos_disponibles(gestor=Depends(gestor_grupos)):
-    return gestor.disponibles()
+def grupos_disponibles(sede: int | None = Depends(filtro_sede), gestor=Depends(gestor_grupos)):
+    return gestor.disponibles(sede)
 
 
 # Catálogos de apoyo para el formulario "Crear grupo"

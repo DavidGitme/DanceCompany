@@ -12,8 +12,8 @@ class GestionarSeguridad:
     def __init__(self, repositorio: RepositorioSeguridad):
         self.repositorio = repositorio
 
-    def listar(self, recurso: str, pagina: int, tamano: int) -> dict[str, Any]:
-        datos, total = self.repositorio.listar(recurso, pagina, tamano)
+    def listar(self, recurso: str, pagina: int, tamano: int, sede: int | None = None) -> dict[str, Any]:
+        datos, total = self.repositorio.listar(recurso, pagina, tamano, sede)
         return {"datos": datos, "total": total, "pagina": pagina, "tamano": tamano}
 
     def obtener(self, recurso: str, identificador: int | str) -> dict[str, Any]:

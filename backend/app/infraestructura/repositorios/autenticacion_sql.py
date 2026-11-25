@@ -11,8 +11,10 @@ class RepositorioAutenticacionSql(RepositorioBaseSql, RepositorioAutenticacion):
     def buscar_usuario_por_documento(self, documento):
         fila = self.sesion.execute(
             text(
-                'SELECT u.documento, p.nombre, u.password_hash, u.idEstado AS "idEstado" '
+                'SELECT u.documento, p.nombre, u.password_hash, u.idEstado AS "idEstado", '
+                'u.idSede AS "idSede", s.nombre AS sede '
                 "FROM usuarios u JOIN persona p ON p.documento = u.documento "
+                "LEFT JOIN sede s ON s.idSede = u.idSede "
                 "WHERE u.documento = :documento"
             ),
             {"documento": documento},
@@ -34,7 +36,7 @@ class RepositorioAutenticacionSql(RepositorioBaseSql, RepositorioAutenticacion):
         # Los nombres de rol se devuelven en minúscula ("Instructor" -> "instructor"),
         # que es como los compara el backend y el frontend
         nombres = self.sesion.execute(
-            text("SELECT lower(nombre) FROM roles WHERE idRol = ANY(:roles) AND idEstado = :activo"),
+            text("SELECT lower(trim(nombre)) FROM roles WHERE idRol = ANY(:roles) AND idEstado = :activo"),
             {"roles": roles, "activo": ESTADO_ACTIVO},
         ).scalars()
         permisos = self.sesion.execute(

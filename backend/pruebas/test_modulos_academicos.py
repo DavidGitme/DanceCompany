@@ -194,8 +194,8 @@ class InstructoresMemoria(RepositorioMemoria):
         sedes = [{"idSede": s, "nombre": f"Sede {s}"} for s in datos["sedes"]]
         return super().crear({**datos, "sedes": sedes, "idPersona": len(self.registros) + 1})
 
-    def tipo_documento_existe(self, id_tipo_documento):
-        return True
+    def nombre_tipo_documento(self, id_tipo_documento):
+        return "Cedula de ciudadania"
 
     def documento_existe(self, documento, excluir_persona=None):
         return any(

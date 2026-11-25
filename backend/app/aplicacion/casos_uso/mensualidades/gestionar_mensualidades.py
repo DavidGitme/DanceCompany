@@ -24,8 +24,8 @@ class GestionarMensualidades(GestionarConEstadoPorCategoria):
         datos, total = self.repositorio.listar(estado, buscar, pagina, tamano, filtros or {})
         return {"datos": datos, "total": total, "pagina": pagina, "tamano": tamano}
 
-    def actualizar_vencidas(self):
-        return {"actualizadas": self.repositorio.marcar_vencidas(date.today())}
+    def actualizar_vencidas(self, sede=None):
+        return {"actualizadas": self.repositorio.marcar_vencidas(date.today(), sede)}
 
     def validar(self, datos, identificador=None):
         actual = self.obtener(identificador) if identificador else {}
