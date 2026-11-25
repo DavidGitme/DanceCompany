@@ -94,7 +94,7 @@ const camposPersona = [
   { clave: "idTipoDocumento", etiqueta: "Tipo de documento", tipo: "seleccion", fuente: "tiposDocumento", requerido: true, ancho: "mitad" },
   { clave: "documento", etiqueta: "Número de documento", requerido: true, min: 5, max: 20, ancho: "mitad" },
   { clave: "telefono", etiqueta: "Teléfono", tipo: "tel", min: 7, max: 20, ancho: "mitad" },
-  { clave: "email", etiqueta: "Correo electrónico", tipo: "email", ancho: "mitad" },
+  { clave: "email", etiqueta: "Correo electrónico", tipo: "email", max: 100, ancho: "mitad" },
   { clave: "fecha_nacimiento", etiqueta: "Fecha de nacimiento", tipo: "fecha", ancho: "mitad" },
 ] as const
 
@@ -220,7 +220,7 @@ export const talleres: DefinicionRecurso<Taller> = {
     { clave: "valor", etiqueta: "Valor", alinear: "derecha", render: (t) => formatoPesos(t.valor) },
   ],
   campos: [
-    { clave: "descripcion", etiqueta: "Descripción", tipo: "area", requerido: true, max: 200 },
+    { clave: "descripcion", etiqueta: "Descripción", requerido: true, max: 50, placeholder: "Ej. Taller de maquillaje escénico" },
     { clave: "valor", etiqueta: "Valor (COP)", tipo: "numero", requerido: true, min: 0, ancho: "mitad", ayuda: "En pesos colombianos, sin puntos." },
   ],
   aFormulario: (t) => ({ descripcion: t.descripcion, valor: String(Number(t.valor)) }),

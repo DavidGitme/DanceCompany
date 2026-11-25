@@ -3,9 +3,9 @@
 from datetime import date
 from decimal import Decimal
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
-from app.aplicacion.dtos.comun_dto import Texto
+from app.aplicacion.dtos.comun_dto import Correo, Texto
 from app.aplicacion.dtos.personas_rol_dto import EstudianteRespuesta
 
 DINERO = {"ge": 0, "max_digits": 10, "decimal_places": 2}
@@ -16,7 +16,7 @@ class PersonaNueva(BaseModel):
     idTipoDocumento: int = Field(gt=0)
     documento: Texto(20, minimo=5)
     telefono: Texto(20, minimo=7)
-    email: EmailStr | None = None
+    email: Correo | None = None
     fecha_nacimiento: date | None = None
 
 
@@ -40,7 +40,7 @@ class InscripcionSolicitud(BaseModel):
     idTipoDocumento: int = Field(gt=0)
     documento: Texto(20, minimo=5)
     telefono: Texto(20, minimo=7)
-    email: EmailStr | None = None
+    email: Correo | None = None
     fecha_nacimiento: date
     idSede: int = Field(gt=0)
     # Menores de edad: al menos un acudiente
