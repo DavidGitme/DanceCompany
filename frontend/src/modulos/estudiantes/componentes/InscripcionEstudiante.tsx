@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useEffect, useMemo, useState } from "react"
 import type { Opcion } from "@/compartido/ui/PantallaRecurso"
 import { claseBotonPrincipal, claseBotonSecundario, claseEntrada } from "@/compartido/ui/PantallaRecurso"
@@ -153,7 +154,7 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
     setErrorGeneral(null)
     const { valido, conDatos } = validar()
     if (!valido) {
-      setErrorGeneral("Revisa los campos marcados.")
+      setErrorGeneral(tr("Revisa los campos marcados."))
       return
     }
     const solicitud: InscripcionSolicitudDto = {
@@ -175,7 +176,7 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
     } catch (e) {
       const campos = erroresDeCampo(e)
       setErrores(campos)
-      setErrorGeneral(Object.keys(campos).length ? "Revisa los campos marcados." : mensajeError(e))
+      setErrorGeneral(Object.keys(campos).length ? tr("Revisa los campos marcados.") : mensajeError(e))
     } finally {
       setGuardando(false)
     }
@@ -183,40 +184,40 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
 
   return (
     <Dialogo
-      antetitulo={nombreSede ? `Sede ${nombreSede}` : "Estudiantes"}
-      titulo="Inscribir estudiante"
+      antetitulo={nombreSede ? `${tr("Sede")} ${nombreSede}` : tr("Estudiantes")}
+      titulo={tr("Inscribir estudiante")}
       ocupado={guardando}
       onCerrar={onCerrar}
       onEnviar={enviar}
       pie={
         <>
-          <button type="button" onClick={onCerrar} disabled={guardando} className={claseBotonSecundario}>Cancelar</button>
+          <button type="button" onClick={onCerrar} disabled={guardando} className={claseBotonSecundario}>{tr("Cancelar")}</button>
           <button type="submit" disabled={guardando} aria-busy={guardando} className={claseBotonPrincipal}>
-            {guardando ? "Inscribiendo…" : "Inscribir estudiante"}
+            {guardando ? tr("Inscribiendo…") : tr("Inscribir estudiante")}
           </button>
         </>
       }
     >
       <MensajeError mensaje={errorGeneral} />
       <p className="mb-4 font-body text-xs text-text-muted">
-        La inscripción es presencial. Los campos con <span className="text-red-500" aria-hidden="true">*</span>
-        <span className="sr-only">asterisco</span> son obligatorios.
+        {tr("La inscripción es presencial.")} {tr("Los campos con")} <span className="text-red-500" aria-hidden="true">*</span>
+        <span className="sr-only">{tr("asterisco")}</span> {tr("son obligatorios.")}
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Seccion>Datos del estudiante</Seccion>
+        <Seccion>{tr("Datos del estudiante")}</Seccion>
         <Campo id="insc-nombre" etiqueta="Nombre completo" requerido ancho="completo" error={errores.nombre}>
           {(p) => <input {...p} value={datos.nombre} maxLength={100} disabled={guardando} onChange={(e) => cambiar("nombre", e.target.value)} className={claseEntrada} />}
         </Campo>
         <Campo id="insc-nacimiento" etiqueta="Fecha de nacimiento" requerido error={errores.fecha_nacimiento}
-          ayuda={edad !== null && edad >= 0 ? `${edad} años${menor ? " · menor de edad" : ""}` : undefined}>
+          ayuda={edad !== null && edad >= 0 ? `${edad} años${menor ? tr(" · menor de edad") : ""}` : undefined}>
           {(p) => <input {...p} type="date" value={datos.fecha_nacimiento} disabled={guardando} onChange={(e) => cambiar("fecha_nacimiento", e.target.value)} className={claseEntrada} />}
         </Campo>
         <Campo id="insc-tipo" etiqueta="Tipo de documento" requerido error={errores.idTipoDocumento}
           ayuda="Registro civil hasta los 6 años, tarjeta de identidad de 7 a 17 y cédula desde los 18.">
           {(p) => (
             <select {...p} value={datos.idTipoDocumento} disabled={guardando} onChange={(e) => cambiar("idTipoDocumento", e.target.value)} className={claseEntrada}>
-              {tipos.map((t) => <option key={t.valor} value={t.valor}>{t.etiqueta}</option>)}
+              {tipos.map((t) => <option key={t.valor} value={t.valor}>{tr(t.etiqueta)}</option>)}
             </select>
           )}
         </Campo>
@@ -233,17 +234,17 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
           <Campo id="insc-sede" etiqueta="Sede" requerido error={errores.idSede}>
             {(p) => (
               <select {...p} value={datos.idSede} disabled={guardando} onChange={(e) => { cambiar("idSede", e.target.value); cambiar("idGrupo", "") }} className={claseEntrada}>
-                <option value="">Selecciona…</option>
+                <option value="">{tr("Selecciona…")}</option>
                 {sedes.map((s) => <option key={s.valor} value={s.valor}>{s.etiqueta}</option>)}
               </select>
             )}
           </Campo>
         )}
 
-        <Seccion>Acudiente (opcional)</Seccion>
+        <Seccion>{tr("Acudiente (opcional)")}</Seccion>
         {acudientes.length === 0 && (
           <p className="font-body text-xs text-text-muted sm:col-span-2">
-            {menor ? "Es menor de edad: se recomienda registrar a un acudiente." : "Puedes registrar un acudiente si el estudiante lo necesita."}
+            {menor ? tr("Es menor de edad: se recomienda registrar a un acudiente.") : tr("Puedes registrar un acudiente si el estudiante lo necesita.")}
           </p>
         )}
         {errores.acudientes && <p role="alert" className="font-body text-xs font-medium text-red-600 dark:text-red-300 sm:col-span-2">{errores.acudientes}</p>}
@@ -267,14 +268,14 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
         {acudientes.length < MAX_ACUDIENTES && (
           <button type="button" disabled={guardando} onClick={() => setAcudientes((prev) => [...prev, acudienteVacio()])}
             className={`${claseBotonSecundario} sm:col-span-2`}>
-            Agregar acudiente
+            {tr("Agregar acudiente")}
           </button>
         )}
 
-        <Seccion>Matrícula y acceso</Seccion>
+        <Seccion>{tr("Matrícula y acceso")}</Seccion>
         <label className="flex items-center gap-3 font-body text-sm text-text sm:col-span-2">
           <input type="checkbox" checked={matricular} disabled={guardando} onChange={(e) => setMatricular(e.target.checked)} className="h-4 w-4 accent-[var(--color-accent)]" />
-          Matricular ahora en un grupo
+          {tr("Matricular ahora en un grupo")}
         </label>
         {matricular && (
           <>
@@ -282,7 +283,7 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
               ayuda="Se validan el cupo y la edad del nivel al guardar.">
               {(p) => (
                 <select {...p} value={datos.idGrupo} disabled={guardando || !datos.idSede} onChange={(e) => cambiar("idGrupo", e.target.value)} className={claseEntrada}>
-                  <option value="">{datos.idSede ? "Selecciona…" : "Primero elige la sede"}</option>
+                  <option value="">{datos.idSede ? tr("Selecciona…") : tr("Primero elige la sede")}</option>
                   {grupos.map((g) => <option key={g.idGrupo} value={g.idGrupo}>{g.nombre} · {g.nivel} · {g.estilo}</option>)}
                 </select>
               )}
@@ -294,9 +295,9 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
         )}
         <fieldset className="flex flex-col gap-2 sm:col-span-2">
           <legend className="mb-1 font-condensed text-xs font-semibold uppercase tracking-wider text-text-soft">
-            Acceso al portal del estudiante
+            {tr("Acceso al portal del estudiante")}
           </legend>
-          <p className="font-body text-xs text-text-muted">El usuario para iniciar sesión es el número de documento.</p>
+          <p className="font-body text-xs text-text-muted">{tr("El usuario para iniciar sesión es el número de documento.")}</p>
           {([
             ["ninguna", "Sin cuenta por ahora"],
             ["invitar", "Enviar invitación al correo (el estudiante crea su contraseña)"],
@@ -306,7 +307,7 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
               <input type="radio" name="insc-cuenta" value={valor} checked={cuenta === valor} disabled={guardando}
                 onChange={() => { setCuenta(valor); setErrores((prev) => ({ ...prev, email: "", clave: "", confirmarClave: "" })) }}
                 className="h-4 w-4 accent-[var(--color-accent)]" />
-              {etiqueta}
+              {tr(etiqueta)}
             </label>
           ))}
         </fieldset>

@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useState, useMemo } from 'react';
 import { ModuleConfig } from '@/app/admin/tipos';
 import FilterBar from "./FilterBar";
@@ -92,8 +93,8 @@ export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelet
             </span>
             <input
               type="text"
-              placeholder="Buscar..."
-              aria-label="Buscar"
+              placeholder={tr("Buscar...")}
+              aria-label={tr("Buscar")}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 rounded-full bg-surface border border-border text-text text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors w-52"
@@ -123,7 +124,7 @@ export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelet
             <thead>
               <tr className="border-b border-border">
                 <th className="px-4 py-4 w-12 text-left font-condensed text-xs font-semibold uppercase tracking-widest text-text-muted">
-                  N.º
+                  {tr("N.º")}
                 </th>
                 {config.avatarKey && <th className="w-12 px-2 py-3" />}
                 {config.columns.map((col, columnIndex) => (
@@ -136,13 +137,13 @@ export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelet
                   </th>
                 ))}
                 <th className="px-4 py-4 text-right font-condensed text-xs font-semibold uppercase tracking-widest text-text-soft w-32">
-                  Acciones
+                  {tr("Acciones")}
                 </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={config.columns.length + extraCols} className="px-4 py-16 text-center text-text-soft font-body text-sm">Cargando registros...</td></tr>
+                <tr><td colSpan={config.columns.length + extraCols} className="px-4 py-16 text-center text-text-soft font-body text-sm">{tr("Cargando registros...")}</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={config.columns.length + extraCols} className="px-4 py-16 text-center text-text-soft font-body text-sm">
@@ -171,12 +172,12 @@ export default function CrudTable({ config, data, onAdd, onEdit, onView, onDelet
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         {!sinVer && (
-                          <button onClick={() => onView(row)} className={`${actionBtn} hover:text-accent hover:bg-accent/10`} title="Ver detalle" aria-label="Ver detalle">
+                          <button onClick={() => onView(row)} className={`${actionBtn} hover:text-accent hover:bg-accent/10`} title={tr("Ver detalle")} aria-label={tr("Ver detalle")}>
                             <ViewIcon />
                           </button>
                         )}
                         {!config.hideEdit && (
-                          <button onClick={() => onEdit(row)} className={`${actionBtn} hover:text-mist hover:bg-mist/10`} title="Editar" aria-label="Editar">
+                          <button onClick={() => onEdit(row)} className={`${actionBtn} hover:text-mist hover:bg-mist/10`} title={tr("Editar")} aria-label={tr("Editar")}>
                             <EditIcon />
                           </button>
                         )}

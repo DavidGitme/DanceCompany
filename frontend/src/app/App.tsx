@@ -2,6 +2,7 @@ import { useState } from "react"
 import Navbar from "@/modulos/landing/componentes/Navbar"
 import Hero from "@/modulos/landing/componentes/Hero"
 import ValueProposition from "@/modulos/landing/componentes/Nosotros"
+import Estilos from "@/modulos/landing/componentes/Estilos"
 import Instructors from "@/modulos/landing/componentes/Instructores"
 import DanceWellness from "@/modulos/landing/componentes/Bienestar"
 import Plans from "@/modulos/landing/componentes/Planes"
@@ -20,6 +21,8 @@ import type { UsuarioSesion } from "@/modulos/autenticacion/dtos/autenticacionDt
 import RestablecerClave from "@/modulos/autenticacion/paginas/RestablecerClave"
 import AceptarTerminos from "@/modulos/autenticacion/legal/AceptarTerminos"
 import AvisoCookies from "@/modulos/autenticacion/legal/AvisoCookies"
+import BotonVolverArriba from "@/compartido/ui/BotonVolverArriba"
+import { useIdioma } from "@/nucleo/i18n/useIdioma"
 
 // Enlace del correo: /restablecer?token=...
 const tokenDelEnlace = () =>
@@ -34,16 +37,16 @@ function destinoSegunRol(usuario: UsuarioSesion): RutaAplicacion {
 
 // Cuenta válida pero sin una vista asignada (por ahora, el rol Acudiente)
 function SinVistaAsignada({ nombre, onSalir }: { nombre: string; onSalir: () => void }) {
+  const { t } = useIdioma()
   return (
     <main className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center">
-        <h1 className="font-display text-3xl uppercase text-text">Hola, {nombre}</h1>
+        <h1 className="font-display text-3xl uppercase text-text">{t("Hola, {nombre}", { nombre })}</h1>
         <p className="mt-3 font-body text-sm text-text-soft">
-          Tu cuenta está activa, pero todavía no tiene una vista asignada. Pide a la
-          administración de la academia que revise tus roles.
+          {t("Tu cuenta está activa, pero todavía no tiene una vista asignada. Pide a la administración de la academia que revise tus roles.")}
         </p>
         <Button size="md" className="mt-6" onClick={onSalir}>
-          Cerrar sesión
+          {t("Cerrar sesión")}
         </Button>
       </div>
     </main>
@@ -51,6 +54,7 @@ function SinVistaAsignada({ nombre, onSalir }: { nombre: string; onSalir: () => 
 }
 
 export default function App() {
+  const { t } = useIdioma()
   const [isDark, setIsDark] = useState(true)
   const [page, setPage] = useState<RutaAplicacion>("home")
   const [token, setToken] = useState(tokenDelEnlace)
@@ -150,6 +154,7 @@ export default function App() {
       <main>
         <Hero />
         <ValueProposition />
+        <Estilos />
         <Instructors />
         <DanceWellness />
         <Plans />
@@ -159,6 +164,9 @@ export default function App() {
       <Footer />
       <AvisoCookies />
 
+      {/* Volver arriba: sobre el botón de inscripción en móvil, en la esquina en escritorio */}
+      <BotonVolverArriba className="bottom-24 right-6 lg:bottom-8 lg:right-8" />
+
       {/* Botón flotante en móvil: la inscripción es presencial, en la sede */}
       <div className="fixed bottom-6 right-6 z-40 lg:hidden">
         <Button
@@ -166,7 +174,7 @@ export default function App() {
           onClick={() => document.querySelector("#sedes")?.scrollIntoView({ behavior: "smooth" })}
           className="shadow-2xl shadow-purple-700/40"
         >
-          Inscríbete
+          {t("Inscríbete")}
         </Button>
       </div>
     </div>

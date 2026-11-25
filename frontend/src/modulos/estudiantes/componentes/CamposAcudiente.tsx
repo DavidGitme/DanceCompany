@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useState } from "react"
 import type { Opcion } from "@/compartido/ui/PantallaRecurso"
 import { Icono, claseBotonIcono, claseBotonSecundario, claseEntrada, hoverPeligro } from "@/compartido/ui/PantallaRecurso"
@@ -82,7 +83,7 @@ export default function CamposAcudiente({ valor, numero, tipos, parentescos, err
   const buscar = async () => {
     const documento = valor.documentoBusqueda.trim()
     if (documento.replace(/[\s.-]/g, "").length < 5) {
-      setErrorBusqueda("Escribe al menos 5 caracteres del documento.")
+      setErrorBusqueda(tr("Escribe al menos 5 caracteres del documento."))
       return
     }
     setBuscando(true)
@@ -122,7 +123,7 @@ export default function CamposAcudiente({ valor, numero, tipos, parentescos, err
             disabled={deshabilitado}
             className={`${claseBotonIcono} ${hoverPeligro}`}
             aria-label={`Quitar acudiente ${numero}`}
-            title="Quitar"
+            title={tr("Quitar")}
           >
             <Icono nombre="eliminar" />
           </button>
@@ -159,7 +160,7 @@ export default function CamposAcudiente({ valor, numero, tipos, parentescos, err
                 className={claseEntrada}
               />
               <button type="button" onClick={buscar} disabled={deshabilitado || buscando} className={claseBotonSecundario}>
-                {buscando ? "Buscando…" : "Buscar"}
+                {buscando ? tr("Buscando…") : tr("Buscar")}
               </button>
             </div>
           )}
@@ -172,7 +173,7 @@ export default function CamposAcudiente({ valor, numero, tipos, parentescos, err
             <p className="font-body text-sm font-semibold text-text">{valor.encontrada.nombre}</p>
             <p className="font-body text-xs text-text-muted">
               {valor.encontrada.tipoDocumento} {valor.encontrada.documento}
-              {valor.encontrada.esAcudiente ? " · ya es acudiente" : ""}
+              {valor.encontrada.esAcudiente ? tr(" · ya es acudiente") : ""}
             </p>
           </div>
           <button
@@ -181,7 +182,7 @@ export default function CamposAcudiente({ valor, numero, tipos, parentescos, err
             disabled={deshabilitado}
             className="font-condensed text-xs font-semibold uppercase tracking-wider text-accent hover:underline"
           >
-            Cambiar
+            {tr("Cambiar")}
           </button>
         </div>
       )}
@@ -195,7 +196,7 @@ export default function CamposAcudiente({ valor, numero, tipos, parentescos, err
               onClick={() => onCambiar({ ...valor, nuevo: null })}
               className="font-semibold text-accent hover:underline"
             >
-              Buscar otro
+              {tr("Buscar otro")}
             </button>
           </p>
           <Campo id={`${prefijo}-nombre`} etiqueta="Nombre completo" requerido ancho="completo" error={errores.nombre}>
@@ -208,7 +209,7 @@ export default function CamposAcudiente({ valor, numero, tipos, parentescos, err
             {(props) => (
               <select {...props} value={valor.nuevo!.idTipoDocumento} disabled={deshabilitado}
                 onChange={(e) => cambiarNuevo("idTipoDocumento", e.target.value)} className={claseEntrada}>
-                {tipos.map((t) => <option key={t.valor} value={t.valor}>{t.etiqueta}</option>)}
+                {tipos.map((t) => <option key={t.valor} value={t.valor}>{tr(t.etiqueta)}</option>)}
               </select>
             )}
           </Campo>
@@ -237,8 +238,8 @@ export default function CamposAcudiente({ valor, numero, tipos, parentescos, err
         {(props) => (
           <select {...props} value={valor.idParentesco} disabled={deshabilitado}
             onChange={(e) => onCambiar({ ...valor, idParentesco: e.target.value })} className={claseEntrada}>
-            <option value="">Selecciona…</option>
-            {parentescos.map((p) => <option key={p.valor} value={p.valor}>{p.etiqueta}</option>)}
+            <option value="">{tr("Selecciona…")}</option>
+            {parentescos.map((p) => <option key={p.valor} value={p.valor}>{tr(p.etiqueta)}</option>)}
           </select>
         )}
       </Campo>

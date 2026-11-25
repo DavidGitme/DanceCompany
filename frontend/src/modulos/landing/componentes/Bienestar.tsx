@@ -1,5 +1,6 @@
 import Button from '@/compartido/ui/Button';
 import Reveal, { MaskLine } from '@/compartido/ui/Reveal';
+import { useIdioma } from '@/nucleo/i18n/useIdioma';
 
 const benefits = [
   { title: 'Reduce el estrés', description: 'El movimiento libera endorfinas y cortisol disminuye hasta un 40% después de bailar.' },
@@ -9,6 +10,7 @@ const benefits = [
 ];
 
 export default function DanceWellness() {
+  const { t } = useIdioma();
   return (
     <section id="bienestar" className="relative py-28 bg-page overflow-hidden">
       <div className="relative max-w-[88rem] mx-auto px-6">
@@ -18,8 +20,9 @@ export default function DanceWellness() {
             <div className="relative max-w-md mx-auto lg:mx-0">
               <img
                 src="https://images.unsplash.com/photo-1770739723922-a4fd700bdb3b?w=700&h=900&fit=crop&auto=format"
-                alt="Bailarina expresando emoción bajo luz de neón"
-                className="w-full object-cover aspect-[3/4] grayscale-[35%] transition-all duration-700 hover:grayscale-0"
+                alt={t('Bailarina expresando emoción bajo luz de neón')}
+                loading="lazy"
+                className="block w-full aspect-[3/4] object-cover object-center grayscale-[35%] transition-all duration-700 hover:grayscale-0"
               />
               <div className="absolute inset-0 bg-purple-900/35 mix-blend-multiply pointer-events-none" />
               <span className="pointer-events-none absolute -left-3 -top-3 h-10 w-10 border-l border-t border-accent" />
@@ -27,7 +30,7 @@ export default function DanceWellness() {
               <div className="absolute bottom-0 left-0 bg-page/90 backdrop-blur px-6 py-5 border-t border-r border-border">
                 <div className="display text-5xl text-blush">(40%)</div>
                 <div className="font-condensed text-xs uppercase tracking-wider text-text-soft mt-1">
-                  Reducción del estrés
+                  {t('Reducción del estrés')}
                 </div>
               </div>
             </div>
@@ -37,19 +40,29 @@ export default function DanceWellness() {
           <div className="order-1 lg:order-2">
             <Reveal>
               <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">
-                (03) Danza y bienestar
+                (04) {t('Danza y bienestar')}
               </span>
             </Reveal>
-            <Reveal variant="mask" as="h2" className="display text-[clamp(2.8rem,7vw,6.5rem)] text-text mt-4 mb-8">
-              <MaskLine>El cuerpo</MaskLine>
-              <MaskLine delay={120}><span className="text-blush">que baila</span></MaskLine>
-              <MaskLine delay={240}>no miente</MaskLine>
+            {/* Jerarquía: frase corta pequeña, la idea central muy grande y el remate mediano */}
+            <Reveal variant="mask" as="h2" className="mt-5 mb-10 text-text">
+              <MaskLine>
+                <span className="block font-condensed text-[clamp(1.4rem,2.6vw,2.25rem)] font-semibold uppercase tracking-[0.3em] text-text-soft">
+                  {t('El cuerpo')}
+                </span>
+              </MaskLine>
+              <MaskLine delay={120}>
+                <span className="display block text-[clamp(3.6rem,9vw,8.5rem)] leading-[0.88] text-blush">{t('que baila')}</span>
+              </MaskLine>
+              <MaskLine delay={240}>
+                <span className="mt-3 flex items-center gap-4">
+                  <span className="h-px w-12 bg-accent md:w-20" aria-hidden="true" />
+                  <span className="display text-[clamp(2rem,4.2vw,3.75rem)] leading-none">{t('no miente')}</span>
+                </span>
+              </MaskLine>
             </Reveal>
             <Reveal delay={150}>
               <p className="font-body text-text-soft text-lg leading-relaxed mb-10 max-w-xl">
-                La ciencia lo confirma: bailar mejora la salud mental, fortalece vínculos
-                sociales y desarrolla inteligencia emocional. Más allá de la técnica, la danza
-                urbana es una herramienta de transformación personal que actúa desde adentro.
+                {t('La ciencia lo confirma: bailar mejora la salud mental, fortalece vínculos sociales y desarrolla inteligencia emocional. Más allá de la técnica, la danza urbana es una herramienta de transformación personal que actúa desde adentro.')}
               </p>
             </Reveal>
 
@@ -60,9 +73,9 @@ export default function DanceWellness() {
                     <span className="font-condensed text-sm text-text-muted pt-1">({String(i + 1).padStart(2, '0')})</span>
                     <div>
                       <h4 className="font-condensed font-bold uppercase text-xl tracking-wider text-text group-hover:text-accent transition-colors">
-                        {b.title}
+                        {t(b.title)}
                       </h4>
-                      <p className="font-body text-sm text-text-soft leading-relaxed mt-1">{b.description}</p>
+                      <p className="font-body text-sm text-text-soft leading-relaxed mt-1">{t(b.description)}</p>
                     </div>
                   </div>
                 </Reveal>
@@ -70,7 +83,7 @@ export default function DanceWellness() {
             </ul>
 
             <Button size="lg" onClick={() => document.querySelector('#alquiler')?.scrollIntoView({ behavior: 'smooth' })}>
-              Descubre cómo
+              {t('Descubre cómo')}
             </Button>
           </div>
         </div>

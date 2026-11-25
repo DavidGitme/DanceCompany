@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useCallback, useEffect, useState } from "react"
 import ConfirmDialog from "@/compartido/ui/ConfirmDialog"
 import type { Opcion } from "@/compartido/ui/PantallaRecurso"
@@ -35,7 +36,7 @@ interface Props {
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <div className="min-w-0">
-      <dt className="font-condensed text-[11px] uppercase tracking-wider text-text-muted">{etiqueta}</dt>
+      <dt className="font-condensed text-[11px] uppercase tracking-wider text-text-muted">{tr(etiqueta)}</dt>
       <dd className="truncate font-body text-sm text-text">{valor}</dd>
     </div>
   )
@@ -115,25 +116,25 @@ export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }
         titulo={estudiante.nombre}
         ocupado={ocupado}
         onCerrar={onCerrar}
-        pie={<button type="button" onClick={onCerrar} disabled={ocupado} className={claseBotonSecundario}>Cerrar</button>}
+        pie={<button type="button" onClick={onCerrar} disabled={ocupado} className={claseBotonSecundario}>{tr("Cerrar")}</button>}
       >
         <MensajeError mensaje={error} />
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
           <Dato etiqueta="Documento" valor={`${estudiante.tipoDocumento} ${estudiante.documento ?? "—"}`} />
-          <Dato etiqueta="Edad" valor={edad !== null ? `${edad} años` : "Sin fecha de nacimiento"} />
-          <Dato etiqueta="Estado" valor={estudiante.estado} />
+          <Dato etiqueta="Edad" valor={edad !== null ? tr("{edad} años", { edad }) : tr("Sin fecha de nacimiento")} />
+          <Dato etiqueta="Estado" valor={tr(estudiante.estado)} />
           <Dato etiqueta="Teléfono" valor={estudiante.telefono ?? "—"} />
           <Dato etiqueta="Correo" valor={estudiante.email ?? "—"} />
-          <Dato etiqueta="Grupos" valor={estudiante.grupos.map((g) => g.nombre).join(", ") || "Sin matrícula"} />
+          <Dato etiqueta="Grupos" valor={estudiante.grupos.map((g) => g.nombre).join(", ") || tr("Sin matrícula")} />
         </dl>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <Seccion>Acudientes</Seccion>
+          <Seccion>{tr("Acudientes")}</Seccion>
           {cargando ? (
-            <p className="font-body text-sm text-text-muted sm:col-span-2">Cargando acudientes…</p>
+            <p className="font-body text-sm text-text-muted sm:col-span-2">{tr("Cargando acudientes…")}</p>
           ) : acudientes.length === 0 ? (
             <p className="font-body text-sm text-text-muted sm:col-span-2">
-              Sin acudiente registrado{menor ? ". Es opcional, pero se recomienda para menores de edad." : "."}
+              Sin acudiente registrado{menor ? tr(". Es opcional, pero se recomienda para menores de edad.") : "."}
             </p>
           ) : (
             <ul className="divide-y divide-border rounded-2xl border border-border sm:col-span-2">
@@ -146,7 +147,7 @@ export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }
                     </p>
                   </div>
                   <button type="button" onClick={() => setPorQuitar(a)} disabled={ocupado}
-                    className={`${claseBotonIcono} ${hoverPeligro}`} aria-label={`Quitar a ${a.nombre} como acudiente`} title="Quitar acudiente">
+                    className={`${claseBotonIcono} ${hoverPeligro}`} aria-label={`Quitar a ${a.nombre} como acudiente`} title={tr("Quitar acudiente")}>
                     <Icono nombre="eliminar" />
                   </button>
                 </li>
@@ -169,9 +170,9 @@ export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }
                 }}
               />
               <div className="flex justify-end gap-3 sm:col-span-2">
-                <button type="button" onClick={() => setNuevo(null)} disabled={ocupado} className={claseBotonSecundario}>Cancelar</button>
+                <button type="button" onClick={() => setNuevo(null)} disabled={ocupado} className={claseBotonSecundario}>{tr("Cancelar")}</button>
                 <button type="button" onClick={guardarNuevo} disabled={ocupado} className={claseBotonPrincipal}>
-                  {ocupado ? "Guardando…" : "Guardar acudiente"}
+                  {ocupado ? tr("Guardando…") : tr("Guardar acudiente")}
                 </button>
               </div>
             </>
@@ -179,7 +180,7 @@ export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }
             acudientes.length < 1 && (
               <button type="button" onClick={() => { setNuevo(acudienteVacio()); setErroresNuevo({}) }} disabled={ocupado || cargando}
                 className={`${claseBotonSecundario} sm:col-span-2`}>
-                Agregar acudiente
+                {tr("Agregar acudiente")}
               </button>
             )
           )}
@@ -188,7 +189,7 @@ export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }
 
       <ConfirmDialog
         open={Boolean(porQuitar)}
-        title="Quitar acudiente"
+        title={tr("Quitar acudiente")}
         message={porQuitar ? `${porQuitar.nombre} dejará de ser acudiente de ${estudiante.nombre}. Sus pagos anteriores se conservan.` : ""}
         confirmLabel="Quitar"
         blockedMessage={bloqueoQuitar}
