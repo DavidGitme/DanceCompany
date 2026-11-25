@@ -1,3 +1,5 @@
+import SelectorIdioma from "@/compartido/ui/SelectorIdioma"
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useEffect, useState } from 'react';
 import logoFna from '@/recursos/logo-fna.png';
 import { useAuth } from '@/nucleo/auth/useAuth';
@@ -30,9 +32,9 @@ function EtiquetaDemo() {
   return (
     <span
       className="ml-auto rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-px font-condensed text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300"
-      title="Pantalla de demostración: aún no guarda en la base de datos"
+      title={tr("Pantalla de demostración: aún no guarda en la base de datos")}
     >
-      Demo
+      {tr("Demo")}
     </span>
   );
 }
@@ -89,7 +91,7 @@ export default function Sidebar({
 
       <aside
         id="menu-admin"
-        aria-label="Menú del panel"
+        aria-label={tr("Menú del panel")}
         className={[
           'z-50 flex h-full flex-col border-r border-border bg-surface transition-[width,transform] duration-300',
           'fixed inset-y-0 left-0 w-72 lg:static lg:translate-x-0',
@@ -103,15 +105,15 @@ export default function Sidebar({
           {!compacto && (
             <div className="min-w-0">
               <div className="font-display text-base leading-none text-text">F&amp;A Dance</div>
-              <div className="mt-1 font-condensed text-[11px] uppercase leading-none tracking-[0.2em] text-text-muted">Administración</div>
+              <div className="mt-1 font-condensed text-[11px] uppercase leading-none tracking-[0.2em] text-text-muted">{tr("Administración")}</div>
             </div>
           )}
-          <button type="button" onClick={onCloseMobile} className="ml-auto grid h-9 w-9 place-items-center rounded-full text-text-muted hover:bg-accent/10 hover:text-text lg:hidden" aria-label="Cerrar menú">
+          <button type="button" onClick={onCloseMobile} className="ml-auto grid h-9 w-9 place-items-center rounded-full text-text-muted hover:bg-accent/10 hover:text-text lg:hidden" aria-label={tr("Cerrar menú")}>
             {cerrar}
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-4" aria-label="Módulos">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-4" aria-label={tr("Módulos")}>
           {visibles.map((nodo) => {
             const activo = activeModule === nodo.id || (nodo.hijos?.some((h) => h.id === activeModule) ?? false);
             const abierto = abiertos.includes(nodo.id);
@@ -124,7 +126,7 @@ export default function Sidebar({
                   type="button"
                   onClick={() => elegir(nodo.id)}
                   aria-current={activo ? 'page' : undefined}
-                  title={compacto ? nodo.etiqueta : undefined}
+                  title={compacto ? tr(nodo.etiqueta) : undefined}
                   className={[
                     'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
                     activo ? 'bg-accent text-on-accent' : 'text-text-soft hover:bg-accent/10 hover:text-text',
@@ -132,8 +134,8 @@ export default function Sidebar({
                   ].join(' ')}
                 >
                   {nodo.icono}
-                  {!compacto && <span className="font-condensed text-sm font-semibold uppercase tracking-wider">{nodo.etiqueta}</span>}
-                  {compacto && <span className="sr-only">{nodo.etiqueta}</span>}
+                  {!compacto && <span className="font-condensed text-sm font-semibold uppercase tracking-wider">{tr(nodo.etiqueta)}</span>}
+                  {compacto && <span className="sr-only">{tr(nodo.etiqueta)}</span>}
                 </button>
               );
             }
@@ -153,7 +155,7 @@ export default function Sidebar({
                   }}
                   aria-expanded={compacto ? undefined : abierto}
                   aria-controls={compacto ? undefined : idLista}
-                  title={compacto ? nodo.etiqueta : undefined}
+                  title={compacto ? tr(nodo.etiqueta) : undefined}
                   className={[
                     'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
                     activo ? 'text-accent' : 'text-text-soft hover:bg-accent/10 hover:text-text',
@@ -164,11 +166,11 @@ export default function Sidebar({
                   {nodo.icono}
                   {!compacto && (
                     <>
-                      <span className="flex-1 truncate font-condensed text-sm font-semibold uppercase tracking-wider">{nodo.etiqueta}</span>
+                      <span className="flex-1 truncate font-condensed text-sm font-semibold uppercase tracking-wider">{tr(nodo.etiqueta)}</span>
                       <span className={['transition-transform duration-200', abierto ? 'rotate-90' : ''].join(' ')}>{chevron}</span>
                     </>
                   )}
-                  {compacto && <span className="sr-only">{nodo.etiqueta}</span>}
+                  {compacto && <span className="sr-only">{tr(nodo.etiqueta)}</span>}
                 </button>
 
                 {!compacto && abierto && (
@@ -186,7 +188,7 @@ export default function Sidebar({
                               actual ? 'bg-accent text-on-accent' : 'text-text-muted hover:bg-accent/10 hover:text-text',
                             ].join(' ')}
                           >
-                            <span className="truncate">{hijo.etiqueta}</span>
+                            <span className="truncate">{tr(hijo.etiqueta)}</span>
                             {hijo.demo && <EtiquetaDemo />}
                           </button>
                         </li>
@@ -205,27 +207,30 @@ export default function Sidebar({
             <div className="mb-1 rounded-xl bg-surface-alt px-3 py-2.5">
               <p className="truncate font-body text-sm font-semibold text-text">{usuario.nombre}</p>
               <p className="truncate font-condensed text-[11px] uppercase tracking-wider text-text-muted">
-                {usuario.roles.join(' · ')}{usuario.sede ? ` · Sede ${usuario.sede}` : ''}
+                {usuario.roles.map((r) => tr(r)).join(' · ')}{usuario.sede ? ` · ${tr('Sede')} ${usuario.sede}` : ''}
               </p>
             </div>
           )}
+          <div className={['flex px-1 py-1 text-text-muted', compacto ? 'justify-center' : ''].join(' ')}>
+            <SelectorIdioma />
+          </div>
           <button
             type="button"
             onClick={onToggleCollapse}
             className={['hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-text-muted transition-colors hover:bg-accent/10 hover:text-text lg:flex', compacto ? 'justify-center' : ''].join(' ')}
-            aria-label={compacto ? 'Expandir menú' : 'Colapsar menú'}
+            aria-label={tr(compacto ? "Expandir menú" : "Colapsar menú")}
           >
             <span className={['transition-transform duration-300', compacto ? 'rotate-180' : ''].join(' ')}>{colapsar}</span>
-            {!compacto && <span className="font-condensed text-sm font-semibold uppercase tracking-wider">Colapsar</span>}
+            {!compacto && <span className="font-condensed text-sm font-semibold uppercase tracking-wider">{tr("Colapsar")}</span>}
           </button>
           <button
             type="button"
             onClick={onExit}
             className={['flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-text-muted transition-colors hover:bg-red-500/10 hover:text-red-500', compacto ? 'lg:justify-center' : ''].join(' ')}
-            aria-label="Cerrar sesión"
+            aria-label={tr("Cerrar sesión")}
           >
             {salir}
-            {!compacto && <span className="font-condensed text-sm font-semibold uppercase tracking-wider">Cerrar sesión</span>}
+            {!compacto && <span className="font-condensed text-sm font-semibold uppercase tracking-wider">{tr("Cerrar sesión")}</span>}
           </button>
         </div>
       </aside>

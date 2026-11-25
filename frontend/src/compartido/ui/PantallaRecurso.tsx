@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react"
 import ConfirmDialog from "@/compartido/ui/ConfirmDialog"
 import Paginacion from "@/compartido/ui/Paginacion"
@@ -281,23 +282,23 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
       const valor = valores[campo.clave]
       const vacio = Array.isArray(valor) ? valor.length === 0 : !String(valor ?? "").trim()
       if (campo.requerido && vacio) {
-        encontrados[campo.clave] = campo.tipo === "multiple" ? "Selecciona al menos una opción." : "Este campo es obligatorio."
+        encontrados[campo.clave] = campo.tipo === "multiple" ? tr("Selecciona al menos una opción.") : tr("Este campo es obligatorio.")
         return
       }
       if (vacio || Array.isArray(valor)) return
       const texto = String(valor).trim()
       if (campo.tipo === "numero") {
         const numero = Number(texto)
-        if (Number.isNaN(numero)) encontrados[campo.clave] = "Escribe un número válido."
-        else if (campo.min !== undefined && numero < campo.min) encontrados[campo.clave] = `El valor mínimo es ${campo.min}.`
-        else if (campo.max !== undefined && numero > campo.max) encontrados[campo.clave] = `El valor máximo es ${campo.max}.`
+        if (Number.isNaN(numero)) encontrados[campo.clave] = tr("Escribe un número válido.")
+        else if (campo.min !== undefined && numero < campo.min) encontrados[campo.clave] = tr("El valor mínimo es {min}.", { min: campo.min })
+        else if (campo.max !== undefined && numero > campo.max) encontrados[campo.clave] = tr("El valor máximo es {max}.", { max: campo.max })
       } else if (campo.max !== undefined && texto.length > campo.max) {
-        encontrados[campo.clave] = `Máximo ${campo.max} caracteres.`
+        encontrados[campo.clave] = tr("Máximo {max} caracteres.", { max: campo.max })
       } else if (campo.min !== undefined && texto.length < campo.min) {
-        encontrados[campo.clave] = `Escribe al menos ${campo.min} caracteres.`
+        encontrados[campo.clave] = tr("Escribe al menos {min} caracteres.", { min: campo.min })
       }
       if (campo.tipo === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto)) {
-        encontrados[campo.clave] = "Escribe un correo válido."
+        encontrados[campo.clave] = tr("Escribe un correo válido.")
       }
     })
     Object.assign(encontrados, Object.fromEntries(
@@ -328,7 +329,7 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
     }
   }
 
-  const titulo = `${modo === "crear" ? "Crear" : "Editar"} ${definicion.singular}`
+  const titulo = tr(modo === "crear" ? "Crear {singular}" : "Editar {singular}", { singular: tr(definicion.singular) })
   let seccionAnterior = ""
 
   return (
@@ -347,10 +348,10 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
       >
         <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <div>
-            <p className="font-condensed text-xs font-semibold uppercase tracking-[0.2em] text-accent">{definicion.titulo}</p>
+            <p className="font-condensed text-xs font-semibold uppercase tracking-[0.2em] text-accent">{tr(definicion.titulo)}</p>
             <h2 id={tituloId} className="mt-1 font-display text-2xl uppercase leading-none text-text">{titulo}</h2>
           </div>
-          <button type="button" onClick={onCerrar} disabled={guardando} className={`${claseBotonIcono} ${hoverNeutro}`} aria-label="Cerrar formulario">
+          <button type="button" onClick={onCerrar} disabled={guardando} className={`${claseBotonIcono} ${hoverNeutro}`} aria-label={tr("Cerrar formulario")}>
             <Icono nombre="cerrar" clase="h-5 w-5" />
           </button>
         </header>
@@ -363,8 +364,8 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
             </p>
           )}
           <p className="mb-4 font-body text-xs text-text-muted">
-            Los campos con <span className="text-red-500" aria-hidden="true">*</span>
-            <span className="sr-only">asterisco</span> son obligatorios.
+            {tr("Los campos con")} <span className="text-red-500" aria-hidden="true">*</span>
+            <span className="sr-only">{tr("asterisco")}</span> {tr("son obligatorios.")}
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             {definicion.campos.map((campo) => {
@@ -393,14 +394,14 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
                 const seleccion = Array.isArray(valor) ? valor : []
                 control = (
                   <fieldset aria-describedby={describe} aria-invalid={error ? true : undefined} className="flex flex-wrap gap-2">
-                    <legend className="sr-only">{campo.etiqueta}</legend>
+                    <legend className="sr-only">{tr(campo.etiqueta)}</legend>
                     {lista.length === 0 && (
                       <span className="font-body text-sm text-text-muted">
                         {cargandoLista
-                          ? "Cargando…"
+                          ? tr("Cargando…")
                           : sinPadre
-                            ? `Primero elige ${definicion.campos.filter((c) => dependeDeCampo(campo, c.clave)).map((c) => c.etiqueta.toLowerCase()).join(" y ")}.`
-                            : "No hay opciones disponibles."}
+                            ? tr("Primero elige {campos}.", { campos: definicion.campos.filter((c) => dependeDeCampo(campo, c.clave)).map((c) => tr(c.etiqueta).toLowerCase()).join(tr(" y ")) })
+                            : tr("No hay opciones disponibles.")}
                       </span>
                     )}
                     {lista.map((opcion) => {
@@ -420,7 +421,7 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
                               cambiar(campo.clave, marcado ? seleccion.filter((v) => v !== opcion.valor) : [...seleccion, opcion.valor])
                             }
                           />
-                          {opcion.etiqueta}
+                          {tr(opcion.etiqueta)}
                         </label>
                       )
                     })}
@@ -437,15 +438,15 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
                   >
                     <option value="">
                       {sinPadre
-                        ? `Primero elige ${definicion.campos.filter((c) => dependeDeCampo(campo, c.clave)).map((c) => c.etiqueta.toLowerCase()).join(" y ")}`
+                        ? tr("Primero elige {campos}", { campos: definicion.campos.filter((c) => dependeDeCampo(campo, c.clave)).map((c) => tr(c.etiqueta).toLowerCase()).join(tr(" y ")) })
                         : cargandoLista
-                          ? "Cargando opciones…"
+                          ? tr("Cargando opciones…")
                           : lista.length
-                            ? "Selecciona una opción"
-                            : "No hay opciones disponibles"}
+                            ? tr("Selecciona una opción")
+                            : tr("No hay opciones disponibles")}
                     </option>
                     {lista.map((opcion) => (
-                      <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>
+                      <option key={opcion.valor} value={opcion.valor}>{tr(opcion.etiqueta)}</option>
                     ))}
                   </select>
                 )
@@ -489,12 +490,12 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
                   )}
                 <div className={campo.ancho === "mitad" ? "" : "sm:col-span-2"}>
                   <label htmlFor={campo.tipo === "multiple" ? undefined : id} className="mb-1.5 block font-condensed text-xs font-semibold uppercase tracking-wider text-text-soft">
-                    {campo.etiqueta}
+                    {tr(campo.etiqueta)}
                     {campo.requerido && <span className="ml-0.5 text-red-500" aria-hidden="true">*</span>}
                   </label>
                   {control}
-                  {campo.ayuda && <p id={idAyuda} className="mt-1 font-body text-xs text-text-muted">{campo.ayuda}</p>}
-                  {error && <p id={idError} className="mt-1 font-body text-xs font-medium text-red-600 dark:text-red-300">{error}</p>}
+                  {campo.ayuda && <p id={idAyuda} className="mt-1 font-body text-xs text-text-muted">{tr(campo.ayuda)}</p>}
+                  {error && <p id={idError} className="mt-1 font-body text-xs font-medium text-red-600 dark:text-red-300">{tr(error)}</p>}
                 </div>
                 </Fragment>
               )
@@ -503,10 +504,10 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
         </div>
 
         <footer className="flex flex-col-reverse gap-3 border-t border-border px-6 py-4 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onCerrar} disabled={guardando} className={claseBotonSecundario}>Cancelar</button>
+          <button type="button" onClick={onCerrar} disabled={guardando} className={claseBotonSecundario}>{tr("Cancelar")}</button>
           <button type="submit" disabled={guardando} aria-busy={guardando} className={claseBotonPrincipal}>
             {guardando && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />}
-            {guardando ? "Guardando…" : modo === "crear" ? `Crear ${definicion.singular}` : "Guardar cambios"}
+            {guardando ? tr("Guardando…") : modo === "crear" ? tr("Crear {singular}", { singular: tr(definicion.singular) }) : tr("Guardar cambios")}
           </button>
         </footer>
       </form>
@@ -672,7 +673,7 @@ export default function PantallaRecurso<T extends FilaBase>({
         await recursoApi.actualizar(definicion.ruta, Number(formulario.fila[definicion.idClave]), cuerpo)
       }
       setFormulario(null)
-      setAviso(`${articulo} ${definicion.singular} se ${modo === "crear" ? "creó" : "actualizó"} correctamente.`)
+      setAviso(tr(modo === "crear" ? "{articulo} {singular} se creó correctamente." : "{articulo} {singular} se actualizó correctamente.", { articulo, singular: tr(definicion.singular) }))
       // Los catálogos nuevos aparecen en los filtros y formularios
       cargarFuentes()
       await cargar()
@@ -680,7 +681,7 @@ export default function PantallaRecurso<T extends FilaBase>({
     } catch (e) {
       const campos = erroresDeCampo(e)
       return {
-        general: Object.keys(campos).length ? "Revisa los campos marcados." : mensajeError(e),
+        general: Object.keys(campos).length ? tr("Revisa los campos marcados.") : mensajeError(e),
         campos,
       }
     }
@@ -694,11 +695,11 @@ export default function PantallaRecurso<T extends FilaBase>({
     try {
       if (accion.tipo === "eliminar") {
         await recursoApi.eliminar(definicion.ruta, id)
-        setAviso(`${articulo} ${definicion.singular} se eliminó.`)
+        setAviso(tr("{articulo} {singular} se eliminó.", { articulo, singular: tr(definicion.singular) }))
       } else {
         const activar = accion.fila.idEstado !== ESTADO_ACTIVO
         await recursoApi.cambiarEstado(definicion.ruta, id, activar ? ESTADO_ACTIVO : ESTADO_INACTIVO)
-        setAviso(`${articulo} ${definicion.singular} quedó ${activar ? (definicion.genero === "f" ? "activa" : "activo") : definicion.genero === "f" ? "inactiva" : "inactivo"}.`)
+        setAviso(tr(activar ? "{articulo} {singular} quedó {activa}." : "{articulo} {singular} quedó {inactiva}.", { articulo, singular: tr(definicion.singular), activa: definicion.genero === "f" ? "activa" : "activo", inactiva: definicion.genero === "f" ? "inactiva" : "inactivo" }))
       }
       setAccion(null)
       cargarFuentes()
@@ -728,7 +729,7 @@ export default function PantallaRecurso<T extends FilaBase>({
       <div className="flex items-center justify-end gap-1">
         {accionesFila?.(fila)}
         {permitido("editar") && (
-          <button type="button" className={`${claseBotonIcono} ${hoverNeutro}`} onClick={() => setFormulario({ modo: "editar", fila })} aria-label={`Editar ${nombre}`} title="Editar">
+          <button type="button" className={`${claseBotonIcono} ${hoverNeutro}`} onClick={() => setFormulario({ modo: "editar", fila })} aria-label={tr("Editar {nombre}", { nombre })} title={tr("Editar")}>
             <Icono nombre="editar" />
           </button>
         )}
@@ -740,8 +741,8 @@ export default function PantallaRecurso<T extends FilaBase>({
               setErrorAccion(undefined)
               setAccion({ tipo: "estado", fila })
             }}
-            aria-label={`${activo ? "Inactivar" : "Activar"} ${nombre}`}
-            title={activo ? "Inactivar" : "Activar"}
+            aria-label={tr(activo ? "Inactivar {nombre}" : "Activar {nombre}", { nombre })}
+            title={tr(activo ? "Inactivar" : "Activar")}
           >
             <Icono nombre={activo ? "apagar" : "encender"} />
           </button>
@@ -754,8 +755,8 @@ export default function PantallaRecurso<T extends FilaBase>({
               setErrorAccion(undefined)
               setAccion({ tipo: "eliminar", fila })
             }}
-            aria-label={`Eliminar ${nombre}`}
-            title="Eliminar"
+            aria-label={tr("Eliminar {nombre}", { nombre })}
+            title={tr("Eliminar")}
           >
             <Icono nombre="eliminar" />
           </button>
@@ -769,9 +770,9 @@ export default function PantallaRecurso<T extends FilaBase>({
     const nombre = nombreDe(accion.fila)
     if (accion.tipo === "eliminar") {
       return {
-        titulo: `Eliminar ${definicion.singular}`,
-        mensaje: `Se eliminará “${nombre}” de forma permanente. Esta acción no se puede deshacer.`,
-        boton: "Eliminar",
+        titulo: tr("Eliminar {singular}", { singular: tr(definicion.singular) }),
+        mensaje: tr("Se eliminará “{nombre}” de forma permanente. Esta acción no se puede deshacer.", { nombre }),
+        boton: tr("Eliminar"),
         bloqueo: definicion.bloqueoEliminar?.(accion.fila) ?? errorAccion,
         peligro: true,
       }
@@ -779,11 +780,11 @@ export default function PantallaRecurso<T extends FilaBase>({
     const activo = accion.fila.idEstado === ESTADO_ACTIVO
     const advertencia = activo ? definicion.avisoInactivar?.(accion.fila) : undefined
     return {
-      titulo: `${activo ? "Inactivar" : "Activar"} ${definicion.singular}`,
+      titulo: tr(activo ? "Inactivar {singular}" : "Activar {singular}", { singular: tr(definicion.singular) }),
       mensaje: activo
-        ? `“${nombre}” dejará de aparecer en las listas de selección. El registro y su historial se conservan y puedes activarlo de nuevo.${advertencia ? ` ${advertencia}` : ""}`
-        : `“${nombre}” volverá a estar disponible en las listas de selección.`,
-      boton: activo ? "Inactivar" : "Activar",
+        ? tr("“{nombre}” dejará de aparecer en las listas de selección. El registro y su historial se conservan y puedes activarlo de nuevo.", { nombre }) + (advertencia ? ` ${tr(advertencia)}` : "")
+        : tr("“{nombre}” volverá a estar disponible en las listas de selección.", { nombre }),
+      boton: tr(activo ? "Inactivar" : "Activar"),
       bloqueo: errorAccion,
       peligro: activo,
     }
@@ -800,7 +801,7 @@ export default function PantallaRecurso<T extends FilaBase>({
           <p role="status" className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-surface px-5 py-4 font-body text-sm font-semibold text-emerald-700 shadow-2xl shadow-black/20 dark:text-emerald-300 animar-entrada">
             <span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-500/15"><Icono nombre="check" /></span>
             {aviso}
-            <button type="button" onClick={() => setAviso(null)} className="ml-1 text-text-muted hover:text-text" aria-label="Cerrar aviso">
+            <button type="button" onClick={() => setAviso(null)} className="ml-1 text-text-muted hover:text-text" aria-label={tr("Cerrar aviso")}>
               <Icono nombre="cerrar" />
             </button>
           </p>
@@ -809,14 +810,14 @@ export default function PantallaRecurso<T extends FilaBase>({
 
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
-          <p className="font-condensed text-xs font-semibold uppercase tracking-[0.25em] text-accent">{definicion.grupo}</p>
-          <h1 id={`${definicion.id}-titulo`} className="display mt-2 text-4xl text-text sm:text-5xl">{definicion.titulo}</h1>
-          <p className="mt-2 font-body text-sm text-text-soft">{definicion.descripcion}</p>
+          <p className="font-condensed text-xs font-semibold uppercase tracking-[0.25em] text-accent">{definicion.grupo && tr(definicion.grupo)}</p>
+          <h1 id={`${definicion.id}-titulo`} className="display mt-2 text-4xl text-text sm:text-5xl">{tr(definicion.titulo)}</h1>
+          <p className="mt-2 font-body text-sm text-text-soft">{tr(definicion.descripcion)}</p>
         </div>
         {permiteCrear && (
           <button type="button" onClick={abrirNuevo} className={claseBotonPrincipal}>
             <Icono nombre="mas" />
-            {definicion.genero === "f" ? "Nueva" : "Nuevo"} {definicion.singular}
+            {tr(definicion.genero === "f" ? "Nueva {singular}" : "Nuevo {singular}", { singular: tr(definicion.singular) })}
           </button>
         )}
       </header>
@@ -825,46 +826,46 @@ export default function PantallaRecurso<T extends FilaBase>({
       <div role="search" className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-3 md:flex-row md:flex-wrap md:items-center">
         {!definicion.sinBusqueda && (
         <label className="relative min-w-0 flex-1 md:min-w-64">
-          <span className="sr-only">Buscar {definicion.titulo.toLowerCase()}</span>
+          <span className="sr-only">{tr("Buscar {titulo}", { titulo: tr(definicion.titulo).toLowerCase() })}</span>
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><Icono nombre="buscar" /></span>
           <input
             type="search"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder={definicion.buscarPlaceholder ?? `Buscar ${definicion.titulo.toLowerCase()}…`}
+            placeholder={definicion.buscarPlaceholder ? tr(definicion.buscarPlaceholder) : tr("Buscar {titulo}…", { titulo: tr(definicion.titulo).toLowerCase() })}
             className={`${claseEntrada} pl-9`}
           />
         </label>
         )}
         {definicion.conEstado && (
           <label className="flex flex-col gap-1 md:w-48">
-            <span className="sr-only">Estado</span>
-            <select value={contexto.estado} onChange={(e) => actualizar({ estado: e.target.value })} className={controlFiltro} aria-label="Filtrar por estado">
-              <option value="">Todos los estados</option>
-              <option value={String(ESTADO_ACTIVO)}>Activos</option>
-              <option value={String(ESTADO_INACTIVO)}>Inactivos</option>
+            <span className="sr-only">{tr("Estado")}</span>
+            <select value={contexto.estado} onChange={(e) => actualizar({ estado: e.target.value })} className={controlFiltro} aria-label={tr("Filtrar por estado")}>
+              <option value="">{tr("Todos los estados")}</option>
+              <option value={String(ESTADO_ACTIVO)}>{tr("Activos")}</option>
+              <option value={String(ESTADO_INACTIVO)}>{tr("Inactivos")}</option>
             </select>
           </label>
         )}
         {definicion.filtros?.map((filtro) => (
           <label key={filtro.clave} className="md:w-48">
-            <span className="sr-only">{filtro.etiqueta}</span>
+            <span className="sr-only">{tr(filtro.etiqueta)}</span>
             <select
               value={contexto.filtros[filtro.clave] ?? ""}
               onChange={(e) => actualizar({ filtros: { ...contexto.filtros, [filtro.clave]: e.target.value } })}
               className={`${controlFiltro} w-full`}
-              aria-label={`Filtrar por ${filtro.etiqueta.toLowerCase()}`}
+              aria-label={tr("Filtrar por {filtro}", { filtro: tr(filtro.etiqueta).toLowerCase() })}
             >
-              <option value="">{filtro.etiqueta}: todas</option>
+              <option value="">{tr("{filtro}: todas", { filtro: tr(filtro.etiqueta) })}</option>
               {(opcionesFiltro[filtro.fuente] ?? []).map((o) => (
-                <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+                <option key={o.valor} value={o.valor}>{tr(o.etiqueta)}</option>
               ))}
             </select>
           </label>
         ))}
         {filtrosActivos > 0 && (
           <button type="button" onClick={limpiarFiltros} className="font-condensed text-sm font-semibold uppercase tracking-wider text-accent underline-offset-4 hover:underline">
-            Limpiar filtros ({filtrosActivos})
+            {tr("Limpiar filtros")} ({filtrosActivos})
           </button>
         )}
       </div>
@@ -875,7 +876,7 @@ export default function PantallaRecurso<T extends FilaBase>({
           <div role="alert" className="flex min-h-64 flex-col items-center justify-center gap-3 px-6 py-12 text-center">
             <span className="grid h-12 w-12 place-items-center rounded-2xl bg-red-500/10 text-red-500"><Icono nombre="alerta" clase="h-6 w-6" /></span>
             <h2 className="font-display text-xl uppercase text-text">
-              {error.sinPermiso ? "Sin permiso para este módulo" : "No se pudo cargar la información"}
+              {error.sinPermiso ? tr("Sin permiso para este módulo") : tr("No se pudo cargar la información")}
             </h2>
             <p className="max-w-md font-body text-sm text-text-soft">{error.mensaje}</p>
             {!error.sinPermiso && (
@@ -885,27 +886,27 @@ export default function PantallaRecurso<T extends FilaBase>({
             )}
           </div>
         ) : cargando && filas.length === 0 ? (
-          <div className="flex flex-col gap-3 p-5" aria-label="Cargando registros">
+          <div className="flex flex-col gap-3 p-5" aria-label={tr("Cargando registros")}>
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="esqueleto h-11 rounded-xl" />
             ))}
-            <span className="sr-only">Cargando…</span>
+            <span className="sr-only">{tr("Cargando…")}</span>
           </div>
         ) : filas.length === 0 ? (
           <div className="flex min-h-64 flex-col items-center justify-center gap-3 px-6 py-12 text-center">
             <span className="grid h-12 w-12 place-items-center rounded-2xl border border-accent/20 bg-accent/10 text-accent"><Icono nombre="vacio" clase="h-6 w-6" /></span>
-            <h2 className="font-display text-xl uppercase text-text">{filtrosActivos ? "Sin resultados" : `Aún no hay ${definicion.titulo.toLowerCase()}`}</h2>
+            <h2 className="font-display text-xl uppercase text-text">{filtrosActivos ? tr("Sin resultados") : tr("Aún no hay {titulo}", { titulo: tr(definicion.titulo).toLowerCase() })}</h2>
             <p className="max-w-md font-body text-sm text-text-soft">
               {filtrosActivos
-                ? "Ningún registro coincide con la búsqueda o los filtros."
-                : definicion.textoVacio ?? (permiteCrear ? `Crea ${definicion.genero === "f" ? "la primera" : "el primer"} ${definicion.singular} para empezar.` : "Todavía no hay registros.")}
+                ? tr("Ningún registro coincide con la búsqueda o los filtros.")
+                : definicion.textoVacio ? tr(definicion.textoVacio) : permiteCrear ? tr(definicion.genero === "f" ? "Crea la primera {singular} para empezar." : "Crea el primer {singular} para empezar.", { singular: tr(definicion.singular) }) : tr("Todavía no hay registros.")}
             </p>
             {filtrosActivos ? (
-              <button type="button" onClick={limpiarFiltros} className={claseBotonSecundario}>Limpiar filtros</button>
+              <button type="button" onClick={limpiarFiltros} className={claseBotonSecundario}>{tr("Limpiar filtros")}</button>
             ) : (
               permiteCrear && (
                 <button type="button" onClick={abrirNuevo} className={claseBotonPrincipal}>
-                  <Icono nombre="mas" /> {definicion.genero === "f" ? "Nueva" : "Nuevo"} {definicion.singular}
+                  <Icono nombre="mas" /> {tr(definicion.genero === "f" ? "Nueva {singular}" : "Nuevo {singular}", { singular: tr(definicion.singular) })}
                 </button>
               )
             )}
@@ -916,24 +917,24 @@ export default function PantallaRecurso<T extends FilaBase>({
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full border-collapse text-left">
                 <caption className="sr-only">
-                  {definicion.titulo}: {total} registro{total === 1 ? "" : "s"}, página {contexto.pagina} de {totalPaginas}
+                  {tr(total === 1 ? "{titulo}: {total} registro, página {pagina} de {paginas}" : "{titulo}: {total} registros, página {pagina} de {paginas}", { titulo: tr(definicion.titulo), total, pagina: contexto.pagina, paginas: totalPaginas })}
                 </caption>
                 <thead>
                   <tr className="border-b border-border bg-surface-alt/60">
                     {definicion.columnas.map((col) => (
                       <th key={col.clave} scope="col" className={`px-5 py-3 font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted ${col.alinear === "derecha" ? "text-right" : ""}`}>
-                        {col.etiqueta}
+                        {tr(col.etiqueta)}
                       </th>
                     ))}
-                    {definicion.conEstado && <th scope="col" className="px-5 py-3 font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">Estado</th>}
-                    <th scope="col" className="px-5 py-3 text-right font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">Acciones</th>
+                    {definicion.conEstado && <th scope="col" className="px-5 py-3 font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">{tr("Estado")}</th>}
+                    <th scope="col" className="px-5 py-3 text-right font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">{tr("Acciones")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filas.map((fila) => (
                     <tr key={String(fila[definicion.idClave])} className="border-b border-border last:border-0 transition-colors hover:bg-accent/5">
                       {definicion.columnas.map((col, i) => {
-                        const contenido = col.render ? col.render(fila) : String((fila as Record<string, unknown>)[col.clave] ?? "—")
+                        const contenido = col.render ? col.render(fila) : tr(String((fila as Record<string, unknown>)[col.clave] ?? "—"))
                         return i === 0 ? (
                           <th key={col.clave} scope="row" className="px-5 py-3.5 font-body text-sm font-semibold text-text">{contenido}</th>
                         ) : (
@@ -961,9 +962,9 @@ export default function PantallaRecurso<T extends FilaBase>({
                   <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
                     {definicion.columnas.slice(1).map((col) => (
                       <div key={col.clave} className="min-w-0">
-                        <dt className="font-condensed text-[11px] uppercase tracking-wider text-text-muted">{col.etiqueta}</dt>
+                        <dt className="font-condensed text-[11px] uppercase tracking-wider text-text-muted">{tr(col.etiqueta)}</dt>
                         <dd className="truncate font-body text-sm text-text-soft">
-                          {col.render ? col.render(fila) : String((fila as Record<string, unknown>)[col.clave] ?? "—")}
+                          {col.render ? col.render(fila) : tr(String((fila as Record<string, unknown>)[col.clave] ?? "—"))}
                         </dd>
                       </div>
                     ))}

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import logoFna from '@/recursos/logo-fna.png';
 import ThemeToggle from '@/compartido/ui/ThemeToggle';
 import Button from '@/compartido/ui/Button';
+import SelectorIdioma from '@/compartido/ui/SelectorIdioma';
+import { useIdioma } from '@/nucleo/i18n/useIdioma';
 
 interface NavbarProps {
   isDark: boolean;
@@ -13,6 +15,7 @@ interface NavbarProps {
 const navLinks = [
   { label: 'Inicio', href: '#inicio' },
   { label: 'Nosotros', href: '#nosotros' },
+  { label: 'Estilos', href: '#estilos' },
   { label: 'Instructores', href: '#instructores' },
   { label: 'Sedes', href: '#sedes' },
   { label: 'Planes', href: '#planes' },
@@ -20,6 +23,7 @@ const navLinks = [
 ];
 
 export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegisterClick }: NavbarProps) {
+  const { t } = useIdioma();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -43,8 +47,8 @@ export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegister
   // No hay autorregistro: la inscripción se hace en persona, en la sede
   const register = () => (onRegisterClick ? onRegisterClick() : scrollTo('#sedes'));
 
-  // Sobre la imagen del hero el texto es siempre claro; al hacer scroll usa los tokens del tema
-  const tone = scrolled || menuOpen ? 'text-text-soft' : 'text-purple-50';
+  // Sobre el hero: texto oscuro en modo claro (hero blanco) y claro en modo oscuro (hero con foto)
+  const tone = scrolled || menuOpen ? 'text-text-soft' : 'text-[#2e2240] dark:text-purple-50';
 
   return (
     <>
@@ -54,41 +58,42 @@ export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegister
           scrolled && !menuOpen ? 'bg-page/85 backdrop-blur-md border-b border-border' : 'bg-transparent',
         ].join(' ')}
       >
-        <div className="max-w-[88rem] mx-auto px-6 h-20 grid grid-cols-[auto_1fr_auto] items-center gap-8">
-          <button onClick={() => scrollTo('#inicio')} className="flex items-center cursor-pointer" aria-label="Ir al inicio">
-            <img src={logoFna} alt="F&A Dance Company" className="h-10 w-auto object-contain" />
+        <div className="max-w-[88rem] mx-auto px-6 h-20 grid grid-cols-[auto_1fr_auto] items-center gap-6">
+          <button onClick={() => scrollTo('#inicio')} className="flex shrink-0 items-center cursor-pointer" aria-label={t('Ir al inicio')}>
+            <img src={logoFna} alt="F&A Dance Company" className="h-10 w-auto object-contain brightness-0 opacity-85 dark:brightness-100 dark:opacity-100" />
           </button>
 
-          <div className={`hidden lg:flex items-center justify-center gap-9 ${tone}`}>
+          <div className={`hidden lg:flex items-center justify-center gap-4 2xl:gap-9 ${tone}`}>
             {navLinks.map((link) => (
               <button
                 key={link.href}
                 onClick={() => scrollTo(link.href)}
-                className="group relative font-condensed font-semibold text-sm uppercase tracking-[0.18em] hover:text-accent transition-colors cursor-pointer"
+                className="group relative whitespace-nowrap font-condensed font-semibold text-sm uppercase tracking-[0.1em] 2xl:tracking-[0.18em] hover:text-accent transition-colors cursor-pointer"
               >
-                {link.label}
+                {t(link.label)}
                 <span className="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
               </button>
             ))}
           </div>
 
           <div className={`flex items-center justify-end gap-4 ${tone}`}>
+            <SelectorIdioma />
             <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
             <button
               onClick={onLoginClick}
-              className="hidden lg:block font-condensed font-semibold text-sm uppercase tracking-[0.18em] hover:text-accent transition-colors cursor-pointer"
+              className="hidden lg:block whitespace-nowrap font-condensed font-semibold text-sm uppercase tracking-[0.1em] 2xl:tracking-[0.18em] hover:text-accent transition-colors cursor-pointer"
             >
-              Iniciar sesión
+              {t('Iniciar sesión')}
             </button>
             <span className="hidden lg:block">
-              <Button size="sm" onClick={register}>Inscríbete</Button>
+              <Button size="sm" onClick={register}>{t('Inscríbete')}</Button>
             </span>
             <button
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
               className="lg:hidden font-condensed font-bold text-base uppercase tracking-[0.18em] cursor-pointer"
             >
-              {menuOpen ? 'Cerrar' : 'Menú'}
+              {menuOpen ? t('Cerrar') : t('Menú')}
             </button>
           </div>
         </div>
@@ -110,7 +115,7 @@ export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegister
                   className="w-full flex items-baseline gap-4 py-4 text-left cursor-pointer"
                 >
                   <span className="font-condensed text-sm text-text-muted">({String(i + 1).padStart(2, '0')})</span>
-                  <span className="display text-4xl text-text">{link.label}</span>
+                  <span className="display text-4xl text-text">{t(link.label)}</span>
                 </button>
               </li>
             ))}
@@ -120,10 +125,10 @@ export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegister
               onClick={() => { setMenuOpen(false); onLoginClick(); }}
               className="flex-1 rounded-full border border-accent text-accent py-3 font-condensed font-semibold text-sm uppercase tracking-widest cursor-pointer"
             >
-              Iniciar sesión
+              {t('Iniciar sesión')}
             </button>
             <Button size="md" className="flex-1" onClick={() => { setMenuOpen(false); register(); }}>
-              Inscríbete
+              {t('Inscríbete')}
             </Button>
           </div>
         </div>

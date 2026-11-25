@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from "react"
-import Button from "@/compartido/ui/Button"
 import Reveal, { MaskLine } from "@/compartido/ui/Reveal"
+import { useIdioma } from "@/nucleo/i18n/useIdioma"
 
 const instructors = [
   {
@@ -34,6 +34,7 @@ const instructors = [
 ]
 
 export default function Instructors() {
+  const { t } = useIdioma()
   const [activeIdx, setActiveIdx] = useState(0)
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>, i: number) => {
@@ -58,12 +59,12 @@ export default function Instructors() {
           <div>
             <Reveal>
               <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">
-                (02) El equipo
+                (03) {t("El equipo")}
               </span>
             </Reveal>
             <Reveal variant="mask" as="h2" className="display text-[clamp(3rem,9vw,8rem)] text-text mt-4">
-              <MaskLine>Nuestros</MaskLine>
-              <MaskLine delay={150}><span className="text-blush">instructores</span></MaskLine>
+              <MaskLine>{t("Nuestros")}</MaskLine>
+              <MaskLine delay={150}><span className="text-blush">{t("instructores")}</span></MaskLine>
             </Reveal>
           </div>
           <span className="display text-5xl text-text-muted" aria-hidden="true">
@@ -71,7 +72,7 @@ export default function Instructors() {
           </span>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-2 lg:h-[580px]" role="list" aria-label="Instructores">
+        <div className="flex flex-col lg:flex-row gap-2 lg:h-[580px]" role="list" aria-label={t("Instructores")}>
           {instructors.map((inst, i) => {
             const active = activeIdx === i
             return (
@@ -97,7 +98,7 @@ export default function Instructors() {
                   src={inst.img}
                   alt={inst.name}
                   className={[
-                    "absolute inset-0 w-full h-full object-cover transition-all duration-700 motion-reduce:transition-none",
+                    "absolute inset-0 w-full h-full object-cover object-[center_25%] transition-all duration-700 motion-reduce:transition-none",
                     active ? "scale-100 grayscale-[30%]" : "scale-110 grayscale",
                   ].join(" ")}
                 />
@@ -132,18 +133,14 @@ export default function Instructors() {
                   ].join(" ")}
                 >
                   <span className="font-condensed text-sm uppercase tracking-[0.2em] text-[#dcc8db]">
-                    {inst.specialty}
+                    {t(inst.specialty)}
                   </span>
                   <h3 className="display text-4xl lg:text-6xl text-white mt-2 mb-3">{inst.name}</h3>
-                  <p className="font-body text-sm lg:text-base text-white/85 leading-relaxed">{inst.description}</p>
+                  <p className="font-body text-sm lg:text-base text-white/85 leading-relaxed">{t(inst.description)}</p>
                 </div>
               </div>
             )
           })}
-        </div>
-
-        <div className="mt-12 text-center">
-          <Button variant="outline" size="lg">Ver todos los instructores</Button>
         </div>
       </div>
     </section>

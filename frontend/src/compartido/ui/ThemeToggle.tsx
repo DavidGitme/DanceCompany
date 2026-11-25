@@ -1,3 +1,4 @@
+import { tr } from '@/nucleo/i18n/IdiomaContext';
 interface ThemeToggleProps {
   isDark: boolean;
   onToggle: () => void;
@@ -7,8 +8,8 @@ export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
   return (
     <button
       onClick={onToggle}
-      aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-      className="grid h-9 w-9 place-items-center rounded-full border border-current/30 transition-all duration-300 hover:border-accent hover:text-accent cursor-pointer"
+      aria-label={tr(isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro')}
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-current/30 transition-all duration-300 hover:border-accent hover:text-accent cursor-pointer"
     >
       {isDark ? (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">

@@ -1,3 +1,5 @@
+import SelectorIdioma from "@/compartido/ui/SelectorIdioma"
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import {
   createContext,
   useContext,
@@ -61,7 +63,7 @@ export default function PortalInstructor({ onSalir }: PortalInstructorProps) {
       .cargar()
       .then(setDatos)
       .catch((causa: { mensaje?: string }) =>
-        setError(causa?.mensaje ?? "No fue posible cargar tu información."),
+        setError(causa?.mensaje ?? tr("No fue posible cargar tu información.")),
       )
   }, [])
 
@@ -73,7 +75,7 @@ export default function PortalInstructor({ onSalir }: PortalInstructorProps) {
         </p>
         {error && (
           <Button size="md" onClick={onSalir}>
-            Volver
+            {tr("Volver")}
           </Button>
         )}
       </div>
@@ -129,7 +131,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
     <div className="flex min-h-screen bg-page text-text">
       {menuMovil && (
         <button
-          aria-label="Cerrar navegación"
+          aria-label={tr("Cerrar navegación")}
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
           onClick={() => setMenuMovil(false)}
         />
@@ -153,12 +155,12 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
                 F&A
               </p>
               <p className="mt-1 font-condensed text-xs uppercase tracking-widest text-purple-400">
-                Portal instructor
+                {tr("Portal instructor")}
               </p>
             </div>
           </div>
           <button
-            aria-label="Cerrar menú"
+            aria-label={tr("Cerrar menú")}
             className="rounded-lg p-2 text-text-muted hover:bg-surface-alt hover:text-text lg:hidden"
             onClick={() => setMenuMovil(false)}
           >
@@ -168,7 +170,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
 
         <nav className="flex-1 space-y-1 px-4 py-6">
           <p className="mb-3 px-3 font-condensed text-xs uppercase tracking-widest text-text-muted">
-            Mi espacio
+            {tr("Mi espacio")}
           </p>
           {navegacion.map((opcion) => {
             const activa = vista === opcion.id
@@ -184,7 +186,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
                 ].join(" ")}
               >
                 <IconoInstructor nombre={opcion.icono} />
-                {opcion.etiqueta}
+                {tr(opcion.etiqueta)}
               </button>
             )
           })}
@@ -197,7 +199,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
               <p className="truncate text-sm font-semibold text-text">
                 {instructor.nombre}
               </p>
-              <p className="truncate text-xs text-text-muted">Instructor</p>
+              <p className="truncate text-xs text-text-muted">{tr("Instructor")}</p>
             </div>
           </div>
           <button
@@ -205,7 +207,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
             className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 font-condensed text-sm font-semibold uppercase tracking-wider text-text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
           >
             <IconoInstructor nombre="salir" />
-            Cerrar sesión
+            {tr("Cerrar sesión")}
           </button>
         </div>
       </aside>
@@ -214,7 +216,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
         <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-border bg-page/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
-              aria-label="Abrir navegación"
+              aria-label={tr("Abrir navegación")}
               className="rounded-xl border border-border bg-surface p-2.5 text-text lg:hidden"
               onClick={() => setMenuMovil(true)}
             >
@@ -222,15 +224,16 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
             </button>
             <div>
               <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
-                Panel de instructor
+                {tr("Panel de instructor")}
               </p>
               <p className="hidden text-sm text-text-muted sm:block">
-                {new Intl.DateTimeFormat("es-CO", { dateStyle: "full" }).format(new Date())}
+                {new Intl.DateTimeFormat(tr("es-CO"), { dateStyle: "full" }).format(new Date())}
               </p>
             </div>
           </div>
 
           <div className="relative flex items-center gap-2">
+            <SelectorIdioma className="text-text-muted" />
             <button
               className="flex items-center gap-2 rounded-xl border border-transparent p-1.5 transition-colors hover:border-border hover:bg-surface"
               onClick={() => setMenuUsuario((valor) => !valor)}
@@ -240,7 +243,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
                 <p className="text-sm font-semibold text-text">
                   {instructor.nombre}
                 </p>
-                <p className="text-xs text-text-muted">Instructor</p>
+                <p className="text-xs text-text-muted">{tr("Instructor")}</p>
               </div>
               <IconoInstructor
                 nombre="chevron"
@@ -255,14 +258,14 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
                   onClick={() => navegar("perfil")}
                 >
                   <IconoInstructor nombre="perfil" className="h-4 w-4" />
-                  Ver mi perfil
+                  {tr("Ver mi perfil")}
                 </button>
                 <button
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-text-soft hover:bg-red-500/10 hover:text-red-400"
                   onClick={onSalir}
                 >
                   <IconoInstructor nombre="salir" className="h-4 w-4" />
-                  Cerrar sesión
+                  {tr("Cerrar sesión")}
                 </button>
               </div>
             )}
@@ -341,17 +344,17 @@ function InicioInstructor({ onVerGrupos }: { onVerGrupos: () => void }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5 sm:p-6">
           <div>
             <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
-              Tu programación
+              {tr("Tu programación")}
             </p>
             <h2 className="mt-1 font-display text-2xl uppercase text-text">
-              Grupos asignados
+              {tr("Grupos asignados")}
             </h2>
             <p className="mt-1 text-sm text-text-muted">
-              Consulta los días, horarios, sedes y estudiantes de cada grupo.
+              {tr("Consulta los días, horarios, sedes y estudiantes de cada grupo.")}
             </p>
           </div>
           <Button size="sm" onClick={onVerGrupos}>
-            Ver todos los grupos
+            {tr("Ver todos los grupos")}
             <IconoInstructor nombre="flecha" className="h-4 w-4" />
           </Button>
         </div>
@@ -407,14 +410,14 @@ function GruposInstructor({
     <div className="space-y-6">
       <CabeceraPagina
         ceja="Gestión académica"
-        titulo="Mis grupos"
+        titulo={tr("Mis grupos")}
         descripcion="Consulta los grupos que tienes asignados, sus horarios y estudiantes."
       />
       <BarraBusquedaFiltros>
         <CampoBusqueda
           valor={busqueda}
           onChange={setBusqueda}
-          placeholder="Buscar grupo..."
+          placeholder={tr("Buscar grupo...")}
         />
         <MenuFiltros
           activos={[estilo, nivel, sede].filter(Boolean).length}
@@ -430,9 +433,9 @@ function GruposInstructor({
             onChange={setEstilo}
             opcionInicial="Todos los estilos"
           >
-            <option value="Breaking">Breaking</option>
-            <option value="Hip Hop">Hip Hop</option>
-            <option value="Freestyle">Freestyle</option>
+            <option value="Breaking">{tr("Breaking")}</option>
+            <option value="Hip Hop">{tr("Hip Hop")}</option>
+            <option value="Freestyle">{tr("Freestyle")}</option>
           </OpcionFiltro>
           <OpcionFiltro
             etiqueta="Nivel"
@@ -440,10 +443,10 @@ function GruposInstructor({
             onChange={setNivel}
             opcionInicial="Todos los niveles"
           >
-            <option value="Básico">Básico</option>
-            <option value="Intermedio">Intermedio</option>
-            <option value="Avanzado">Avanzado</option>
-            <option value="Todos">Todos</option>
+            <option value="Básico">{tr("Básico")}</option>
+            <option value="Intermedio">{tr("Intermedio")}</option>
+            <option value="Avanzado">{tr("Avanzado")}</option>
+            <option value="Todos">{tr("Todos")}</option>
           </OpcionFiltro>
           <OpcionFiltro
             etiqueta="Sede"
@@ -451,8 +454,8 @@ function GruposInstructor({
             onChange={setSede}
             opcionInicial="Todas las sedes"
           >
-            <option value="Bello">Bello</option>
-            <option value="Copacabana">Copacabana</option>
+            <option value="Bello">{tr("Bello")}</option>
+            <option value="Copacabana">{tr("Copacabana")}</option>
           </OpcionFiltro>
         </MenuFiltros>
       </BarraBusquedaFiltros>
@@ -501,7 +504,7 @@ function GruposInstructor({
                   className="mt-4"
                   onClick={() => onSeleccionar(grupo)}
                 >
-                  Ver estudiantes
+                  {tr("Ver estudiantes")}
                   <IconoInstructor nombre="flecha" className="h-4 w-4" />
                 </Button>
               </div>
@@ -510,7 +513,7 @@ function GruposInstructor({
         </div>
       ) : (
         <EstadoVacio
-          titulo="No encontramos grupos"
+          titulo={tr("No encontramos grupos")}
           descripcion="Ajusta la búsqueda o limpia los filtros para volver a intentarlo."
         />
       )}
@@ -560,14 +563,14 @@ function EstudiantesInstructor() {
     <div className="space-y-6">
       <CabeceraPagina
         ceja="Seguimiento"
-        titulo="Mis estudiantes"
+        titulo={tr("Mis estudiantes")}
         descripcion="Consulta la información académica y el estado de mensualidad de tus estudiantes."
       />
       <BarraBusquedaFiltros>
         <CampoBusqueda
           valor={busqueda}
           onChange={setBusqueda}
-          placeholder="Nombre o identificación..."
+          placeholder={tr("Nombre o identificación...")}
         />
         <MenuFiltros
           activos={[grupo, estado].filter(Boolean).length}
@@ -594,9 +597,9 @@ function EstudiantesInstructor() {
             onChange={setEstado}
             opcionInicial="Todas las mensualidades"
           >
-            <option value="Al día">Al día</option>
-            <option value="Pendiente">Pendiente</option>
-            <option value="Vencida">Vencida</option>
+            <option value="Al día">{tr("Al día")}</option>
+            <option value="Pendiente">{tr("Pendiente")}</option>
+            <option value="Vencida">{tr("Vencida")}</option>
           </OpcionFiltro>
         </MenuFiltros>
       </BarraBusquedaFiltros>
@@ -658,7 +661,7 @@ function EstudiantesInstructor() {
                         onClick={() => setDetalle(estudiante)}
                         className="font-condensed text-xs font-semibold uppercase tracking-wider text-purple-400 hover:text-purple-100"
                       >
-                        Ver detalle
+                        {tr("Ver detalle")}
                       </button>
                     </td>
                   </tr>
@@ -670,7 +673,7 @@ function EstudiantesInstructor() {
         {!estudiantes.length && (
           <EstadoVacio
             compacto
-            titulo="No hay estudiantes"
+            titulo={tr("No hay estudiantes")}
             descripcion="No existen resultados para los filtros seleccionados."
           />
         )}
@@ -715,14 +718,14 @@ function DetalleGrupo({
         className="flex items-center gap-2 font-condensed text-sm font-semibold uppercase tracking-wider text-text-muted hover:text-purple-400"
       >
         <IconoInstructor nombre="flecha" className="h-4 w-4 rotate-180" />
-        Volver a mis grupos
+        {tr("Volver a mis grupos")}
       </button>
       <section className={`${superficie} overflow-hidden`}>
         <div className="h-1 bg-gradient-to-r from-purple-900 via-purple-700 to-purple-400" />
         <div className="p-6">
           <div>
             <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
-              Detalle de grupo
+              {tr("Detalle de grupo")}
             </p>
             <h1 className="mt-1 font-display text-4xl uppercase">{grupo.nombre}</h1>
             <p className="mt-2 text-sm text-text-muted">
@@ -740,7 +743,7 @@ function DetalleGrupo({
       <section className={`${superficie} overflow-hidden`}>
         <div className="flex items-center justify-between border-b border-border p-5">
           <div>
-            <h2 className="font-display text-2xl uppercase">Estudiantes del grupo</h2>
+            <h2 className="font-display text-2xl uppercase">{tr("Estudiantes del grupo")}</h2>
             <p className="mt-1 text-sm text-text-muted">
               {estudiantes.length} estudiantes asignados
             </p>
@@ -786,7 +789,7 @@ function PerfilInstructor() {
   const guardar = () => {
     setPerfil(borrador)
     setEditando(false)
-    setMensaje("Tu información se actualizó correctamente.")
+    setMensaje(tr("Tu información se actualizó correctamente."))
     window.setTimeout(() => setMensaje(""), 3500)
   }
 
@@ -794,7 +797,7 @@ function PerfilInstructor() {
     <div className="space-y-6">
       <CabeceraPagina
         ceja="Cuenta personal"
-        titulo="Mi perfil"
+        titulo={tr("Mi perfil")}
         descripcion="Consulta y actualiza tu información personal y de contacto."
       />
       {mensaje && <MensajeExito texto={mensaje} />}
@@ -804,14 +807,14 @@ function PerfilInstructor() {
             {iniciales(perfil.nombre)}
           </div>
           <h2 className="mt-5 font-display text-2xl uppercase">{perfil.nombre}</h2>
-          <p className="mt-1 text-sm text-purple-400">Instructor</p>
+          <p className="mt-1 text-sm text-purple-400">{tr("Instructor")}</p>
           <p className="mt-4 text-sm text-text-muted">{perfil.especialidad}</p>
           <div className="mt-6 rounded-xl border border-border bg-surface-alt p-4 text-left">
             <p className="font-condensed text-xs uppercase tracking-wider text-text-muted">
-              Estado de cuenta
+              {tr("Estado de cuenta")}
             </p>
             <div className="mt-2 flex items-center justify-between">
-              <span className="text-sm text-text-soft">Acceso habilitado</span>
+              <span className="text-sm text-text-soft">{tr("Acceso habilitado")}</span>
               <StatusBadge status="Activo" />
             </div>
           </div>
@@ -821,10 +824,10 @@ function PerfilInstructor() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5">
             <div>
               <h2 className="font-display text-2xl uppercase">
-                Información personal
+                {tr("Información personal")}
               </h2>
               <p className="mt-1 text-sm text-text-muted">
-                Datos visibles para la academia.
+                {tr("Datos visibles para la academia.")}
               </p>
             </div>
             {!editando && (
@@ -837,7 +840,7 @@ function PerfilInstructor() {
                 }}
               >
                 <IconoInstructor nombre="editar" className="h-4 w-4" />
-                Editar información
+                {tr("Editar información")}
               </Button>
             )}
           </div>
@@ -884,10 +887,10 @@ function PerfilInstructor() {
                   setEditando(false)
                 }}
               >
-                Cancelar
+                {tr("Cancelar")}
               </Button>
               <Button size="sm" onClick={guardar}>
-                Guardar cambios
+                {tr("Guardar cambios")}
               </Button>
             </div>
           )}
@@ -898,10 +901,10 @@ function PerfilInstructor() {
               </span>
               <div>
                 <p className="text-sm font-semibold text-text">
-                  Información de acceso
+                  {tr("Información de acceso")}
                 </p>
                 <p className="text-xs text-text-muted">
-                  Última actualización hace 3 meses
+                  {tr("Última actualización hace 3 meses")}
                 </p>
               </div>
             </div>
@@ -910,13 +913,13 @@ function PerfilInstructor() {
               variant="outline"
               onClick={() => setCambiarClave(true)}
             >
-              Cambiar contraseña
+              {tr("Cambiar contraseña")}
             </Button>
           </div>
         </section>
       </div>
       {cambiarClave && (
-        <Modal titulo="Cambiar contraseña" onClose={() => setCambiarClave(false)}>
+        <Modal titulo={tr("Cambiar contraseña")} onClose={() => setCambiarClave(false)}>
           <div className="space-y-4">
             {["Contraseña actual", "Nueva contraseña", "Confirmar contraseña"].map(
               (etiqueta) => (
@@ -933,11 +936,11 @@ function PerfilInstructor() {
               size="sm"
               onClick={() => {
                 setCambiarClave(false)
-                setMensaje("Tu contraseña se actualizó correctamente.")
+                setMensaje(tr("Tu contraseña se actualizó correctamente."))
                 window.setTimeout(() => setMensaje(""), 3500)
               }}
             >
-              Actualizar contraseña
+              {tr("Actualizar contraseña")}
             </Button>
           </div>
         </Modal>
@@ -960,7 +963,7 @@ function DetalleEstudiante({
   return (
     <div className="fixed inset-0 z-[80] flex justify-end bg-black/60 backdrop-blur-sm">
       <button
-        aria-label="Cerrar detalle"
+        aria-label={tr("Cerrar detalle")}
         className="absolute inset-0"
         onClick={onClose}
       />
@@ -970,7 +973,7 @@ function DetalleEstudiante({
             <Avatar nombre={estudiante.nombre} />
             <div>
               <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
-                Detalle del estudiante
+                {tr("Detalle del estudiante")}
               </p>
               <h2 className="mt-1 font-display text-2xl uppercase">
                 {estudiante.nombre}
@@ -978,7 +981,7 @@ function DetalleEstudiante({
             </div>
           </div>
           <button
-            aria-label="Cerrar"
+            aria-label={tr("Cerrar")}
             className="rounded-xl border border-border p-2 text-text-muted hover:text-text"
             onClick={onClose}
           >
@@ -993,7 +996,7 @@ function DetalleEstudiante({
         </div>
         <div className="mt-6 rounded-xl border border-border bg-surface-alt p-4">
           <p className="font-condensed text-xs uppercase tracking-wider text-text-muted">
-            Grupo asignado
+            {tr("Grupo asignado")}
           </p>
           <p className="mt-2 font-semibold text-text">{grupo.nombre}</p>
           <p className="mt-1 text-sm text-text-muted">
@@ -1003,7 +1006,7 @@ function DetalleEstudiante({
         <div className="mt-8">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-xl uppercase">
-              Historial de mensualidades
+              {tr("Historial de mensualidades")}
             </h3>
             <StatusBadge status={estudiante.estado} />
           </div>
@@ -1029,8 +1032,7 @@ function DetalleEstudiante({
             ))}
           </div>
           <p className="mt-4 rounded-xl border border-border bg-surface-alt p-3 text-xs leading-relaxed text-text-muted">
-            Esta información es únicamente de consulta. Los pagos solo pueden
-            ser modificados por el personal administrativo.
+            {tr("Esta información es únicamente de consulta. Los pagos solo pueden ser modificados por el personal administrativo.")}
           </p>
         </div>
       </aside>
@@ -1121,7 +1123,7 @@ function CampoBusqueda({
   return (
     <label className="relative min-w-64 flex-[2]">
       <span className="mb-1.5 block font-condensed text-xs uppercase tracking-wider text-text-muted">
-        Buscar
+        {tr("Buscar")}
       </span>
       <IconoInstructor
         nombre="buscar"
@@ -1176,7 +1178,7 @@ function MenuFiltros({
       {abierto && (
         <>
           <button
-            aria-label="Cerrar filtros"
+            aria-label={tr("Cerrar filtros")}
             className="fixed inset-0 z-30"
             onClick={() => setAbierto(false)}
           />
@@ -1186,10 +1188,10 @@ function MenuFiltros({
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="font-condensed text-sm font-semibold uppercase tracking-wider text-text">
-                  Filtros
+                  {tr("Filtros")}
                 </p>
                 <p className="mt-0.5 text-xs text-text-muted">
-                  Selecciona una o varias opciones
+                  {tr("Selecciona una o varias opciones")}
                 </p>
               </div>
               {activos > 0 && (
@@ -1198,7 +1200,7 @@ function MenuFiltros({
                   onClick={onLimpiar}
                   className="font-condensed text-xs font-semibold uppercase tracking-wider text-purple-400 hover:text-purple-100"
                 >
-                  Limpiar
+                  {tr("Limpiar")}
                 </button>
               )}
             </div>
@@ -1209,7 +1211,7 @@ function MenuFiltros({
               className="mt-5"
               onClick={() => setAbierto(false)}
             >
-              Ver resultados
+              {tr("Ver resultados")}
             </Button>
           </div>
         </>
@@ -1397,7 +1399,7 @@ function Modal({
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <button
-        aria-label="Cerrar modal"
+        aria-label={tr("Cerrar modal")}
         className="absolute inset-0"
         onClick={onClose}
       />
@@ -1405,7 +1407,7 @@ function Modal({
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-display text-2xl uppercase">{titulo}</h2>
           <button
-            aria-label="Cerrar"
+            aria-label={tr("Cerrar")}
             className="rounded-xl p-2 text-text-muted hover:bg-surface-alt hover:text-text"
             onClick={onClose}
           >

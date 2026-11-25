@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import CrudTable from '@/compartido/ui/CrudTable';
 import SlideOver from '@/compartido/ui/SlideOver';
@@ -247,10 +248,10 @@ export default function UsuariosScreen() {
     if (!row) return null;
     return (
       <div>
-        <p className="font-condensed font-600 text-xs uppercase tracking-wider text-text-muted mb-2">Roles asignados</p>
+        <p className="font-condensed font-600 text-xs uppercase tracking-wider text-text-muted mb-2">{tr("Roles asignados")}</p>
         <div className="flex gap-2 flex-wrap">
           {(row.roles ?? []).length === 0 ? (
-            <span className="text-text-muted font-body text-xs">Sin roles asignados</span>
+            <span className="text-text-muted font-body text-xs">{tr("Sin roles asignados")}</span>
           ) : (row.roles ?? []).map(id => (
             <span key={id} className="px-2.5 py-0.5 rounded-full bg-purple-700/20 text-purple-400 font-condensed text-xs uppercase tracking-wider border border-purple-700/30">
               {nombreRol(id)}
@@ -264,12 +265,12 @@ export default function UsuariosScreen() {
   return (
     <>
       <div className="mb-1">
-        <span className="font-condensed text-xs uppercase tracking-[0.2em] text-purple-400">Seguridad</span>
+        <span className="font-condensed text-xs uppercase tracking-[0.2em] text-purple-400">{tr("Seguridad")}</span>
       </div>
       {error && (
         <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 font-body text-sm text-red-400">
           <span>{error}</span>
-          <button onClick={cargar} className="font-condensed text-xs uppercase tracking-wider underline cursor-pointer">Reintentar</button>
+          <button onClick={cargar} className="font-condensed text-xs uppercase tracking-wider underline cursor-pointer">{tr("Reintentar")}</button>
         </div>
       )}
       {aviso && !error && (
@@ -313,7 +314,7 @@ export default function UsuariosScreen() {
       />
       <ConfirmDialog
         open={porInactivar !== null}
-        title="Inactivar usuario"
+        title={tr("Inactivar usuario")}
         message={`${porInactivar ? nombrePersona(porInactivar.documento) : ''} no podrá iniciar sesión. Puedes reactivarlo editando su estado.`}
         confirmLabel="Inactivar"
         onConfirm={confirmarInactivar}

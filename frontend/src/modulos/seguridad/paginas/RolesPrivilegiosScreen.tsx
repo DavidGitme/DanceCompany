@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { clienteHttp } from "@/nucleo/http/clienteHttp"
 import { mensajeError } from "@/compartido/api/recursos"
@@ -175,17 +176,16 @@ export default function RolesPrivilegiosScreen() {
       </div>
 
       <header className="max-w-3xl">
-        <p className="font-condensed text-xs font-semibold uppercase tracking-[0.25em] text-accent">Seguridad</p>
-        <h1 id="roles-titulo" className="display mt-2 text-4xl text-text sm:text-5xl">Roles y privilegios</h1>
+        <p className="font-condensed text-xs font-semibold uppercase tracking-[0.25em] text-accent">{tr("Seguridad")}</p>
+        <h1 id="roles-titulo" className="display mt-2 text-4xl text-text sm:text-5xl">{tr("Roles y privilegios")}</h1>
         <p className="mt-2 font-body text-sm text-text-soft">
-          Elige un rol y marca qué puede hacer en cada módulo. El sistema aplica estas reglas en cada acción, no solo
-          en los botones. El rol Administrador siempre tiene acceso completo para que nadie quede por fuera del panel.
+          {tr("Elige un rol y marca qué puede hacer en cada módulo. El sistema aplica estas reglas en cada acción, no solo en los botones. El rol Administrador siempre tiene acceso completo para que nadie quede por fuera del panel.")}
         </p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[16rem_1fr]">
         {/* Roles */}
-        <nav aria-label="Roles" className="flex flex-row gap-2 overflow-x-auto lg:flex-col">
+        <nav aria-label={tr("Roles")} className="flex flex-row gap-2 overflow-x-auto lg:flex-col">
           {roles.map((rol) => {
             const activo = rol.idRol === rolActivo
             return (
@@ -202,8 +202,8 @@ export default function RolesPrivilegiosScreen() {
                   activo ? "border-accent bg-accent/10 text-text" : "border-border bg-surface text-text-soft hover:border-accent/50"
                 }`}
               >
-                <span className="font-semibold">{rol.nombre}</span>
-                {rol.idEstado !== 1 && <span className="font-condensed text-[11px] uppercase tracking-wider text-text-muted">Inactivo</span>}
+                <span className="font-semibold">{tr(rol.nombre)}</span>
+                {rol.idEstado !== 1 && <span className="font-condensed text-[11px] uppercase tracking-wider text-text-muted">{tr("Inactivo")}</span>}
               </button>
             )
           })}
@@ -224,20 +224,20 @@ export default function RolesPrivilegiosScreen() {
             <>
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
                 <div>
-                  <h2 className="font-display text-2xl uppercase text-text">{matriz.rol}</h2>
+                  <h2 className="font-display text-2xl uppercase text-text">{tr(matriz.rol)}</h2>
                   <p className="font-body text-xs text-text-muted">
                     {matriz.editable
-                      ? `Acceso a ${resumen(matriz)} de ${matriz.privilegios.length} módulos.`
-                      : "Acceso completo a todos los módulos (no se puede limitar)."}
+                      ? tr("Acceso a {n} de {total} módulos.", { n: resumen(matriz), total: matriz.privilegios.length })
+                      : tr("Acceso completo a todos los módulos (no se puede limitar).")}
                   </p>
                 </div>
                 {matriz.editable && (
                   <div className="flex gap-2">
                     <button type="button" className={claseBotonSecundario} disabled={!cambios || guardando} onClick={() => cargarMatriz(matriz.idRol)}>
-                      Descartar
+                      {tr("Descartar")}
                     </button>
                     <button type="button" className={claseBotonPrincipal} disabled={!cambios || guardando} aria-busy={guardando} onClick={guardar}>
-                      {guardando ? "Guardando…" : "Guardar privilegios"}
+                      {guardando ? tr("Guardando…") : tr("Guardar privilegios")}
                     </button>
                   </div>
                 )}
@@ -247,18 +247,18 @@ export default function RolesPrivilegiosScreen() {
                   <caption className="sr-only">Privilegios del rol {matriz.rol} por módulo</caption>
                   <thead>
                     <tr className="border-b border-border bg-surface-alt/60">
-                      <th scope="col" className="px-5 py-3 font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">Módulo</th>
+                      <th scope="col" className="px-5 py-3 font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">{tr("Módulo")}</th>
                       {ACCIONES.map((a) => (
-                        <th key={a.clave} scope="col" title={a.ayuda} className="px-3 py-3 text-center font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">
-                          {a.etiqueta}
+                        <th key={a.clave} scope="col" title={tr(a.ayuda)} className="px-3 py-3 text-center font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">
+                          {tr(a.etiqueta)}
                         </th>
                       ))}
-                      {matriz.editable && <th scope="col" className="px-3 py-3 text-center font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">Todo</th>}
+                      {matriz.editable && <th scope="col" className="px-3 py-3 text-center font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">{tr("Todo")}</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {matriz.privilegios.map((fila) => {
-                      const nombre = NOMBRES[fila.modulo] ?? fila.modulo
+                      const nombre = tr(NOMBRES[fila.modulo] ?? fila.modulo)
                       const todo = fila.ver && fila.crear && fila.editar && fila.eliminar
                       return (
                         <tr key={fila.idPermiso} className="border-b border-border last:border-0 hover:bg-accent/5">
@@ -271,7 +271,7 @@ export default function RolesPrivilegiosScreen() {
                                 checked={fila[a.clave]}
                                 disabled={!matriz.editable || guardando}
                                 onChange={(e) => marcar(fila.idPermiso, a.clave, e.target.checked)}
-                                aria-label={`${a.etiqueta} en ${nombre}`}
+                                aria-label={tr("{privilegio} en {modulo}", { privilegio: tr(a.etiqueta), modulo: nombre })}
                               />
                             </td>
                           ))}
@@ -283,7 +283,7 @@ export default function RolesPrivilegiosScreen() {
                                 checked={todo}
                                 disabled={guardando}
                                 onChange={(e) => marcarFila(fila.idPermiso, e.target.checked)}
-                                aria-label={`Todos los privilegios en ${nombre}`}
+                                aria-label={tr("Todos los privilegios en {modulo}", { modulo: nombre })}
                               />
                             </td>
                           )}

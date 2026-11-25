@@ -1,3 +1,4 @@
+import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useEffect, useState } from 'react';
 import { ModuleConfig, SlideOverMode } from '@/app/admin/tipos';
 
@@ -110,7 +111,7 @@ export default function SlideOver({ open, mode, config, initialData, onSave, onC
                       disabled={field.readOnly}
                       className={inputCls + ' cursor-pointer'}
                     >
-                      <option value="">Seleccionar...</option>
+                      <option value="">{tr("Seleccionar...")}</option>
                       {field.options?.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
@@ -155,7 +156,7 @@ export default function SlideOver({ open, mode, config, initialData, onSave, onC
             onClick={onClose}
             className="flex-1 rounded-full border border-border py-2.5 font-condensed font-600 text-sm uppercase tracking-wider text-text-soft hover:border-purple-400/50 hover:text-text transition-all cursor-pointer"
           >
-            Cancelar
+            {tr("Cancelar")}
           </button>
           <button
             onClick={handleSave}
