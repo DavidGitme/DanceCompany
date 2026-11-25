@@ -7,7 +7,7 @@ from app.dominio.repositorios.repositorio_autenticacion import RepositorioAutent
 class RepositorioSeguridad(RepositorioAutenticacion):
     @abstractmethod
     def listar(
-        self, recurso: str, pagina: int, tamano: int, sede: int | None = None
+        self, recurso: str, pagina: int, tamano: int, sede: int | None = None, buscar: str | None = None
     ) -> tuple[list[dict[str, Any]], int]:
         raise NotImplementedError
 

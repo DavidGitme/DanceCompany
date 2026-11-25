@@ -101,6 +101,31 @@ class RolesPermisosRespuesta(BaseModel):
     permisos: list[int]
 
 
+# ─── Privilegios por módulo (nivel 3) ──────────────────
+
+class PrivilegioEntrada(BaseModel):
+    idPermiso: int = Field(gt=0)
+    ver: bool = False
+    crear: bool = False
+    editar: bool = False
+    eliminar: bool = False
+
+
+class PrivilegiosSolicitud(BaseModel):
+    privilegios: list[PrivilegioEntrada] = Field(max_length=100)
+
+
+class PrivilegioModulo(PrivilegioEntrada):
+    modulo: str
+
+
+class PrivilegiosRespuesta(BaseModel):
+    idRol: int
+    rol: str
+    editable: bool
+    privilegios: list[PrivilegioModulo]
+
+
 # ─── Estados ───────────────────────────────────────────
 
 class EstadoCrearSolicitud(BaseModel):

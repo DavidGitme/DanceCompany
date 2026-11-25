@@ -68,6 +68,10 @@ SEDE_DE = {
         "SELECT e.idSede FROM inscripcion_talle it "
         "JOIN estudiante e ON e.idEstudiante = it.idEstudiante WHERE it.idInscripcionT = :id"
     ),
+    "grupos-competencia": (
+        "SELECT g.idSede FROM grupo_competencia gc JOIN grupo g ON g.idGrupo = gc.idGrupo "
+        "WHERE gc.idgrupocompe = :id"
+    ),
     "postulaciones": (
         "SELECT e.idSede FROM convocatoria_estudiante ce "
         "JOIN estudiante e ON e.idEstudiante = ce.idEstudiante WHERE ce.idConvocatoriaEst = :id"
@@ -284,6 +288,8 @@ async def proteger_cuentas_admin(
     - Personas y cuentas: solo las de su sede (o sin vínculos); nunca las de administradores.
     - Al crear o editar cuentas solo asigna los roles Instructor, Estudiante o Acudiente.
     - Roles, permisos y estados son de toda la academia: solo los cambia la cuenta técnica.
+    - Excepción: la matriz de privilegios (ver/crear/editar/eliminar) de los roles que
+      no son Administrador, que es la configuración del día a día de la academia.
     """
     propia = sede_de_sesion(usuario)
     if propia is None:
@@ -292,6 +298,12 @@ async def proteger_cuentas_admin(
     escritura = request.method not in ("GET", "HEAD", "OPTIONS")
     identificador = request.path_params.get("identificador")
     no_encontrado = NoEncontrado("registro", "No se encontró el registro.")
+
+    if ruta.rstrip("/").endswith("/privilegios"):
+        # La matriz de privilegios la ajusta cualquier administrador; el rol Administrador
+        # no se puede limitar (la ruta lo rechaza) y los roles que asigna siguen siendo
+        # solo Instructor, Estudiante y Acudiente, así que no hay escalada.
+        return
 
     if "/roles" in ruta or "/permisos" in ruta or "/estados" in ruta:
         # Un admin de sede podría crear un rol con todos los permisos y dárselo a una cuenta

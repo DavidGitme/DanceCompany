@@ -15,6 +15,18 @@ class Configuracion(BaseSettings):
     cookie_segura: bool = True
     modo_mock: bool = False
     clave_mock_admin: SecretStr | None = None
+    # Correo (Gmail con contraseña de aplicación). Sin SMTP_USUARIO/SMTP_CLAVE no se envía nada
+    smtp_host: str = "smtp.gmail.com"
+    smtp_puerto: int = 587
+    smtp_usuario: str | None = None
+    smtp_clave: SecretStr | None = None
+    smtp_remitente: str | None = None
+    # Dirección pública del frontend, para los enlaces de los correos
+    frontend_url: str = "http://localhost:5173"
+
+    @property
+    def correo_configurado(self) -> bool:
+        return bool(self.smtp_usuario and self.smtp_clave)
 
     @property
     def origenes_permitidos(self) -> list[str]:

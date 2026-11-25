@@ -2,23 +2,20 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from "rea
 import Sidebar from "@/app/admin/Sidebar"
 import Dashboard from "@/app/admin/Dashboard"
 import AvisoDemo from "@/app/admin/AvisoDemo"
-import { buscarModulo } from "@/app/admin/navegacion"
+import { buscarModulo, navegacion } from "@/app/admin/navegacion"
 import * as recursos from "@/app/admin/recursos"
 import PantallaRecurso, { Icono, claseBotonIcono, hoverNeutro, type DefinicionRecurso } from "@/compartido/ui/PantallaRecurso"
 import { useAuth } from "@/nucleo/auth/useAuth"
+import { puede } from "@/nucleo/auth/requierePermiso"
+import { recursoApi, mensajeError } from "@/compartido/api/recursos"
 import { FichaEstudiante, InscripcionEstudiante, type EstudianteFicha } from "@/modulos/estudiantes"
 import HorariosGrupoScreen from "@/modulos/grupos/paginas/HorariosGrupoScreen"
 import NoticiasScreen from "@/modulos/landing/paginas/NoticiasScreen"
-import MatriculasScreen from "@/modulos/matriculas/paginas/MatriculasScreen"
 import { AdministrationProvider } from "@/modulos/pagos"
 import EstadoCuentaScreen from "@/modulos/pagos/paginas/EstadoCuentaScreen"
 import MensualidadesScreen from "@/modulos/pagos/paginas/MensualidadesScreen"
 import PagosScreen from "@/modulos/pagos/paginas/PagosScreen"
-import ConvocatoriasScreen from "@/modulos/reportes/paginas/ConvocatoriasScreen"
-import PostulacionesScreen from "@/modulos/reportes/paginas/PostulacionesScreen"
-import EstadosScreen from "@/modulos/seguridad/paginas/EstadosScreen"
-import PersonasScreen from "@/modulos/seguridad/paginas/PersonasScreen"
-import RolesPermisosScreen from "@/modulos/seguridad/paginas/RolesPermisosScreen"
+import RolesPrivilegiosScreen from "@/modulos/seguridad/paginas/RolesPrivilegiosScreen"
 import UsuariosScreen from "@/modulos/seguridad/paginas/UsuariosScreen"
 import InscripcionesTallerScreen from "@/modulos/talleres/paginas/InscripcionesTallerScreen"
 
@@ -33,27 +30,28 @@ const PANTALLAS_API: Record<string, DefinicionRecurso<any>> = {
   estilos: recursos.estilos,
   talleres: recursos.talleres,
   "adm-metodos-pago": recursos.metodosPago,
+  "adm-matriculas": recursos.matriculas,
+  "adm-convocatorias": recursos.convocatorias,
+  "adm-postulaciones": recursos.postulaciones,
+  "adm-grupos-competencia": recursos.gruposCompetencia,
+  "seg-personas": recursos.personas,
+  "seg-estados": recursos.estados,
 }
 
 // Pantallas con API propia
 const PANTALLAS_PROPIAS: Record<string, ReactElement> = {
   "seg-usuarios": <UsuariosScreen />,
+  "seg-roles-permisos": <RolesPrivilegiosScreen />,
 }
 
 // Pantallas que todavía usan datos simulados: se muestran con aviso
 const PANTALLAS_DEMO: Record<string, ReactElement> = {
   "adm-agendamientos-instructores": <HorariosGrupoScreen />,
-  "adm-matriculas": <MatriculasScreen />,
   "adm-inscripciones-taller": <InscripcionesTallerScreen />,
   "adm-mensualidades": <MensualidadesScreen />,
   "adm-pagos": <PagosScreen />,
   "adm-estado-cuenta": <EstadoCuentaScreen />,
-  "adm-convocatorias": <ConvocatoriasScreen />,
-  "adm-postulaciones": <PostulacionesScreen />,
   "adm-contenidos": <NoticiasScreen />,
-  "seg-personas": <PersonasScreen />,
-  "seg-roles-permisos": <RolesPermisosScreen />,
-  "seg-estados": <EstadosScreen />,
 }
 
 interface AdminPanelProps {
@@ -64,7 +62,16 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
   const { usuario } = useAuth()
   // Administrador de sede: todo el panel trabaja sobre su sede
   const sedeFija = usuario?.idSede ?? null
-  const [activeModule, setActiveModule] = useState("dashboard")
+  // Primer módulo que el rol puede ver (el administrador entra al Inicio)
+  const [activeModule, setActiveModule] = useState(() => {
+    if (puede(usuario, "dashboard", "ver")) return "dashboard"
+    for (const nodo of navegacion) {
+      const hijo = nodo.hijos?.find((h) => puede(usuario, h.permiso, "ver"))
+      if (hijo) return hijo.id
+    }
+    return "dashboard"
+  })
+  const [recargarLista, setRecargarLista] = useState(0)
   const [inscribiendo, setInscribiendo] = useState(false)
   const [ficha, setFicha] = useState<EstudianteFicha | null>(null)
   const [recargarEstudiantes, setRecargarEstudiantes] = useState(0)
@@ -95,6 +102,21 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
   }, [aviso])
   const terminarCrear = useCallback(() => setCrearAlEntrar(false), [])
   const actual = buscarModulo(activeModule)
+  // Privilegios del rol en el módulo abierto (nivel 3)
+  const privilegiosModulo = actual?.permiso
+    ? (["ver", "crear", "editar", "eliminar"] as const).filter((a) => puede(usuario, actual.permiso!, a))
+    : undefined
+
+  // Aceptar o rechazar una postulación sin abrir el formulario
+  const decidirPostulacion = async (fila: recursos.Postulacion, idEstado: number) => {
+    try {
+      await recursoApi.cambiarEstado("/postulaciones", fila.idPostulacion, idEstado)
+      setAviso(`La postulación de ${fila.estudiante} quedó ${idEstado === recursos.POSTULACION.aceptado ? "aceptada" : "rechazada"}.`)
+      setRecargarLista((n) => n + 1)
+    } catch (e) {
+      setAviso(mensajeError(e))
+    }
+  }
 
   let contenido: ReactElement
   if (activeModule === "dashboard") {
@@ -105,6 +127,7 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
       <PantallaRecurso
         key={activeModule}
         definicion={recursos.estudiantes}
+        privilegios={privilegiosModulo}
         abrirCrear={crearAlEntrar}
         onCrearAbierto={terminarCrear}
         sedeFija={sedeFija}
@@ -131,10 +154,32 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
         abrirCrear={crearAlEntrar}
         onCrearAbierto={terminarCrear}
         sedeFija={sedeFija}
-        // Sedes: el administrador de sede consulta todas, pero solo gestiona la suya y no crea sedes
-        permiteCrear={!(activeModule === "sedes" && sedeFija)}
+        privilegios={privilegiosModulo}
+        recargar={recargarLista}
+        // Sedes: el administrador de sede consulta todas, pero solo gestiona la suya y no crea sedes.
+        // Personas y estados no se crean desde aquí.
+        permiteCrear={!(activeModule === "sedes" && sedeFija) && !["seg-personas", "seg-estados"].includes(activeModule)}
         puedeGestionar={
-          activeModule === "sedes" && sedeFija ? (fila: recursos.Sede) => fila.idSede === sedeFija : undefined
+          activeModule === "seg-estados"
+            ? () => false
+            : activeModule === "sedes" && sedeFija
+              ? (fila: any) => (fila as recursos.Sede).idSede === sedeFija // eslint-disable-line @typescript-eslint/no-explicit-any
+              : undefined
+        }
+        accionesFila={
+          activeModule === "adm-postulaciones" && privilegiosModulo?.includes("editar")
+            ? (fila: any) => // eslint-disable-line @typescript-eslint/no-explicit-any
+                fila.idEstado === recursos.POSTULACION.postulado ? (
+                  <>
+                    <button type="button" onClick={() => decidirPostulacion(fila, recursos.POSTULACION.aceptado)} className={`${claseBotonIcono} hover:bg-emerald-500/10 hover:text-emerald-500`} aria-label={`Aceptar a ${fila.estudiante}`} title="Aceptar">
+                      <Icono nombre="check" />
+                    </button>
+                    <button type="button" onClick={() => decidirPostulacion(fila, recursos.POSTULACION.rechazado)} className={`${claseBotonIcono} hover:bg-red-500/10 hover:text-red-500`} aria-label={`Rechazar a ${fila.estudiante}`} title="Rechazar">
+                      <Icono nombre="cerrar" />
+                    </button>
+                  </>
+                ) : null
+            : undefined
         }
       />
     )
@@ -218,7 +263,8 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
             setInscribiendo(false)
             setRecargarEstudiantes((n) => n + 1)
             const extras = [r.idMatricula ? "matriculado" : "", r.cuentaCreada ? "con cuenta del portal" : ""].filter(Boolean)
-            setAviso(`${r.estudiante.nombre} quedó inscrito${extras.length ? ` (${extras.join(" y ")})` : ""}.`)
+            const correo = r.correoEnviado ? " Le enviamos un correo con su acceso." : r.aviso ? ` ${r.aviso}` : ""
+            setAviso(`${r.estudiante.nombre} quedó inscrito${extras.length ? ` (${extras.join(" y ")})` : ""}.${correo}`)
           }}
         />
       )}

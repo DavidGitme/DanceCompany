@@ -1,14 +1,15 @@
+import secrets
 from datetime import date
 
 from app.aplicacion.casos_uso.estudiantes.gestionar_estudiantes import GestionarEstudiantes
 from app.aplicacion.casos_uso.matriculas.gestionar_matriculas import GestionarMatriculas
 from app.aplicacion.servicios.seguridad import HasherClaves
 from app.dominio.excepciones.errores import Conflicto, DatoInvalido, NoEncontrado
-from app.dominio.reglas import EDAD_ADULTO, edad_en, normalizar_documento
+from app.dominio.reglas import EDAD_ADULTO, edad_en, error_clave, normalizar_documento
 from app.dominio.repositorios.repositorio_estudiantes import RepositorioInscripciones
 
 CAMPOS_ESTUDIANTE = ("nombre", "idTipoDocumento", "documento", "telefono", "email", "fecha_nacimiento", "idSede")
-MAX_ACUDIENTES = 3
+MAX_ACUDIENTES = 1
 CAMPOS_PERSONA = ("nombre", "idTipoDocumento", "documento", "telefono", "email", "fecha_nacimiento")
 
 
@@ -33,11 +34,14 @@ class InscribirEstudiante:
         inscripciones: RepositorioInscripciones,
         matriculas: GestionarMatriculas,
         hasher: HasherClaves,
+        correo=None,
     ):
         self.estudiantes = estudiantes
         self.inscripciones = inscripciones
         self.matriculas = matriculas
         self.hasher = hasher
+        # RecuperarClave: envía la invitación o la bienvenida después de guardar
+        self.correo = correo
 
     # ---------- Consulta de apoyo ----------
     def buscar_persona(self, documento: str, sede: int | None = None):
@@ -58,16 +62,20 @@ class InscribirEstudiante:
         datos = {campo: solicitud.get(campo) for campo in CAMPOS_ESTUDIANTE}
         # Mismas reglas que al editar un estudiante (normaliza documento, teléfono y correo)
         self.estudiantes.validar(datos)
-        menor = edad_en(datos["fecha_nacimiento"], date.today()) < EDAD_ADULTO
         acudientes = solicitud.get("acudientes") or []
-        if menor and not acudientes:
-            raise DatoInvalido("Un estudiante menor de edad necesita al menos un acudiente.")
+        if len(acudientes) > MAX_ACUDIENTES:
+            raise DatoInvalido("El estudiante puede tener un solo acudiente.")
 
         clave = solicitud.get("clave")
-        if clave and not datos.get("email"):
-            raise DatoInvalido("Para crear la cuenta el estudiante necesita correo: inicia sesión con él.")
-        id_rol = self.inscripciones.id_rol("Estudiante") if clave else None
-        if clave and not id_rol:
+        crear_cuenta = bool(clave) or bool(solicitud.get("crearCuenta"))
+        if clave and (error := error_clave(clave)):
+            raise DatoInvalido(error)
+        if crear_cuenta and not clave and not datos.get("email"):
+            raise DatoInvalido(
+                "Para enviar la invitación el estudiante necesita correo. También puedes asignarle una contraseña."
+            )
+        id_rol = self.inscripciones.id_rol("Estudiante") if crear_cuenta else None
+        if crear_cuenta and not id_rol:
             raise DatoInvalido("No existe el rol Estudiante activo.")
 
         try:
@@ -78,8 +86,11 @@ class InscribirEstudiante:
             vistos = {datos["documento"]}
             for acudiente in acudientes:
                 self._vincular(id_estudiante, acudiente, vistos, datos["idSede"])
-            if clave:
-                self.inscripciones.crear_cuenta(datos["documento"], self.hasher.crear_hash(clave), id_rol)
+            if crear_cuenta:
+                # Sin clave, la cuenta queda con una clave aleatoria que nadie conoce
+                # hasta que el estudiante crea la suya con el enlace del correo
+                inicial = clave or secrets.token_urlsafe(32)
+                self.inscripciones.crear_cuenta(datos["documento"], self.hasher.crear_hash(inicial), id_rol)
 
             id_matricula = None
             if solicitud.get("idGrupo"):
@@ -97,12 +108,32 @@ class InscribirEstudiante:
             self.inscripciones.deshacer()
             raise
 
+        correo_enviado, aviso = self._avisar(crear_cuenta, bool(clave), datos)
         return {
             "estudiante": self.estudiantes.obtener(id_estudiante),
             "acudientes": self.inscripciones.acudientes_de(id_estudiante),
             "idMatricula": id_matricula,
-            "cuentaCreada": bool(clave),
+            "cuentaCreada": crear_cuenta,
+            "correoEnviado": correo_enviado,
+            "aviso": aviso,
         }
+
+    def _avisar(self, crear_cuenta: bool, con_clave: bool, datos: dict):
+        """El correo sale después de guardar: si falla, la inscripción no se pierde."""
+        if not crear_cuenta or not datos.get("email") or not self.correo:
+            return None, None
+        if con_clave:
+            enviado = self.correo.bienvenida(datos["documento"], datos["nombre"], datos["email"])
+        else:
+            enviado = self.correo.invitar(datos["documento"], datos["nombre"], datos["email"])
+        if enviado:
+            return True, None
+        if con_clave:
+            return False, "No se pudo enviar el correo de bienvenida. Entrégale sus datos de acceso en persona."
+        return False, (
+            "No se pudo enviar la invitación por correo. Asígnale una contraseña desde Seguridad > Usuarios "
+            "o pídele que use \"¿Olvidaste tu contraseña?\" cuando el correo esté configurado."
+        )
 
     # ---------- Acudientes de un estudiante ya registrado ----------
     def acudientes(self, id_estudiante: int):
@@ -113,7 +144,7 @@ class InscribirEstudiante:
         estudiante = self.estudiantes.obtener(id_estudiante)
         vinculados = self.inscripciones.acudientes_de(id_estudiante)
         if len(vinculados) >= MAX_ACUDIENTES:
-            raise Conflicto(f"Un estudiante puede tener máximo {MAX_ACUDIENTES} acudientes.")
+            raise Conflicto("El estudiante ya tiene un acudiente. Quítalo antes de agregar otro.")
         actuales = {a["documento"] for a in vinculados}
         try:
             self._vincular(id_estudiante, acudiente, {estudiante["documento"], *actuales}, estudiante["idSede"])
@@ -128,10 +159,6 @@ class InscribirEstudiante:
         acudientes = self.inscripciones.acudientes_de(id_estudiante)
         if not any(a["idAcudiente"] == id_acudiente for a in acudientes):
             raise NoEncontrado("acudiente", "Ese acudiente no está asociado al estudiante.")
-        nacimiento = estudiante.get("fecha_nacimiento")
-        menor = nacimiento is not None and edad_en(nacimiento, date.today()) < EDAD_ADULTO
-        if menor and len(acudientes) == 1:
-            raise Conflicto("Un estudiante menor de edad debe conservar al menos un acudiente.")
         try:
             self.inscripciones.desvincular_acudiente(id_estudiante, id_acudiente)
             self.inscripciones.confirmar()

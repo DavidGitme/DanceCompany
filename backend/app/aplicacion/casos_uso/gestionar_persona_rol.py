@@ -35,7 +35,7 @@ class GestionarPersonaRol(GestionarCatalogo):
         if datos.get("telefono"):
             datos["telefono"] = normalizar_telefono(datos["telefono"])
             if not telefono_valido(datos["telefono"]):
-                raise DatoInvalido("El teléfono debe tener entre 7 y 15 dígitos.")
+                raise DatoInvalido("El teléfono debe tener exactamente 10 dígitos.")
         if datos.get("email"):
             datos["email"] = datos["email"].strip().lower()
         if datos.get("fecha_nacimiento") and datos["fecha_nacimiento"] > date.today():

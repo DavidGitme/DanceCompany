@@ -105,10 +105,8 @@ export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }
     }
   }
 
-  // El último acudiente de un menor no se puede quitar (la API también lo impide)
-  const bloqueoQuitar = menor && acudientes.length <= 1
-    ? "Un estudiante menor de edad debe conservar al menos un acudiente. Agrega otro antes de quitar este."
-    : undefined
+  // El acudiente es opcional: se puede quitar siempre
+  const bloqueoQuitar: string | undefined = undefined
 
   return (
     <>
@@ -135,7 +133,7 @@ export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }
             <p className="font-body text-sm text-text-muted sm:col-span-2">Cargando acudientes…</p>
           ) : acudientes.length === 0 ? (
             <p className="font-body text-sm text-text-muted sm:col-span-2">
-              Sin acudientes registrados{menor ? ": como es menor de edad, agrega al menos uno." : "."}
+              Sin acudiente registrado{menor ? ". Es opcional, pero se recomienda para menores de edad." : "."}
             </p>
           ) : (
             <ul className="divide-y divide-border rounded-2xl border border-border sm:col-span-2">
@@ -178,7 +176,7 @@ export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }
               </div>
             </>
           ) : (
-            acudientes.length < 3 && (
+            acudientes.length < 1 && (
               <button type="button" onClick={() => { setNuevo(acudienteVacio()); setErroresNuevo({}) }} disabled={ocupado || cargando}
                 className={`${claseBotonSecundario} sm:col-span-2`}>
                 Agregar acudiente

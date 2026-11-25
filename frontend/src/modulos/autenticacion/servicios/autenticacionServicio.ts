@@ -54,6 +54,22 @@ export const autenticacionServicio = {
     if (!env.usarMock) await clienteHttp.post<void>("/auth/logout")
   },
 
+  // "¿Olvidaste tu contraseña?": la respuesta es la misma exista o no la cuenta
+  async solicitarRecuperacion(documento: string): Promise<string> {
+    const respuesta = await clienteHttp.postSinReintento<{ mensaje: string }>("/auth/recuperar", { documento })
+    return respuesta.mensaje
+  },
+
+  async restablecerClave(token: string, clave: string): Promise<string> {
+    const respuesta = await clienteHttp.postSinReintento<{ mensaje: string }>("/auth/restablecer", { token, clave })
+    return respuesta.mensaje
+  },
+
+  async aceptarTerminos(version: string): Promise<void> {
+    if (env.usarMock) return
+    await clienteHttp.post<void>("/auth/terminos", { version })
+  },
+
   async obtenerUsuario(): Promise<UsuarioSesionDto> {
     if (env.usarMock) return sesionAdministradorMock.usuario
     return clienteHttp.get<UsuarioSesionDto>("/auth/me")

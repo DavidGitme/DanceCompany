@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import logoFna from '@/recursos/logo-fna.png';
 import { useAuth } from '@/nucleo/auth/useAuth';
-import { requierePermiso } from '@/nucleo/auth/requierePermiso';
+import { puede } from '@/nucleo/auth/requierePermiso';
 import { navegacion, type NodoNavegacion } from '@/app/admin/navegacion';
 
 interface SidebarProps {
@@ -52,9 +52,9 @@ export default function Sidebar({
   const visibles: NodoNavegacion[] = navegacion
     .map((nodo) => ({
       ...nodo,
-      hijos: nodo.hijos?.filter((hijo) => requierePermiso(usuario, hijo.permiso)),
+      hijos: nodo.hijos?.filter((hijo) => puede(usuario, hijo.permiso, 'ver')),
     }))
-    .filter((nodo) => (nodo.hijos ? nodo.hijos.length > 0 : requierePermiso(usuario, nodo.permiso ?? '')));
+    .filter((nodo) => (nodo.hijos ? nodo.hijos.length > 0 : puede(usuario, nodo.permiso ?? '', 'ver')));
 
   const grupoActivo = visibles.find((n) => n.hijos?.some((h) => h.id === activeModule))?.id;
   const [abiertos, setAbiertos] = useState<string[]>(() => (grupoActivo ? [grupoActivo] : ['personas']));

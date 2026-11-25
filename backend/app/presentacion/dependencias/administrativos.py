@@ -11,6 +11,8 @@ from app.aplicacion.casos_uso.catalogos_simples.gestionar_catalogos_simples impo
     GestionarTiposNoticia,
 )
 from app.aplicacion.casos_uso.convocatorias.gestionar_convocatorias import GestionarConvocatorias
+from app.aplicacion.casos_uso.grupos_competencia.gestionar_grupos_competencia import GestionarGruposCompetencia
+from app.infraestructura.repositorios.grupos_competencia_sql import RepositorioGruposCompetenciaSql
 from app.aplicacion.casos_uso.horarios.gestionar_horarios import GestionarHorarios
 from app.aplicacion.casos_uso.inscripciones_taller.gestionar_inscripciones_taller import (
     GestionarInscripcionesTaller,
@@ -79,6 +81,10 @@ def gestor_convocatorias(sesion: Session = Depends(obtener_sesion)):
 
 def gestor_postulaciones(sesion: Session = Depends(obtener_sesion)):
     return GestionarPostulaciones(RepositorioPostulacionesSql(sesion))
+
+
+def gestor_grupos_competencia(sesion: Session = Depends(obtener_sesion)):
+    return GestionarGruposCompetencia(RepositorioGruposCompetenciaSql(sesion))
 
 
 def gestor_tipos_noticia(sesion: Session = Depends(obtener_sesion)):

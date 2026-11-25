@@ -116,7 +116,10 @@ CREATE TABLE usuarios (
     idEstado         INT NOT NULL DEFAULT 1 REFERENCES estados(idEstado),
     idSede           INT REFERENCES sede(idSede),
     intentos_fallidos INT NOT NULL DEFAULT 0,
-    bloqueado_hasta   TIMESTAMP
+    bloqueado_hasta   TIMESTAMP,
+    -- Version de los terminos y condiciones que acepto la cuenta y cuando
+    terminos_version  VARCHAR(10),
+    terminos_fecha    TIMESTAMP
 );
 
 CREATE TABLE usuarios_roles (
@@ -125,10 +128,27 @@ CREATE TABLE usuarios_roles (
     PRIMARY KEY (documento, idRol)
 );
 
+-- Privilegios de cada rol en cada modulo (permiso): ver, crear, editar y eliminar.
+-- El rol Administrador siempre tiene todos.
 CREATE TABLE roles_permisos (
-    idRol     INT NOT NULL REFERENCES roles(idRol),
-    idPermiso INT NOT NULL REFERENCES permisos(idPermiso),
+    idRol          INT NOT NULL REFERENCES roles(idRol),
+    idPermiso      INT NOT NULL REFERENCES permisos(idPermiso),
+    puede_ver      BOOLEAN NOT NULL DEFAULT TRUE,
+    puede_crear    BOOLEAN NOT NULL DEFAULT TRUE,
+    puede_editar   BOOLEAN NOT NULL DEFAULT TRUE,
+    puede_eliminar BOOLEAN NOT NULL DEFAULT TRUE,
     PRIMARY KEY (idRol, idPermiso)
+);
+
+-- Enlaces de un solo uso para crear o recuperar la contraseña.
+-- Solo se guarda el hash SHA-256 del enlace, nunca el enlace.
+CREATE TABLE recuperacion_clave (
+    idRecuperacion SERIAL PRIMARY KEY,
+    documento      VARCHAR(20) NOT NULL REFERENCES usuarios(documento),
+    token_hash     VARCHAR(64) NOT NULL UNIQUE,
+    expira         TIMESTAMP NOT NULL,
+    usado          BOOLEAN NOT NULL DEFAULT FALSE,
+    creado         TIMESTAMP NOT NULL DEFAULT LOCALTIMESTAMP
 );
 
 CREATE TABLE acudiente (
