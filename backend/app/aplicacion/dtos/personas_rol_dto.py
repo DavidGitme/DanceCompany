@@ -2,9 +2,9 @@
 
 from datetime import date
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
-from app.aplicacion.dtos.comun_dto import Texto
+from app.aplicacion.dtos.comun_dto import Correo, Texto
 
 
 class PersonaDatos(BaseModel):
@@ -12,7 +12,7 @@ class PersonaDatos(BaseModel):
     idTipoDocumento: int = Field(gt=0)
     documento: Texto(20, minimo=5)
     telefono: Texto(20, minimo=7) | None = None
-    email: EmailStr | None = None
+    email: Correo | None = None
     fecha_nacimiento: date | None = None
 
 
@@ -21,7 +21,7 @@ class PersonaCambios(BaseModel):
     idTipoDocumento: int | None = Field(default=None, gt=0)
     documento: Texto(20, minimo=5) | None = None
     telefono: Texto(20, minimo=7) | None = None
-    email: EmailStr | None = None
+    email: Correo | None = None
     fecha_nacimiento: date | None = None
 
 
