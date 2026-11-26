@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&display=swap');
 @import 'tailwindcss';
 
@@ -189,7 +189,7 @@ textarea { cursor: text; }
   *, *::before, *::after { transition-duration: 0.01ms !important; }
 }
 /* ---------- Hero del modo claro (titular gigante, persona recortada y foco de tinta lila) ---------- */
-/* Anton con line-height 1: la mayúscula empieza 0.064em bajo el borde superior y la línea base queda a 0.923em */
+/* Inter Black con line-height 1: la mayúscula empieza 0.136em bajo el borde y la línea base queda a 0.864em */
 .hc { padding-top: 6rem; }
 .hc-lienzo {
   position: relative;
@@ -201,34 +201,41 @@ textarea { cursor: text; }
   --py: 0;
 }
 .hc-capa { display: contents; }
+.hc-capa-fondo { display: none; }
 .hc-titular {
   display: flex;
   flex-direction: column;
+  font-family: 'Inter', sans-serif;
+  font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.035em;
 }
 .hc-linea1,
 .hc-linea2 { white-space: nowrap; }
-.hc-linea1 { font-size: 24cqw; margin-left: -0.03em; }
-.hc-linea2 { font-size: 21cqw; align-self: flex-end; margin-right: -0.03em; margin-top: 0.12em; }
+.hc-linea1 { font-size: 26cqw; margin-left: -0.04em; }
+.hc-linea2 { font-size: 22cqw; align-self: flex-end; margin-right: 0.02em; margin-top: -0.04em; }
 
-/* Cada letra sube desde una máscara que abraza las mayúsculas (deja espacio para tildes) */
-.hc-letra-mascara { clip-path: inset(-0.3em -0.25em 0.077em -0.25em); }
+.hc-base-linea1 { color: var(--color-purple-700); }
+.hc-base-linea2 { color: #1d1528; }
+
+/* Cada letra sube desde una máscara que abraza las mayúsculas */
+.hc-letra-mascara { clip-path: inset(-0.3em -0.25em 0.1em -0.25em); }
 .hc-letra { animation: hc-sube 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
-@keyframes hc-sube { from { transform: translateY(105%); } to { transform: none; } }
+@keyframes hc-sube { from { transform: translateY(115%); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* Móvil y tablet: la persona va debajo, sobre un panel lila, montada un poco sobre el titular */
 .hc-capa-persona.hc-capa-base {
   position: relative;
   display: flex;
   justify-content: center;
-  margin-top: -6cqw;
+  margin-top: -4cqw;
 }
 .hc-capa-persona.hc-capa-base::before {
   content: '';
   position: absolute;
   inset: 22% 0 0;
   border-radius: 1.5rem 1.5rem 0 0;
-  background: linear-gradient(180deg, #efe7fb 0%, #e2d4f7 100%);
+  background: radial-gradient(circle at 50% 35%, #f4eefc 0%, #e4d6f8 60%, #d8c6f4 100%);
 }
 .hc-persona {
   position: relative;
@@ -237,6 +244,8 @@ textarea { cursor: text; }
   max-width: 100%;
   object-fit: contain;
 }
+/* Sombra proyectada: una copia de la silueta, oscura y desenfocada, detrás de la persona */
+.hc-sombra-persona { display: none; }
 .hc-persona-entra { animation: hc-persona 1.3s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: bottom; }
 @keyframes hc-persona {
   from { clip-path: inset(100% 0 0 0); scale: 1.06; }
@@ -244,6 +253,7 @@ textarea { cursor: text; }
 }
 .hc-acciones { margin-top: 1.75rem; }
 .hc-roles { font-size: 0.75rem; letter-spacing: 0.2em; }
+.hc-lead { margin-top: 0.75rem; max-width: 26rem; font-size: 0.95rem; line-height: 1.6; }
 .hc-sedes {
   margin-top: 1.5rem;
   display: flex;
@@ -252,6 +262,28 @@ textarea { cursor: text; }
   font-size: 0.75rem;
   letter-spacing: 0.2em;
 }
+
+/* Sello giratorio */
+.hc-sello { display: none; }
+.hc-sello-texto { width: 100%; height: 100%; animation: hc-gira 18s linear infinite; }
+.hc-sello-texto text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 2.6px;
+  fill: #1d1528;
+}
+.hc-sello-centro {
+  position: absolute;
+  inset: 30%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-purple-700);
+  color: #fff;
+  font-size: 1.1em;
+}
+@keyframes hc-gira { to { rotate: 360deg; } }
 
 /* Composición ancha: todo se coloca sobre un lienzo que ocupa la pantalla, como la referencia */
 @media (min-width: 1024px) and (min-aspect-ratio: 5/4) {
@@ -263,15 +295,38 @@ textarea { cursor: text; }
     padding: 0;
     container-type: size;
     --u: max(min(100cqw / 1280, (100cqh - 40px) / 600), 100cqw / 1600);
-    --top: calc(14 * var(--u));
-    --l2-top: calc(var(--top) + 266 * var(--u));
-    --ph: min(100cqh - var(--top) - 24 * var(--u), 820 * var(--u));
+    --top: calc(18 * var(--u));
+    --l2-top: calc(var(--top) + 186 * var(--u));
+    --ph: min(100cqh - var(--top) - 10 * var(--u), 820 * var(--u));
   }
   .hc-capa { position: absolute; inset: 0; display: block; pointer-events: none; }
+  .hc-capa-fondo { z-index: -1; }
   .hc-capa-titular { z-index: 0; }
   .hc-capa-persona { z-index: 2; }
   .hc-capa-persona.hc-capa-base { position: absolute; display: block; margin: 0; }
   .hc-capa-persona.hc-capa-base::before { display: none; }
+
+  /* Halo lila detrás de la persona y sombra en el piso: dan la sensación de espacio */
+  .hc-halo {
+    position: absolute;
+    right: calc(-60 * var(--u));
+    top: calc(90 * var(--u));
+    width: calc(560 * var(--u));
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 45% 40%, #f1e9fc 0%, #e3d4f8 45%, rgba(227, 212, 248, 0) 70%);
+    translate: calc(var(--px) * 6px) calc(var(--py) * 4px);
+  }
+  .hc-piso {
+    position: absolute;
+    right: calc(10 * var(--u));
+    bottom: calc(-14 * var(--u));
+    width: calc(460 * var(--u));
+    height: calc(48 * var(--u));
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(46, 34, 64, 0.32), rgba(46, 34, 64, 0));
+    translate: calc(var(--px) * 14px) 0;
+  }
 
   /* Las capas base se ocultan dentro del foco; las de tinta solo existen dentro de él */
   .hc-capa-base {
@@ -291,15 +346,15 @@ textarea { cursor: text; }
   .hc-linea1,
   .hc-linea2 { position: absolute; margin: 0; }
   .hc-linea1 {
-    top: calc(var(--top) - 0.064em);
-    left: -0.03em;
-    font-size: calc(240 * var(--u));
+    top: calc(var(--top) - 0.136em);
+    left: -0.04em;
+    font-size: calc(212 * var(--u));
     translate: calc(var(--px) * -6px) calc(var(--py) * -2.4px);
   }
   .hc-linea2 {
-    top: calc(var(--l2-top) - 0.064em);
-    right: -0.03em;
-    font-size: calc(215 * var(--u));
+    top: calc(var(--l2-top) - 0.136em);
+    left: calc(118 * var(--u));
+    font-size: calc(184 * var(--u));
     translate: calc(var(--px) * -9px) calc(var(--py) * -2.7px);
   }
   .hc-tinta-letras { color: #8f6fd0; filter: url(#fa-tinta-contorno); }
@@ -308,32 +363,50 @@ textarea { cursor: text; }
   .hc-persona {
     position: absolute;
     bottom: 0;
-    left: calc(40 * var(--u));
+    right: calc(-6 * var(--u));
     height: var(--ph);
     max-width: none;
     translate: calc(var(--px) * 14px) 0;
+    /* Suaviza el borde izquierdo de la foto, donde termina la mano */
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to top, #000 55%, transparent 55%);
+    mask-image: linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to top, #000 55%, transparent 55%);
+    -webkit-mask-composite: source-over;
+    mask-composite: add;
   }
   .hc-tinta-persona { filter: url(#fa-tinta-duotono); }
+  .hc-sombra-persona {
+    display: block;
+    filter: brightness(0) blur(14px);
+    opacity: 0.22;
+    translate: calc(var(--px) * 10px - 18 * var(--u)) calc(14 * var(--u));
+  }
+
+  .hc-sello {
+    position: absolute;
+    z-index: 3;
+    display: block;
+    left: calc(560 * var(--u));
+    bottom: calc(34 * var(--u));
+    width: calc(124 * var(--u));
+    height: calc(124 * var(--u));
+    font-size: calc(14 * var(--u));
+    translate: calc(var(--px) * -16px) calc(var(--py) * -8px);
+  }
 
   .hc-acciones {
     position: absolute;
     z-index: 3;
-    left: calc(560 * var(--u));
+    left: 0;
     bottom: calc(30 * var(--u));
     margin: 0;
   }
   .hc-roles { font-size: max(11px, 12 * var(--u)); }
-  .hc-sedes {
-    position: absolute;
-    z-index: 3;
-    right: 0;
-    top: calc(var(--top) + 8 * var(--u));
-    margin: 0;
-    font-size: max(11px, 12 * var(--u));
-  }
+  .hc-lead { margin-top: calc(10 * var(--u)); max-width: calc(380 * var(--u)); font-size: max(14px, 15 * var(--u)); }
+  .hc-sedes { margin-top: calc(18 * var(--u)); font-size: max(11px, 12 * var(--u)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hc-letra,
-  .hc-persona-entra { animation: none; }
+  .hc-persona-entra,
+  .hc-sello-texto { animation: none; }
 }
