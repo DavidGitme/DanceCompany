@@ -62,8 +62,8 @@ export default function HeroClaro() {
   const lienzoRef = useRef<HTMLDivElement>(null);
   const [focoActivo, setFocoActivo] = useState(false);
 
-  const linea1 = t('Puro');
-  const linea2 = 'Flow';
+  const linea1 = t('Danza');
+  const linea2 = t('Urbana');
   const altPersona = t('Bailarina urbana agachada estirando la mano hacia la cámara');
 
   // El foco solo existe con mouse, en la composición ancha y sin movimiento reducido; se activa tras la entrada
@@ -210,6 +210,9 @@ export default function HeroClaro() {
         <div className="hc-acciones">
           <p className="hc-roles font-condensed uppercase text-[#5a4577]">
             Hip Hop <span className="text-purple-700/50">/</span> Breaking <span className="text-purple-700/50">/</span> Popping
+          </p>
+          <p className="hc-lead font-body text-[#3d3050]">
+            {t('Academia especializada en Hip Hop urbano. Clases por nivel y edad, desde los 5 años, en Bello y Copacabana.')}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
