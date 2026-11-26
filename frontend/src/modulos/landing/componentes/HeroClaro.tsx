@@ -62,8 +62,8 @@ export default function HeroClaro() {
   const lienzoRef = useRef<HTMLDivElement>(null);
   const [focoActivo, setFocoActivo] = useState(false);
 
-  const linea1 = t('Bailamos');
-  const linea2 = t('sin límites');
+  const linea1 = t('Danza');
+  const linea2 = t('Urbana');
   const altPersona = t('Bailarina urbana agachada estirando la mano hacia la cámara');
 
   // El foco solo existe con mouse, en la composición ancha y sin movimiento reducido; se activa tras la entrada
@@ -166,12 +166,12 @@ export default function HeroClaro() {
         <div className="hc-capa hc-capa-titular hc-capa-base">
           <h1 className="hc-titular display uppercase">
             <span className="sr-only">
-              {linea1} {linea2}
+              {linea1} {linea2}. {t('Academia de Hip Hop urbano en Bello y Copacabana')}
             </span>
-            <span className="hc-linea1 text-purple-700">
+            <span className="hc-linea1 hc-base-linea1">
               <PalabraEnmascarada texto={linea1} retraso={0.1} desde="abajo" />
             </span>
-            <span className="hc-linea2 text-[#1d1528]">
+            <span className="hc-linea2 hc-base-linea2">
               <PalabraEnmascarada texto={linea2} retraso={0.25} desde="arriba" inversa />
             </span>
           </h1>
@@ -186,6 +186,13 @@ export default function HeroClaro() {
             </div>
           </div>
         )}
+
+        {/* Fondo con profundidad: halo lila detrás de la persona y su sombra en el piso */}
+        <div aria-hidden="true" className="hc-capa hc-capa-fondo">
+          <span className="hc-halo" />
+          <span className="hc-piso" />
+          <img src={bailarina} alt="" width={632} height={980} decoding="async" className="hc-persona hc-sombra-persona" />
+        </div>
 
         {/* Persona base */}
         <div className="hc-capa hc-capa-persona hc-capa-base">
@@ -204,6 +211,9 @@ export default function HeroClaro() {
           <p className="hc-roles font-condensed uppercase text-[#5a4577]">
             Hip Hop <span className="text-purple-700/50">/</span> Breaking <span className="text-purple-700/50">/</span> Popping
           </p>
+          <p className="hc-lead font-body text-[#3d3050]">
+            {t('Academia especializada en Hip Hop urbano. Clases por nivel y edad, desde los 5 años, en Bello y Copacabana.')}
+          </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
@@ -220,17 +230,31 @@ export default function HeroClaro() {
               {t('Conoce más')}
             </button>
           </div>
+        <button type="button" onClick={() => scrollTo('#sedes')} className="hc-sedes group font-condensed uppercase text-[#5a4577]">
+            <span>(est. 2016)</span>
+            <span className="text-[#1d1528]">Bello / Copacabana</span>
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-purple-700 text-white transition-transform duration-300 group-hover:rotate-45 motion-reduce:transition-none" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-3.5 w-3.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
+              </svg>
+            </span>
+          </button>
         </div>
 
-        <button type="button" onClick={() => scrollTo('#sedes')} className="hc-sedes group font-condensed uppercase text-[#5a4577]">
-          <span>(est. 2016)</span>
-          <span className="text-[#1d1528]">Bello / Copacabana</span>
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-purple-700 text-white transition-transform duration-300 group-hover:rotate-45 motion-reduce:transition-none" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-3.5 w-3.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
-            </svg>
-          </span>
-        </button>
+        {/* Sello giratorio */}
+        <div aria-hidden="true" className="hc-sello">
+          <svg viewBox="0 0 120 120" className="hc-sello-texto">
+            <defs>
+              <path id="hc-circulo" d="M60,60 m-46,0 a46,46 0 1,1 92,0 a46,46 0 1,1 -92,0" />
+            </defs>
+            <text>
+              <textPath href="#hc-circulo">F&amp;A DANCE COMPANY • EST. 2016 • HIP HOP •</textPath>
+            </text>
+          </svg>
+          <span className="hc-sello-centro">✦</span>
+        </div>
+
+
       </div>
     </div>
   );
