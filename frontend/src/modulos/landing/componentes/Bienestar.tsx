@@ -14,21 +14,22 @@ export default function DanceWellness() {
   return (
     <section id="bienestar" className="relative py-28 bg-page overflow-hidden">
       <div className="relative max-w-[88rem] mx-auto px-6">
-        <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-16 items-start">
+        {/* 5/7: la imagen acompaña al texto sin dejar un hueco entre columnas */}
+        <div className="grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-12 xl:gap-20 items-center">
           {/* Imagen */}
-          <Reveal className="relative order-2 lg:order-1 lg:sticky lg:top-28">
-            <div className="relative max-w-md mx-auto lg:mx-0">
+          <Reveal className="relative order-2 lg:order-1 lg:sticky lg:top-28 lg:self-start">
+            <div className="relative mx-auto w-full max-w-sm sm:max-w-md lg:ml-auto lg:mr-0 lg:max-w-[30rem]">
               <img
                 src="https://images.unsplash.com/photo-1770739723922-a4fd700bdb3b?w=700&h=900&fit=crop&auto=format"
                 alt={t('Bailarina expresando emoción bajo luz de neón')}
                 loading="lazy"
-                className="block w-full aspect-[3/4] object-cover object-center grayscale-[35%] transition-all duration-700 hover:grayscale-0"
+                className="block w-full aspect-[4/5] max-h-[76svh] object-cover object-[50%_30%] grayscale-[35%] transition-all duration-700 hover:grayscale-0"
               />
               <div className="absolute inset-0 bg-purple-900/35 mix-blend-multiply pointer-events-none" />
               <span className="pointer-events-none absolute -left-3 -top-3 h-10 w-10 border-l border-t border-accent" />
               <span className="pointer-events-none absolute -right-3 -bottom-3 h-10 w-10 border-r border-b border-accent" />
-              <div className="absolute bottom-0 left-0 bg-page/90 backdrop-blur px-6 py-5 border-t border-r border-border">
-                <div className="display text-5xl text-blush">(40%)</div>
+              <div className="absolute bottom-0 left-0 bg-page/90 backdrop-blur px-5 py-4 border-t border-r border-border">
+                <div className="display text-4xl xl:text-5xl text-blush">(40%)</div>
                 <div className="font-condensed text-xs uppercase tracking-wider text-text-soft mt-1">
                   {t('Reducción del estrés')}
                 </div>

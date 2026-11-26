@@ -64,6 +64,7 @@ class EstudiantesMemoria:
         self.registros = {}
         self.documentos = set()
         self.con_matricula = set()
+        self.sin_acudiente = set()
 
     def nombre_tipo_documento(self, id_tipo):
         return TIPOS.get(id_tipo)
@@ -79,6 +80,9 @@ class EstudiantesMemoria:
 
     def tiene_matricula_activa(self, id_estudiante):
         return id_estudiante in self.con_matricula
+
+    def tiene_acudiente(self, id_estudiante):
+        return id_estudiante not in self.sin_acudiente
 
     def obtener(self, identificador):
         registro = self.registros.get(identificador)
@@ -97,9 +101,14 @@ class InscripcionesMemoria:
         self.pendiente = []
         self.confirmado = []
         self.vinculos = []
+        self.personas = {}
+        self.correos = set()
 
     def buscar_persona(self, documento):
-        return None
+        return self.personas.get(documento)
+
+    def email_existe(self, email, excluir_persona=None):
+        return email in self.correos
 
     def obtener_persona(self, id_persona):
         return {"idPersona": id_persona, "nombre": "Madre", "documento": "52000000", "fecha_nacimiento": date(1980, 1, 1)}
@@ -162,31 +171,86 @@ MENOR = {
     "email": None, "fecha_nacimiento": date(2015, 3, 10), "idSede": 1,
 }
 MADRE = {"idPersona": 7, "persona": None, "idParentesco": 1}
+ADULTO = {**MENOR, "nombre": "Pedro Rios", "idTipoDocumento": 1, "documento": "71000111", "fecha_nacimiento": date(1995, 5, 5)}
 
 
-def test_acudiente_es_opcional_y_maximo_uno():
+def test_acudiente_opcional_para_adultos_y_maximo_uno():
     caso, repo, _ = armar()
     caso.estudiantes.obtener = lambda i: {"idEstudiante": i}
-    caso.ejecutar({**MENOR, "acudientes": []})
+    caso.ejecutar({**ADULTO, "acudientes": []})
     assert ("estudiante", 1) in repo.confirmado
     with pytest.raises(DatoInvalido, match="un solo acudiente"):
         caso.ejecutar({**MENOR, "documento": "1112223335", "acudientes": [MADRE, MADRE]})
+
+
+def test_menor_sin_acudiente_no_se_registra():
+    caso, repo, _ = armar()
+    with pytest.raises(DatoInvalido, match="menor de edad"):
+        caso.ejecutar({**MENOR, "acudientes": []})
+    assert repo.confirmado == [] and repo.pendiente == []
+
+
+def test_acudiente_con_documento_existente_se_reutiliza():
+    caso, repo, _ = armar()
+    caso.estudiantes.obtener = lambda i: {"idEstudiante": i}
+    # El acudiente del hermano ya existe: mismo documento y mismo correo
+    repo.personas["52000000"] = {
+        "idPersona": 40, "nombre": "Madre", "documento": "52000000", "fecha_nacimiento": date(1980, 1, 1),
+        "esAdministrador": False, "sedeEstudiante": None,
+    }
+    repo.correos.add("madre@correo.com")
+    nueva = {"nombre": "Madre", "idTipoDocumento": 1, "documento": "52.000.000", "telefono": "3001112233",
+             "email": "madre@correo.com", "fecha_nacimiento": None}
+    caso.ejecutar({**MENOR, "acudientes": [{"idPersona": None, "persona": nueva, "idParentesco": 1}]})
+    assert (1, 40) in repo.vinculos
+    assert ("persona", "52000000") not in repo.confirmado
+
+
+def test_correo_de_otra_persona_da_un_mensaje_claro():
+    caso, repo, _ = armar()
+    repo.correos.add("madre@correo.com")
+    nueva = {"nombre": "Otra", "idTipoDocumento": 1, "documento": "53000000", "telefono": "3001112233",
+             "email": "madre@correo.com", "fecha_nacimiento": None}
+    with pytest.raises(Conflicto, match="búscalo por su número de documento"):
+        caso.ejecutar({**MENOR, "acudientes": [{"idPersona": None, "persona": nueva, "idParentesco": 1}]})
+
+
+def test_no_se_quita_el_acudiente_de_un_menor():
+    caso, repo, _ = armar()
+    caso.estudiantes.obtener = lambda i: {"idEstudiante": i, "documento": "1", "fecha_nacimiento": date(2015, 3, 10)}
+    repo.acudientes_de = lambda i: [{"idAcudiente": 7, "documento": "52000000"}]
+    with pytest.raises(Conflicto, match="menor de edad"):
+        caso.quitar_acudiente(1, 7)
+
+
+def test_editar_menor_exige_acudiente():
+    estudiantes = EstudiantesMemoria()
+    estudiantes.registros[1] = {**MENOR, "documento": "1112223334", "idEstudiante": 1, "idPersona": 1}
+    estudiantes.sin_acudiente.add(1)
+    with pytest.raises(DatoInvalido, match="menor de edad"):
+        GestionarEstudiantes(estudiantes).actualizar(1, {"nombre": "Lucia M"})
+
+
+def test_telefono_con_mas_de_diez_digitos_explica_el_limite():
+    caso, _, _ = armar()
+    with pytest.raises(DatoInvalido, match="máximo 10 dígitos"):
+        caso.ejecutar({**ADULTO, "telefono": "30012345678"})
 
 
 def test_invitacion_exige_correo_pero_la_clave_no():
     caso, repo, _ = armar()
     caso.estudiantes.obtener = lambda i: {"idEstudiante": i}
     with pytest.raises(DatoInvalido, match="correo"):
-        caso.ejecutar({**MENOR, "crearCuenta": True})
+        caso.ejecutar({**ADULTO, "crearCuenta": True})
     # Con clave asignada por la sede no hace falta correo: el usuario es el documento
-    resultado = caso.ejecutar({**MENOR, "clave": "Segura2026"})
-    assert resultado["cuentaCreada"] and ("cuenta", "1112223334") in repo.confirmado
+    resultado = caso.ejecutar({**ADULTO, "clave": "Segura2026"})
+    assert resultado["cuentaCreada"] and ("cuenta", "71000111") in repo.confirmado
 
 
 def test_clave_debe_tener_letra_y_numero():
     caso, _, _ = armar()
     with pytest.raises(DatoInvalido, match="letra y un número"):
-        caso.ejecutar({**MENOR, "clave": "soloLetras"})
+        caso.ejecutar({**ADULTO, "clave": "soloLetras"})
 
 
 class CorreoQueFalla:
@@ -201,8 +265,8 @@ def test_si_el_correo_falla_la_inscripcion_se_guarda_y_avisa():
     caso, repo, _ = armar()
     caso.correo = CorreoQueFalla()
     caso.estudiantes.obtener = lambda i: {"idEstudiante": i}
-    resultado = caso.ejecutar({**MENOR, "email": "lucia@correo.com", "crearCuenta": True})
-    assert ("cuenta", "1112223334") in repo.confirmado
+    resultado = caso.ejecutar({**ADULTO, "email": "pedro@correo.com", "crearCuenta": True})
+    assert ("cuenta", "71000111") in repo.confirmado
     assert resultado["correoEnviado"] is False and "invitación" in resultado["aviso"]
 
 

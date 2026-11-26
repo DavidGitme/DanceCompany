@@ -105,6 +105,12 @@ class RepositorioEstudiantesSql(PersonaSql, RepositorioEstudiantes):
             {"id": id_estudiante, "activo": ESTADO_ACTIVO},
         ).first() is not None
 
+    def tiene_acudiente(self, id_estudiante):
+        return self.sesion.execute(
+            text("SELECT 1 FROM estudiante_responsable WHERE idEstudiante = :id"),
+            {"id": id_estudiante},
+        ).first() is not None
+
     def cambiar_estado(self, identificador, id_estado):
         self._guardar(
             "UPDATE estudiante SET idEstado = :estado WHERE idEstudiante = :id",

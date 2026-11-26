@@ -9,6 +9,10 @@ class RepositorioEstudiantes(RepositorioPersonaRol):
     def tiene_matricula_activa(self, id_estudiante: int) -> bool:
         """True si el estudiante tiene alguna matrícula activa (bloquea el traslado de sede)."""
 
+    @abstractmethod
+    def tiene_acudiente(self, id_estudiante: int) -> bool:
+        """True si el estudiante tiene al menos un acudiente vinculado (obligatorio si es menor)."""
+
 
 class RepositorioInscripciones(ABC):
     """Escrituras de la inscripción presencial. Nada se confirma hasta `confirmar()`."""
@@ -19,6 +23,16 @@ class RepositorioInscripciones(ABC):
 
     @abstractmethod
     def obtener_persona(self, id_persona: int) -> dict[str, Any] | None: ...
+
+    @abstractmethod
+    def email_existe(self, email: str, excluir_persona: int | None = None) -> bool: ...
+
+    @abstractmethod
+    def actualizar_acudiente(self, id_persona: int, datos: dict[str, Any]) -> None:
+        """Actualiza nombre, teléfono y correo de la persona del acudiente (sin confirmar)."""
+
+    @abstractmethod
+    def cambiar_parentesco(self, id_estudiante: int, id_acudiente: int, id_parentesco: int) -> None: ...
 
     @abstractmethod
     def parentesco_existe(self, id_parentesco: int) -> bool: ...

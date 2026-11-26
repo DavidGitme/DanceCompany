@@ -5,6 +5,7 @@ from app.dominio.excepciones.errores import Conflicto, DatoInvalido
 from app.dominio.reglas import (
     error_documento,
     normalizar_documento,
+    TELEFONO_DIGITOS,
     normalizar_telefono,
     telefono_valido,
 )
@@ -18,10 +19,13 @@ class GestionarPersonaRol(GestionarCatalogo):
 
     repositorio: RepositorioPersonaRol
 
-    def validar_persona(self, datos, identificador=None) -> str:
-        """Normaliza documento, teléfono y correo (cambia `datos`) y devuelve el tipo de documento."""
+    def validar_persona(self, datos, identificador=None, excluir_persona: int | None = None) -> str:
+        """Normaliza documento, teléfono y correo (cambia `datos`) y devuelve el tipo de documento.
+
+        `excluir_persona` sirve para editar a una persona que no es el registro del módulo
+        (por ejemplo, el acudiente desde la edición del estudiante)."""
         # Al editar se excluye la propia persona para no chocar consigo misma
-        id_persona = self.obtener(identificador)["idPersona"] if identificador else None
+        id_persona = self.obtener(identificador)["idPersona"] if identificador else excluir_persona
         tipo = self.repositorio.nombre_tipo_documento(datos["idTipoDocumento"])
         if not tipo:
             raise DatoInvalido("El tipo de documento no existe.")
@@ -34,6 +38,10 @@ class GestionarPersonaRol(GestionarCatalogo):
             raise DatoInvalido(error)
         if datos.get("telefono"):
             datos["telefono"] = normalizar_telefono(datos["telefono"])
+            if len(datos["telefono"]) > TELEFONO_DIGITOS:
+                raise DatoInvalido(
+                    f"El teléfono admite máximo {TELEFONO_DIGITOS} dígitos (tiene {len(datos['telefono'])})."
+                )
             if not telefono_valido(datos["telefono"]):
                 raise DatoInvalido("El teléfono debe tener exactamente 10 dígitos.")
         if datos.get("email"):

@@ -9,7 +9,7 @@ import PantallaRecurso, { Icono, claseBotonIcono, hoverNeutro, type DefinicionRe
 import { useAuth } from "@/nucleo/auth/useAuth"
 import { puede } from "@/nucleo/auth/requierePermiso"
 import { recursoApi, mensajeError } from "@/compartido/api/recursos"
-import { FichaEstudiante, InscripcionEstudiante, type EstudianteFicha } from "@/modulos/estudiantes"
+import { EdicionEstudiante, FichaEstudiante, InscripcionEstudiante, type EstudianteFicha } from "@/modulos/estudiantes"
 import HorariosGrupoScreen from "@/modulos/grupos/paginas/HorariosGrupoScreen"
 import NoticiasScreen from "@/modulos/landing/paginas/NoticiasScreen"
 import { AdministrationProvider } from "@/modulos/pagos"
@@ -75,6 +75,8 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
   const [recargarLista, setRecargarLista] = useState(0)
   const [inscribiendo, setInscribiendo] = useState(false)
   const [ficha, setFicha] = useState<EstudianteFicha | null>(null)
+  // Fila del estudiante en edición (datos + acudiente); la ficha "Ver" es solo lectura
+  const [editando, setEditando] = useState<recursos.Estudiante | null>(null)
   const [recargarEstudiantes, setRecargarEstudiantes] = useState(0)
   const [aviso, setAviso] = useState<string | null>(null)
   const [crearAlEntrar, setCrearAlEntrar] = useState(false)
@@ -123,7 +125,7 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
   if (activeModule === "dashboard") {
     contenido = <Dashboard onNavigate={handleModuleChange} />
   } else if (activeModule === "estudiantes") {
-    // Estudiantes: "Nuevo" abre la inscripción presencial y "Ver" la ficha con acudientes
+    // Estudiantes: "Nuevo" abre la inscripción, "Ver" la ficha (solo lectura) y "Editar" la edición con acudiente
     contenido = (
       <PantallaRecurso
         key={activeModule}
@@ -133,14 +135,15 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
         onCrearAbierto={terminarCrear}
         sedeFija={sedeFija}
         alCrear={abrirInscripcion}
+        alEditar={(fila: recursos.Estudiante) => setEditando(fila)}
         recargar={recargarEstudiantes}
         accionesFila={(fila: recursos.Estudiante) => (
           <button
             type="button"
             onClick={() => setFicha(fila as unknown as EstudianteFicha)}
             className={`${claseBotonIcono} ${hoverNeutro}`}
-            aria-label={`Ver ficha y acudientes de ${fila.nombre}`}
-            title={tr("Ver ficha y acudientes")}
+            aria-label={`Ver ficha de ${fila.nombre}`}
+            title={tr("Ver ficha")}
           >
             <Icono nombre="ojo" />
           </button>
@@ -251,7 +254,8 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
             tabIndex={-1}
             className="flex-1 overflow-y-auto outline-none"
           >
-            <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">{contenido}</div>
+            {/* Usa el ancho disponible; el tope solo evita líneas ilegibles en monitores muy anchos */}
+            <div className="mx-auto w-full max-w-[120rem] px-4 py-6 sm:px-6 sm:py-8 xl:px-10">{contenido}</div>
           </main>
           {aviso && (
             <p role="status" className="fixed right-6 top-4 z-[70] rounded-2xl border border-emerald-500/30 bg-surface px-5 py-4 font-body text-sm font-semibold text-emerald-700 shadow-2xl dark:text-emerald-300">
@@ -276,7 +280,30 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
         />
       )}
       {ficha && (
-        <FichaEstudiante estudiante={ficha} cargarCatalogo={recursos.opcionesCatalogo} onCerrar={() => setFicha(null)} />
+        <FichaEstudiante
+          estudiante={ficha}
+          onCerrar={() => setFicha(null)}
+          onEditar={
+            privilegiosModulo && !privilegiosModulo.includes("editar")
+              ? undefined
+              : () => {
+                  setEditando(ficha as unknown as recursos.Estudiante)
+                  setFicha(null)
+                }
+          }
+        />
+      )}
+      {editando && (
+        <EdicionEstudiante
+          estudiante={editando}
+          cargarCatalogo={recursos.opcionesCatalogo}
+          onCerrar={() => setEditando(null)}
+          onGuardado={(nombre) => {
+            setEditando(null)
+            setRecargarEstudiantes((n) => n + 1)
+            setAviso(tr("Los datos de {nombre} se actualizaron.", { nombre }))
+          }}
+        />
       )}
     </AdministrationProvider>
   )

@@ -181,7 +181,7 @@ export default function PortalEstudiante({ nombre, onSalir }: PortalEstudiantePr
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">
+          <div className="mx-auto w-full max-w-screen-2xl">
             {cargando && <EstadoCarga />}
             {!cargando && error && (
               <Aviso tono="error" titulo="No pudimos cargar tu información" texto={error}>

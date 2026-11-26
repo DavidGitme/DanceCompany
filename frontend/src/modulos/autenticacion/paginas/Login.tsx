@@ -7,6 +7,9 @@ import { useAuth } from "@/nucleo/auth/useAuth"
 import type { UsuarioSesion } from "../dtos/autenticacionDto"
 import { autenticacionServicio } from "../servicios/autenticacionServicio"
 
+// Retrato de Unsplash (provisional hasta tener fotos propias de la academia)
+const FOTO_LOGIN = "https://images.unsplash.com/photo-1574022597485-46926298c9f9?w=1400&h=1800&fit=crop&auto=format"
+
 interface LoginProps {
   onBack: () => void
   onLogin?: (usuario: UsuarioSesion) => void
@@ -57,87 +60,68 @@ export default function Login({ onBack, onLogin }: LoginProps) {
     }
   }
 
+  // Campos con tokens semánticos: funcionan igual en modo claro y oscuro
   const inputClass =
-    "w-full bg-white/5 border border-purple-400/20 text-purple-50 placeholder:text-purple-100/30 px-4 py-3.5 font-body text-sm focus:outline-none focus:border-purple-400 transition-colors duration-200"
+    "w-full rounded-xl bg-surface border border-border text-text placeholder:text-text-muted px-4 py-3.5 font-body text-sm transition-colors duration-200 hover:border-accent/60 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+  const labelClass = "font-condensed text-xs font-semibold uppercase tracking-wider text-text-soft mb-1.5 block"
+  const enlaceClass =
+    "font-body text-sm text-accent underline-offset-4 hover:underline hover:text-accent-strong transition-colors cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
 
   return (
-    <div className="min-h-screen bg-[#0D0A10] dark:bg-[#0D0A10] flex">
-      {/* Left — branding panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[480px] flex-shrink-0 relative overflow-hidden">
-        {/* Background image */}
-        <img
-          src="https://images.unsplash.com/photo-1761882619891-6529ff92df0a?w=960&h=1200&fit=crop&auto=format"
-          alt={tr("Hip hop dancer")}
-          className="absolute inset-0 w-full h-full object-cover opacity-40"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#49225B]/80 via-[#0D0A10]/60 to-[#0D0A10]" />
-
-        <div className="relative z-10 p-10">
+    <div className="min-h-screen bg-page text-text lg:grid lg:grid-cols-2">
+      {/* Columna del formulario: es lo prioritario en todos los tamaños */}
+      <div className="relative flex min-h-screen flex-col px-6 py-6 sm:px-10 lg:px-14">
+        <header className="flex items-center justify-between gap-4">
           <button
+            type="button"
             onClick={onBack}
-            className="text-purple-400/60 hover:text-purple-400 font-condensed text-sm uppercase tracking-widest transition-colors cursor-pointer flex items-center gap-2"
+            className="flex items-center gap-2 rounded font-condensed text-sm uppercase tracking-widest text-text-soft transition-colors hover:text-accent cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            ← {tr("Volver al inicio")}
+            ← <span className="hidden sm:inline">{tr("Volver al inicio")}</span>
+            <span className="sm:hidden">{tr("Volver")}</span>
           </button>
-        </div>
+          <div className="text-text-soft">
+            <SelectorIdioma />
+          </div>
+        </header>
 
-        <div className="relative z-10 p-10">
-          <h2 className="font-display text-6xl uppercase text-purple-50 leading-none mb-4">
-            {tr("BAILA.")}
-            <br />
-            <span className="text-purple-400">{tr("CRECE.")}</span>
-            <br />
-            {tr("REGRESA.")}
-          </h2>
-          <p className="font-body text-purple-100/50 text-sm leading-relaxed">
-            {tr("Tu cuenta F&A te da acceso a horarios, progreso, comunidad y mucho más.")}
+        {/* Franja de imagen en móvil: corta para no desplazar el formulario */}
+        <div className="relative mt-6 h-28 overflow-hidden rounded-2xl lg:hidden" aria-hidden="true">
+          <img src={FOTO_LOGIN} alt="" className="h-full w-full object-cover object-[50%_30%] grayscale" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#2e2240]/90 via-[#5a4577]/60 to-transparent" />
+          <p className="absolute bottom-3 left-4 font-display text-2xl uppercase leading-none text-white">
+            {tr("BAILA.")} <span className="text-purple-100">{tr("CRECE.")}</span> {tr("REGRESA.")}
           </p>
         </div>
-      </div>
 
-      {/* Right — form */}
-      <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16">
-        {/* Mobile back */}
-        <button
-          onClick={onBack}
-          className="lg:hidden absolute top-6 left-6 text-purple-400/60 hover:text-purple-400 font-condensed text-sm uppercase tracking-widest transition-colors cursor-pointer"
-        >
-          ← {tr("Volver")}
-        </button>
-        {/* Idioma */}
-        <div className="absolute top-5 right-6 text-purple-100/70">
-          <SelectorIdioma />
-        </div>
-
+        <div className="flex flex-1 items-center justify-center py-6 sm:py-10">
         <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="flex justify-center mb-10">
-            <img
-              src={logoFna}
-              alt={tr("F&A Dance Company")}
-              className="h-14 w-auto object-contain"
-            />
-          </div>
+          {/* Logo: oscuro en claro, original en oscuro */}
+          <img
+            src={logoFna}
+            alt={tr("F&A Dance Company")}
+            className="mb-6 h-12 w-auto object-contain sm:mb-10 brightness-0 opacity-85 dark:brightness-100 dark:opacity-100"
+          />
 
-          <h1 className="font-display text-4xl uppercase text-purple-50 text-center mb-2">
+          <h1 className="font-display text-5xl uppercase leading-none text-text mb-3">
             {recuperando ? tr("RECUPERAR ACCESO") : tr("BIENVENIDO")}
           </h1>
-          <p className="font-body text-purple-100/50 text-sm text-center mb-10">
+          <p className="font-body text-text-soft text-sm mb-8 sm:mb-10">
             {recuperando
-              ? "Te enviaremos un enlace al correo registrado en tu cuenta."
+              ? tr("Te enviaremos un enlace al correo registrado en tu cuenta.")
               : tr("Inicia sesión con tu número de documento")}
           </p>
 
           {recuperando ? (
             <form onSubmit={solicitarRecuperacion} className="flex flex-col gap-4" noValidate>
               {mensajeRecuperacion ? (
-                <p role="status" className="border border-emerald-400/30 bg-emerald-400/10 p-4 font-body text-sm text-emerald-200">
+                <p role="status" className="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-4 font-body text-sm text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200">
                   {mensajeRecuperacion}
                 </p>
               ) : (
                 <>
                   <div>
-                    <label htmlFor="recuperar-documento" className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
+                    <label htmlFor="recuperar-documento" className={labelClass}>
                       {tr("Número de documento")}
                     </label>
                     <input
@@ -160,23 +144,23 @@ export default function Login({ onBack, onLogin }: LoginProps) {
                 </>
               )}
               {error && (
-                <p id="login-error" role="alert" className="font-body text-sm text-red-400">
+                <p id="login-error" role="alert" className="rounded-xl border border-red-600/30 bg-red-600/10 px-4 py-3 font-body text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200">
                   {error}
                 </p>
               )}
               <button
                 type="button"
                 onClick={() => { setRecuperando(false); setMensajeRecuperacion(""); setError("") }}
-                className="font-body text-sm text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
+                className={enlaceClass}
               >
-                ← Volver a iniciar sesión
+                ← {tr("Volver a iniciar sesión")}
               </button>
             </form>
           ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Documento: es el usuario de todas las cuentas */}
             <div>
-              <label htmlFor="login-documento" className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
+              <label htmlFor="login-documento" className={labelClass}>
                 {tr("Número de documento")}
               </label>
               <input
@@ -195,7 +179,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
 
             {/* Password */}
             <div>
-              <label htmlFor="login-clave" className="font-condensed text-xs uppercase tracking-wider text-purple-400 mb-1.5 block">
+              <label htmlFor="login-clave" className={labelClass}>
                 {tr("Contraseña")}
               </label>
               <div className="relative">
@@ -213,7 +197,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
                   type="button"
                   onClick={() => setShowPass(!showPass)}
                   aria-label={showPass ? tr("Ocultar contraseña") : tr("Mostrar contraseña")}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400/50 hover:text-purple-400 transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 grid h-8 w-8 place-items-center rounded-full text-text-muted hover:text-accent transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-accent"
                 >
                   {showPass ? (
                     <svg
@@ -257,7 +241,7 @@ export default function Login({ onBack, onLogin }: LoginProps) {
               <button
                 type="button"
                 onClick={() => { setRecuperando(true); setError("") }}
-                className="font-body text-sm text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
+                className={enlaceClass}
               >
                 {tr("¿Olvidaste tu contraseña?")}
               </button>
@@ -268,19 +252,56 @@ export default function Login({ onBack, onLogin }: LoginProps) {
               {enviando ? tr("Ingresando...") : tr("Iniciar sesión")}
             </Button>
             {error && (
-              <p role="alert" className="font-body text-sm text-red-400">
+              <p role="alert" className="rounded-xl border border-red-600/30 bg-red-600/10 px-4 py-3 font-body text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200">
                 {error}
               </p>
             )}
 
             {/* Las cuentas las crea la academia al inscribir al estudiante */}
-            <p className="text-center font-body text-sm text-purple-100/40 mt-2">
+            <p className="mt-4 border-t border-border pt-6 text-center font-body text-sm text-text-muted">
               {tr("¿No tienes cuenta? La academia la crea cuando te inscribes en tu sede.")}
             </p>
           </form>
           )}
         </div>
+        </div>
       </div>
+
+      {/* Columna de imagen (escritorio): retrato con capas para dar profundidad */}
+      <aside className="relative hidden overflow-hidden bg-surface-alt lg:block" aria-hidden="true">
+        <div className="absolute inset-0 grid-lines opacity-60" />
+        {/* Halo de marca detrás del retrato */}
+        <div className="absolute -right-24 top-1/4 h-[28rem] w-[28rem] rounded-full bg-accent/25 blur-3xl" />
+        <div className="absolute inset-y-10 left-10 right-10 xl:left-16 xl:right-16">
+          {/* Plano trasero desplazado */}
+          <div className="absolute inset-0 translate-x-5 translate-y-5 rounded-[2rem] bg-[#5a4577] dark:bg-[#3a2c50]" />
+          <figure className="relative h-full overflow-hidden rounded-[2rem] shadow-2xl shadow-[#2e2240]/40">
+            <img
+              src={FOTO_LOGIN}
+              alt=""
+              className="absolute inset-0 h-full w-full scale-105 object-cover object-[50%_25%] grayscale contrast-125"
+            />
+            {/* Duotono morado corporativo + viñeta inferior para el texto */}
+            <div className="absolute inset-0 bg-[#5a4577] mix-blend-multiply opacity-60" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1b1326] via-[#1b1326]/30 to-transparent" />
+            <figcaption className="absolute inset-x-0 bottom-0 p-10 xl:p-12">
+              <p className="font-display text-6xl uppercase leading-[0.95] text-white xl:text-7xl">
+                {tr("BAILA.")}
+                <br />
+                <span className="text-purple-100/80">{tr("CRECE.")}</span>
+                <br />
+                {tr("REGRESA.")}
+              </p>
+              <p className="mt-5 max-w-sm font-body text-sm leading-relaxed text-white/80">
+                {tr("Tu cuenta F&A te da acceso a horarios, progreso, comunidad y mucho más.")}
+              </p>
+            </figcaption>
+          </figure>
+          {/* Esquinas tipo visor, como en la sección de bienestar */}
+          <span className="absolute -left-4 -top-4 h-14 w-14 border-l-2 border-t-2 border-accent" />
+          <span className="absolute -bottom-9 -right-9 h-14 w-14 border-b-2 border-r-2 border-accent" />
+        </div>
+      </aside>
     </div>
   )
 }
