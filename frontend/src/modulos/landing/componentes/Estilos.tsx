@@ -79,8 +79,8 @@ export default function Estilos() {
               <li
                 key={estilo.nombre}
                 className={[
-                  morado ? 'bg-purple-700 text-white' : 'bg-white text-[#1d1528] dark:bg-surface dark:text-text',
-                  i > 0 ? (morado ? 'border-t border-purple-900/30' : 'border-t border-border') : '',
+                  morado ? 'bg-[#806aa8] text-white' : 'bg-white text-[#1d1528] dark:bg-surface dark:text-text',
+                  i > 0 ? (morado ? 'border-t border-white/25' : 'border-t border-border') : '',
                 ].join(' ')}
               >
                 <h3>
@@ -92,7 +92,7 @@ export default function Estilos() {
                     onClick={() => setAbierto(esAbierto ? null : i)}
                     className="group flex w-full items-center gap-5 px-6 py-6 text-left md:px-10 md:py-8"
                   >
-                    <span className={`font-condensed text-sm ${morado ? 'text-white/70' : 'text-text-muted'}`}>
+                    <span className={`font-condensed text-sm ${morado ? 'text-white/85' : 'text-text-muted'}`}>
                       ({String(i + 1).padStart(2, '0')})
                     </span>
                     <span className="display flex-1 text-4xl md:text-6xl transition-transform duration-500 group-hover:translate-x-2 motion-reduce:transition-none">
@@ -102,7 +102,7 @@ export default function Estilos() {
                       aria-hidden="true"
                       className={[
                         'grid h-11 w-11 shrink-0 place-items-center rounded-full border transition-transform duration-500 motion-reduce:transition-none',
-                        morado ? 'border-white/40' : 'border-current/25',
+                        morado ? 'border-white/60' : 'border-current/25',
                         esAbierto ? 'rotate-45' : '',
                       ].join(' ')}
                     >
@@ -117,7 +117,7 @@ export default function Estilos() {
                     <p
                       className={[
                         'max-w-3xl px-6 pb-8 font-body text-base leading-relaxed md:pl-[6.5rem] md:pr-10 md:text-lg',
-                        morado ? 'text-white/90' : 'text-text-soft',
+                        morado ? 'text-white' : 'text-text-soft',
                       ].join(' ')}
                     >
                       {t(estilo.descripcion)}
