@@ -633,5 +633,6 @@ export const en: Record<string, string> = {
   "← Volver a iniciar sesión": "← Back to log in",
   "Bailamos": "We dance",
   "sin límites": "no limits",
-  "La única academia 100% Hip Hop urbano de Antioquia.": "The only 100% urban Hip Hop academy in Antioquia.",
+  "Hip Hop urbano · Bello y Copacabana": "Urban Hip Hop · Bello and Copacabana",
+  "Bailarina urbana agachada estirando la mano hacia la cámara": "Urban dancer crouching and reaching toward the camera",
 }

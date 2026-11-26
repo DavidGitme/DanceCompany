@@ -188,36 +188,152 @@ textarea { cursor: text; }
   .animar-fondo, .animar-entrada, .animar-panel, .esqueleto { animation: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; }
 }
-/* ---------- Hero del modo claro: titular gigante, foco de tinta lila y paralaje ---------- */
-@property --spot-r {
-  syntax: '<length>';
-  inherits: true;
-  initial-value: 0px;
-}
-.hero-claro {
-  --spot-x: 50%;
-  --spot-y: 40%;
-  --spot-r: 0px;
+/* ---------- Hero del modo claro (titular gigante, persona recortada y foco de tinta lila) ---------- */
+/* Anton con line-height 1: la mayúscula empieza 0.064em bajo el borde superior y la línea base queda a 0.923em */
+.hc { padding-top: 6rem; }
+.hc-lienzo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0 1.25rem 2.5rem;
+  container-type: inline-size;
   --px: 0;
   --py: 0;
-  transition: --spot-r 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.hero-claro.foco-activo { --spot-r: 160px; }
-.hero-claro-tinta {
-  -webkit-mask-image: radial-gradient(circle var(--spot-r) at var(--spot-x) var(--spot-y), #000 0 55%, transparent 100%);
-  mask-image: radial-gradient(circle var(--spot-r) at var(--spot-x) var(--spot-y), #000 0 55%, transparent 100%);
+.hc-capa { display: contents; }
+.hc-titular {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
 }
-.hero-claro-halo {
-  background: radial-gradient(circle calc(var(--spot-r) * 2.4) at var(--spot-x) var(--spot-y), rgba(201, 179, 240, 0.35), transparent 70%);
+.hc-linea1,
+.hc-linea2 { white-space: nowrap; }
+.hc-linea1 { font-size: 24cqw; margin-left: -0.03em; }
+.hc-linea2 { font-size: 21cqw; align-self: flex-end; margin-right: -0.03em; margin-top: 0.12em; }
+
+/* Cada letra sube desde una máscara que abraza las mayúsculas (deja espacio para tildes) */
+.hc-letra-mascara { clip-path: inset(-0.3em -0.25em 0.077em -0.25em); }
+.hc-letra { animation: hc-sube 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes hc-sube { from { transform: translateY(105%); } to { transform: none; } }
+
+/* Móvil y tablet: la persona va debajo, sobre un panel lila, montada un poco sobre el titular */
+.hc-capa-persona.hc-capa-base {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: -6cqw;
 }
-.hero-claro-letras { transform: translate3d(calc(var(--px) * -16px), calc(var(--py) * -8px), 0); }
-.hero-claro-persona { transform: translate3d(calc(var(--px) * 20px), calc(var(--py) * 6px), 0); }
-.hero-claro-entra { animation: hero-claro-sube 1s cubic-bezier(0.22, 1, 0.36, 1) both; }
-@keyframes hero-claro-sube {
-  from { opacity: 0; transform: translateY(36px); }
-  to { opacity: 1; transform: none; }
+.hc-capa-persona.hc-capa-base::before {
+  content: '';
+  position: absolute;
+  inset: 22% 0 0;
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: linear-gradient(180deg, #efe7fb 0%, #e2d4f7 100%);
 }
+.hc-persona {
+  position: relative;
+  height: min(62svh, 34rem);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+.hc-persona-entra { animation: hc-persona 1.3s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: bottom; }
+@keyframes hc-persona {
+  from { clip-path: inset(100% 0 0 0); scale: 1.06; }
+  to { clip-path: inset(0 0 0 0); scale: 1; }
+}
+.hc-acciones { margin-top: 1.75rem; }
+.hc-roles { font-size: 0.75rem; letter-spacing: 0.2em; }
+.hc-sedes {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+}
+
+/* Composición ancha: todo se coloca sobre un lienzo que ocupa la pantalla, como la referencia */
+@media (min-width: 1024px) and (min-aspect-ratio: 5/4) {
+  .hc { height: 100svh; min-height: 620px; padding-top: 0; }
+  .hc-lienzo {
+    position: absolute;
+    inset: 5.5rem 2.5rem 0;
+    display: block;
+    padding: 0;
+    container-type: size;
+    --u: max(min(100cqw / 1280, (100cqh - 40px) / 600), 100cqw / 1600);
+    --top: calc(14 * var(--u));
+    --l2-top: calc(var(--top) + 266 * var(--u));
+    --ph: min(100cqh - var(--top) - 24 * var(--u), 820 * var(--u));
+  }
+  .hc-capa { position: absolute; inset: 0; display: block; pointer-events: none; }
+  .hc-capa-titular { z-index: 0; }
+  .hc-capa-persona { z-index: 2; }
+  .hc-capa-persona.hc-capa-base { position: absolute; display: block; margin: 0; }
+  .hc-capa-persona.hc-capa-base::before { display: none; }
+
+  /* Las capas base se ocultan dentro del foco; las de tinta solo existen dentro de él */
+  .hc-capa-base {
+    --spot: radial-gradient(circle var(--spot-r, 0px) at var(--spot-x, 0px) var(--spot-y, 0px), transparent calc(var(--spot-r, 0px) - 1px), #000 calc(var(--spot-r, 0px) + 1px));
+    -webkit-mask-image: var(--spot);
+    mask-image: var(--spot);
+  }
+  .hc-capa-tinta {
+    --spot: radial-gradient(circle var(--spot-r, 0px) at var(--spot-x, 0px) var(--spot-y, 0px), #000 calc(var(--spot-r, 0px) + 1px), transparent calc(var(--spot-r, 0px) + 2px));
+    -webkit-mask-image: var(--spot);
+    mask-image: var(--spot);
+  }
+  /* Sombreado lila suave dentro del foco */
+  .hc-capa-titular.hc-capa-tinta { background: rgba(195, 168, 240, 0.22); }
+
+  .hc-titular { display: block; position: static; }
+  .hc-linea1,
+  .hc-linea2 { position: absolute; margin: 0; }
+  .hc-linea1 {
+    top: calc(var(--top) - 0.064em);
+    left: -0.03em;
+    font-size: calc(240 * var(--u));
+    translate: calc(var(--px) * -6px) calc(var(--py) * -2.4px);
+  }
+  .hc-linea2 {
+    top: calc(var(--l2-top) - 0.064em);
+    right: -0.03em;
+    font-size: calc(215 * var(--u));
+    translate: calc(var(--px) * -9px) calc(var(--py) * -2.7px);
+  }
+  .hc-tinta-letras { color: #8f6fd0; filter: url(#fa-tinta-contorno); }
+
+  /* La persona se apoya en el borde inferior y solo se mueve de lado, para no despegarse del borde */
+  .hc-persona {
+    position: absolute;
+    bottom: 0;
+    left: calc(40 * var(--u));
+    height: var(--ph);
+    max-width: none;
+    translate: calc(var(--px) * 14px) 0;
+  }
+  .hc-tinta-persona { filter: url(#fa-tinta-duotono); }
+
+  .hc-acciones {
+    position: absolute;
+    z-index: 3;
+    left: calc(560 * var(--u));
+    bottom: calc(30 * var(--u));
+    margin: 0;
+  }
+  .hc-roles { font-size: max(11px, 12 * var(--u)); }
+  .hc-sedes {
+    position: absolute;
+    z-index: 3;
+    right: 0;
+    top: calc(var(--top) + 8 * var(--u));
+    margin: 0;
+    font-size: max(11px, 12 * var(--u));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .hero-claro { transition: none; }
-  .hero-claro-entra { animation: none; }
+  .hc-letra,
+  .hc-persona-entra { animation: none; }
 }
