@@ -151,7 +151,7 @@ export default function App() {
         onToggleTheme={() => setIsDark((d) => !d)}
         onLoginClick={() => setPage("login")}
       />
-      <main>
+      <main className="landing-secciones">
         <Hero />
         <ValueProposition />
         <Estilos />

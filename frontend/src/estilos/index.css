@@ -378,3 +378,64 @@ textarea { cursor: text; }
   .hc-persona-entra,
   .hc-eco { animation: none; }
 }
+
+/* ---------- Tarjetas de estilos: informativas, con profundidad al pasar el mouse ---------- */
+.tarjeta-estilo {
+  --gx: 50%;
+  --gy: 0%;
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
+  height: 100%;
+  min-height: 20rem;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  padding: 1.75rem;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, translate 0.35s ease;
+  box-shadow: 0 1px 2px rgba(46, 34, 64, 0.06), 0 12px 30px -18px rgba(46, 34, 64, 0.35);
+}
+.tarjeta-estilo-clara { background: #fff; color: #1d1528; border: 1px solid rgba(90, 69, 119, 0.14); }
+.dark .tarjeta-estilo-clara { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border); }
+.tarjeta-estilo-morada { background: linear-gradient(160deg, #8a74b2 0%, #806aa8 45%, #6f5a97 100%); color: #fff; }
+/* Brillo lila que sigue al cursor (solo se ve al pasar el mouse) */
+.tarjeta-estilo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(22rem circle at var(--gx) var(--gy), rgba(195, 168, 240, 0.35), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.tarjeta-estilo-morada::before { background: radial-gradient(22rem circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.22), transparent 60%); }
+.tarjeta-estilo-nombre { transition: translate 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+@media (hover: hover) and (pointer: fine) {
+  .tarjeta-estilo:hover {
+    translate: 0 -6px;
+    box-shadow: 0 2px 4px rgba(46, 34, 64, 0.08), 0 30px 50px -24px rgba(46, 34, 64, 0.5);
+  }
+  .tarjeta-estilo:hover::before { opacity: 1; }
+  .tarjeta-estilo:hover .tarjeta-estilo-nombre { translate: 0 -3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-estilo { transform: none; transition: none; }
+  .tarjeta-estilo:hover { translate: none; }
+}
+
+/* ---------- Landing por pantallas: cada sección ocupa al menos una pantalla en escritorio ---------- */
+@media (min-width: 1024px) and (min-height: 640px) {
+  .landing-secciones > section:not(#inicio) {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .landing-secciones > section:not(#inicio) > :not(.absolute) { width: 100%; }
+}
+/*
+ * No se usa scroll-snap: en las pruebas con rueda del mouse retenía el desplazamiento en Chrome.
+ * Cada sección ocupa la pantalla completa y el contenido queda centrado, sin bloquear el scroll.
+ */

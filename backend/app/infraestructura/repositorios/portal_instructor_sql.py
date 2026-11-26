@@ -70,3 +70,28 @@ class RepositorioPortalInstructorSql(RepositorioBaseSql, RepositorioPortalInstru
             "WHERE mn.idMatricula = ANY(:matriculas) ORDER BY mn.fecha_limite DESC",
             {"matriculas": matriculas},
         )
+
+    # ---------- Cambios de la propia cuenta ----------
+    def actualizar_contacto(self, documento, correo, telefono):
+        self.sesion.execute(
+            text("UPDATE persona SET email = :correo, telefono = :telefono WHERE documento = :documento"),
+            {"documento": documento, "correo": correo, "telefono": telefono},
+        )
+
+    def hash_clave(self, documento):
+        return self.sesion.execute(
+            text("SELECT password_hash FROM usuarios WHERE documento = :documento"),
+            {"documento": documento},
+        ).scalar()
+
+    def guardar_clave(self, documento, password_hash):
+        self.sesion.execute(
+            text("UPDATE usuarios SET password_hash = :hash WHERE documento = :documento"),
+            {"documento": documento, "hash": password_hash},
+        )
+
+    def confirmar(self):
+        self.sesion.commit()
+
+    def deshacer(self):
+        self.sesion.rollback()
