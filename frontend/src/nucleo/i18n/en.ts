@@ -631,4 +631,7 @@ export const en: Record<string, string> = {
   "“{nombre}” dejará de aparecer en las listas de selección. El registro y su historial se conservan y puedes activarlo de nuevo.": "“{nombre}” will no longer appear in selection lists. The record and its history are kept and you can activate it again.",
   "“{nombre}” volverá a estar disponible en las listas de selección.": "“{nombre}” will be available again in selection lists.",
   "← Volver a iniciar sesión": "← Back to log in",
+  "Bailamos": "We dance",
+  "sin límites": "no limits",
+  "La única academia 100% Hip Hop urbano de Antioquia.": "The only 100% urban Hip Hop academy in Antioquia.",
 }
