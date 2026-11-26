@@ -1,158 +1,232 @@
-import { useEffect, useRef, type CSSProperties } from 'react';
-import Button from '@/compartido/ui/Button';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useIdioma } from '@/nucleo/i18n/useIdioma';
+import bailarina from '@/recursos/hero-bailarina.webp';
 
 /*
- * Bailarín recortado (PNG con fondo transparente) en src/recursos/hero-bailarin.png.
- * Si el archivo no existe, se muestra la foto de respaldo dentro de un arco.
+ * Portada del modo claro, adaptada del hero editorial de referencia (titular gigante en dos líneas,
+ * persona recortada encima y un foco de "tinta" que sigue al mouse). Sin librerías de animación:
+ * variables CSS + requestAnimationFrame.
+ *
+ * Capas (de atrás hacia adelante): titular base, titular "tinta" (contorno lila), persona base,
+ * persona "tinta" (duotono morado). Las capas base se ocultan dentro del foco y las de tinta solo
+ * se ven dentro de él.
  */
-const recortes = import.meta.glob('../../../recursos/hero-bailarin.{png,webp}', {
-  eager: true,
-  import: 'default',
-}) as Record<string, string>;
-const FOTO_RECORTADA: string | undefined = Object.values(recortes)[0];
-const FOTO_RESPALDO = 'https://images.unsplash.com/photo-1730350251024-3dba1909bc60?w=900&h=1125&fit=crop&crop=faces,entropy&auto=format';
 
-/** Las dos palabras gigantes. Se dibujan dos veces: color normal y capa de tinta lila. */
-function Palabras({ linea1, linea2, tinta = false }: { linea1: string; linea2: string; tinta?: boolean }) {
+const RADIO_FOCO = 145;
+const FOCO_LISTO_MS = 2100;
+
+/** Filtros SVG: contorno de las letras (banda de 2px dentro de la silueta) y duotono morado/lila de la persona. */
+function FiltrosTinta() {
   return (
-    <div className="hero-claro-letras display flex flex-col leading-[0.86] text-[clamp(4.2rem,18vw,8rem)] md:text-[clamp(5rem,13vw,14rem)]">
-      <span className={['self-center md:self-start whitespace-nowrap', tinta ? 'text-[#c3a8f0]' : 'text-purple-700'].join(' ')}>
-        {linea1}
-      </span>
-      <span className={['self-center md:self-end whitespace-nowrap', tinta ? 'text-[#c3a8f0]' : 'text-[#1d1528]'].join(' ')}>
-        {linea2}
-      </span>
-    </div>
+    <svg width="0" height="0" aria-hidden="true" focusable="false" className="absolute">
+      <filter id="fa-tinta-duotono" colorInterpolationFilters="sRGB">
+        <feColorMatrix type="matrix" values="0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0" />
+        <feComponentTransfer>
+          <feFuncR type="table" tableValues="0.231 0.353 0.765 1" />
+          <feFuncG type="table" tableValues="0.176 0.271 0.659 1" />
+          <feFuncB type="table" tableValues="0.322 0.467 0.941 1" />
+        </feComponentTransfer>
+      </filter>
+      <filter id="fa-tinta-contorno">
+        <feMorphology in="SourceAlpha" operator="erode" radius="2" result="dentro" />
+        <feComposite in="SourceGraphic" in2="dentro" operator="out" />
+      </filter>
+    </svg>
   );
 }
 
-/** Hero del modo claro, inspirado en un titular editorial con la persona recortada al centro. */
+/** Palabra que entra letra por letra desde una máscara (de abajo o de arriba). */
+function PalabraEnmascarada({ texto, retraso, desde, inversa = false }: { texto: string; retraso: number; desde: 'abajo' | 'arriba'; inversa?: boolean }) {
+  const letras = [...texto];
+  return (
+    <span aria-hidden="true" className="inline-block whitespace-nowrap">
+      {letras.map((letra, i) => {
+        const orden = inversa ? letras.length - 1 - i : i;
+        return (
+          <span key={`${letra}-${i}`} className="hc-letra-mascara inline-block">
+            <span
+              className={`hc-letra inline-block ${desde === 'abajo' ? 'hc-desde-abajo' : 'hc-desde-arriba'}`}
+              style={{ animationDelay: `${retraso + orden * 0.045}s` } as CSSProperties}
+            >
+              {letra === ' ' ? ' ' : letra}
+            </span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 export default function HeroClaro() {
   const { t } = useIdioma();
-  const ref = useRef<HTMLDivElement>(null);
+  const lienzoRef = useRef<HTMLDivElement>(null);
+  const [focoActivo, setFocoActivo] = useState(false);
 
-  // Foco de tinta lila que sigue el puntero y leve paralaje (solo con mouse)
+  const linea1 = t('Bailamos');
+  const linea2 = t('sin límites');
+  const altPersona = t('Bailarina urbana agachada estirando la mano hacia la cámara');
+
+  // El foco solo existe con mouse, en la composición ancha y sin movimiento reducido; se activa tras la entrada
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-    const reducir = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const consulta = window.matchMedia(
+      '(hover: hover) and (pointer: fine) and (min-width: 1024px) and (min-aspect-ratio: 5/4) and (prefers-reduced-motion: no-preference)',
+    );
+    let timer = 0;
+    const actualizar = () => {
+      window.clearTimeout(timer);
+      if (consulta.matches) timer = window.setTimeout(() => setFocoActivo(true), FOCO_LISTO_MS);
+      else setFocoActivo(false);
+    };
+    actualizar();
+    consulta.addEventListener('change', actualizar);
+    return () => {
+      window.clearTimeout(timer);
+      consulta.removeEventListener('change', actualizar);
+    };
+  }, []);
 
-    const objetivo = { x: 0, y: 0 };
-    const actual = { x: 0, y: 0 };
+  // Profundidad + foco: el puntero mueve un objetivo y cada cuadro se acerca suavemente (como un resorte)
+  useEffect(() => {
+    const lienzo = lienzoRef.current;
+    const seccion = lienzo?.parentElement;
+    if (!lienzo || !seccion) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const obj = { px: 0, py: 0, x: 0, y: 0, r: 0 };
+    const act = { px: 0, py: 0, x: 0, y: 0, r: 0 };
     let raf = 0;
 
-    const pintar = () => {
-      const k = reducir ? 1 : 0.16;
-      actual.x += (objetivo.x - actual.x) * k;
-      actual.y += (objetivo.y - actual.y) * k;
-      const r = el.getBoundingClientRect();
-      el.style.setProperty('--spot-x', `${actual.x}px`);
-      el.style.setProperty('--spot-y', `${actual.y}px`);
-      if (!reducir) {
-        el.style.setProperty('--px', (actual.x / r.width - 0.5).toFixed(3));
-        el.style.setProperty('--py', (actual.y / r.height - 0.5).toFixed(3));
-      }
-      raf = Math.abs(objetivo.x - actual.x) > 0.3 || Math.abs(objetivo.y - actual.y) > 0.3 ? requestAnimationFrame(pintar) : 0;
+    const cuadro = () => {
+      act.px += (obj.px - act.px) * 0.06;
+      act.py += (obj.py - act.py) * 0.06;
+      act.x += (obj.x - act.x) * 0.28;
+      act.y += (obj.y - act.y) * 0.28;
+      act.r += (obj.r - act.r) * 0.14;
+      const s = lienzo.style;
+      s.setProperty('--px', act.px.toFixed(4));
+      s.setProperty('--py', act.py.toFixed(4));
+      s.setProperty('--spot-x', `${act.x.toFixed(1)}px`);
+      s.setProperty('--spot-y', `${act.y.toFixed(1)}px`);
+      s.setProperty('--spot-r', `${Math.max(0, act.r).toFixed(1)}px`);
+      const quieto =
+        Math.abs(obj.px - act.px) < 0.001 &&
+        Math.abs(obj.py - act.py) < 0.001 &&
+        Math.abs(obj.x - act.x) < 0.3 &&
+        Math.abs(obj.y - act.y) < 0.3 &&
+        Math.abs(obj.r - act.r) < 0.3;
+      raf = quieto ? 0 : requestAnimationFrame(cuadro);
+    };
+    const pedir = () => {
+      if (!raf) raf = requestAnimationFrame(cuadro);
     };
 
     const mover = (e: PointerEvent) => {
-      const r = el.getBoundingClientRect();
-      objetivo.x = e.clientX - r.left;
-      objetivo.y = e.clientY - r.top;
-      if (!el.classList.contains('foco-activo')) {
-        actual.x = objetivo.x;
-        actual.y = objetivo.y;
-        el.classList.add('foco-activo');
+      obj.px = (e.clientX / window.innerWidth) * 2 - 1;
+      obj.py = (e.clientY / window.innerHeight) * 2 - 1;
+      const r = lienzo.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      const y = e.clientY - r.top;
+      if (lienzo.dataset.foco === 'si') {
+        // Cerrado por completo, se coloca bajo el cursor para abrirse ahí y no deslizarse desde otro punto
+        if (act.r < 1) {
+          act.x = x;
+          act.y = y;
+        }
+        obj.r = RADIO_FOCO;
       }
-      if (!raf) raf = requestAnimationFrame(pintar);
+      obj.x = x;
+      obj.y = y;
+      pedir();
     };
-    const salir = () => el.classList.remove('foco-activo');
+    const salir = () => {
+      obj.px = 0;
+      obj.py = 0;
+      obj.r = 0;
+      pedir();
+    };
 
-    el.addEventListener('pointermove', mover);
-    el.addEventListener('pointerleave', salir);
+    seccion.addEventListener('pointermove', mover);
+    seccion.addEventListener('pointerleave', salir);
     return () => {
       cancelAnimationFrame(raf);
-      el.removeEventListener('pointermove', mover);
-      el.removeEventListener('pointerleave', salir);
+      seccion.removeEventListener('pointermove', mover);
+      seccion.removeEventListener('pointerleave', salir);
     };
   }, []);
 
   const scrollTo = (href: string) => document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
-  const linea1 = t('Bailamos');
-  const linea2 = t('sin límites');
 
   return (
-    <div
-      ref={ref}
-      className="hero-claro relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-white text-[#1d1528]"
-      style={{ '--px': 0, '--py': 0 } as CSSProperties}
-    >
-      <h1 className="sr-only">
-        {linea1} {linea2}
-      </h1>
+    <div className="hc relative isolate overflow-hidden bg-white text-[#1d1528]">
+      <FiltrosTinta />
 
-      {/* Halo lila suave que sigue el puntero */}
-      <div aria-hidden="true" className="hero-claro-halo pointer-events-none absolute inset-0 -z-10" />
-
-      {/* Escena */}
-      <div className="relative flex-1 min-h-[36rem] md:min-h-[31rem]">
-        {/* Palabras base */}
-        <div aria-hidden="true" className="hero-claro-entra absolute inset-x-0 top-24 z-10 mx-auto max-w-[94rem] px-5 md:top-28 md:px-10">
-          <Palabras linea1={linea1} linea2={linea2} />
+      <div ref={lienzoRef} className="hc-lienzo" data-foco={focoActivo ? 'si' : 'no'}>
+        {/* Titular base */}
+        <div className="hc-capa hc-capa-titular hc-capa-base">
+          <h1 className="hc-titular display uppercase">
+            <span className="sr-only">
+              {linea1} {linea2}
+            </span>
+            <span className="hc-linea1 text-purple-700">
+              <PalabraEnmascarada texto={linea1} retraso={0.1} desde="abajo" />
+            </span>
+            <span className="hc-linea2 text-[#1d1528]">
+              <PalabraEnmascarada texto={linea2} retraso={0.25} desde="arriba" inversa />
+            </span>
+          </h1>
         </div>
 
-        {/* Tinta lila: copia de las palabras visible solo dentro del foco */}
-        <div aria-hidden="true" className="hero-claro-tinta pointer-events-none absolute inset-0 z-[15]">
-          <div className="absolute inset-x-0 top-24 mx-auto max-w-[94rem] px-5 md:top-28 md:px-10">
-            <Palabras linea1={linea1} linea2={linea2} tinta />
-          </div>
-        </div>
-
-        {/* Persona al centro, delante de las letras */}
-        <div className="hero-claro-persona pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center md:pr-[14%]">
-          {FOTO_RECORTADA ? (
-            <img
-              src={FOTO_RECORTADA}
-              alt={t('Bailarín de hip hop a color')}
-              className="hero-claro-entra h-[min(54svh,23rem)] w-auto max-w-[96vw] object-contain object-bottom md:h-[min(84svh,56rem)]"
-            />
-          ) : (
-            <div className="hero-claro-entra aspect-[4/5] w-[min(58vw,18rem)] overflow-hidden rounded-t-full bg-purple-100 md:w-[22rem]">
-              <img src={FOTO_RESPALDO} alt={t('Bailarín de hip hop a color')} className="h-full w-full object-cover object-[center_20%]" />
+        {/* Titular tinta: letras en contorno lila dentro del foco */}
+        {focoActivo && (
+          <div aria-hidden="true" className="hc-capa hc-capa-titular hc-capa-tinta">
+            <div className="hc-titular display uppercase">
+              <span className="hc-linea1 hc-tinta-letras">{linea1}</span>
+              <span className="hc-linea2 hc-tinta-letras">{linea2}</span>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* Pequeños detalles inferiores */}
-      <div className="relative z-30 mx-auto flex w-full max-w-[94rem] flex-col gap-6 px-5 pb-8 pt-6 md:absolute md:inset-x-0 md:bottom-0 md:flex-row md:items-end md:justify-between md:px-10 md:pt-0">
-        <div>
-          <p className="flex items-center gap-2 font-condensed text-xs uppercase tracking-[0.25em] text-[#5a4577]">
-            <span className="h-1.5 w-1.5 rounded-full bg-purple-700" aria-hidden="true" />
-            Hip Hop · Breaking · Popping
+        {/* Persona base */}
+        <div className="hc-capa hc-capa-persona hc-capa-base">
+          <img src={bailarina} alt={altPersona} width={632} height={980} fetchPriority="high" decoding="async" className="hc-persona hc-persona-entra" />
+        </div>
+
+        {/* Persona tinta: duotono morado dentro del foco */}
+        {focoActivo && (
+          <div aria-hidden="true" className="hc-capa hc-capa-persona hc-capa-tinta">
+            <img src={bailarina} alt="" width={632} height={980} decoding="async" className="hc-persona hc-tinta-persona" />
+          </div>
+        )}
+
+        {/* Pequeños detalles: llamadas a la acción y sedes */}
+        <div className="hc-acciones">
+          <p className="hc-roles font-condensed uppercase text-[#5a4577]">
+            Hip Hop <span className="text-purple-700/50">/</span> Breaking <span className="text-purple-700/50">/</span> Popping
           </p>
-          <div className="mt-4 flex flex-wrap gap-3 [&>button]:whitespace-nowrap">
-            <Button onClick={() => scrollTo('#sedes')}>{t('Inscríbete en una sede')}</Button>
-            <Button
-              variant="outline"
-              className="!text-purple-700 !border-purple-700/50 hover:!bg-purple-700 hover:!text-white"
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => scrollTo('#sedes')}
+              className="whitespace-nowrap rounded-full bg-purple-700 px-6 py-3 font-condensed text-sm font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#2e2240] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700"
+            >
+              {t('Inscríbete en una sede')}
+            </button>
+            <button
+              type="button"
               onClick={() => scrollTo('#nosotros')}
+              className="whitespace-nowrap rounded-full border border-purple-700/40 bg-white px-6 py-3 font-condensed text-sm font-semibold uppercase tracking-[0.15em] text-purple-700 transition-colors hover:bg-purple-700 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700"
             >
               {t('Conoce más')}
-            </Button>
+            </button>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => scrollTo('#sedes')}
-          className="group flex items-center gap-3 self-start font-condensed text-sm uppercase tracking-[0.2em] text-[#5a4577] md:self-end"
-        >
-          (est. 2016) · Bello · Copacabana
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-[#c3a8f0] text-[#2e2240] transition-transform duration-300 group-hover:rotate-45 motion-reduce:transition-none" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+        <button type="button" onClick={() => scrollTo('#sedes')} className="hc-sedes group font-condensed uppercase text-[#5a4577]">
+          <span>(est. 2016)</span>
+          <span className="text-[#1d1528]">Bello / Copacabana</span>
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-purple-700 text-white transition-transform duration-300 group-hover:rotate-45 motion-reduce:transition-none" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-3.5 w-3.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
             </svg>
           </span>
