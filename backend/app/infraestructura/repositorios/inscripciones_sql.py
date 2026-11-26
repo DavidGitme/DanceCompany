@@ -78,6 +78,25 @@ class RepositorioInscripcionesSql(PersonaSql, RepositorioInscripciones):
             {"estudiante": id_estudiante, "acudiente": id_acudiente, "parentesco": id_parentesco},
         )
 
+    def actualizar_acudiente(self, id_persona, datos):
+        # Documento y tipo no se tocan: el documento es la llave de la cuenta de usuario
+        self.sesion.execute(
+            text(
+                "UPDATE persona SET nombre = :nombre, telefono = :telefono, email = :email "
+                "WHERE idPersona = :idPersona"
+            ),
+            {"nombre": datos["nombre"], "telefono": datos["telefono"], "email": datos.get("email"), "idPersona": id_persona},
+        )
+
+    def cambiar_parentesco(self, id_estudiante, id_acudiente, id_parentesco):
+        self.sesion.execute(
+            text(
+                "UPDATE estudiante_responsable SET idParentesco = :parentesco "
+                "WHERE idEstudiante = :estudiante AND idAcudiente = :acudiente"
+            ),
+            {"parentesco": id_parentesco, "estudiante": id_estudiante, "acudiente": id_acudiente},
+        )
+
     def desvincular_acudiente(self, id_estudiante, id_acudiente):
         resultado = self.sesion.execute(
             text("DELETE FROM estudiante_responsable WHERE idEstudiante = :estudiante AND idAcudiente = :acudiente"),

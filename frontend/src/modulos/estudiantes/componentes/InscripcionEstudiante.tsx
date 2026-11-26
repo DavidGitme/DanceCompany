@@ -21,6 +21,8 @@ import {
   errorDocumento,
   errorTelefono,
   errorTipoParaEdad,
+  EDAD_ADULTO,
+  TELEFONO_DIGITOS,
 } from "./formulario"
 
 /*
@@ -30,7 +32,7 @@ import {
  */
 
 const MAX_ACUDIENTES = 1
-const EDAD_ADULTO = 18
+const MAX_CARACTERES_TELEFONO = 15
 
 interface Props {
   // Sede de la cuenta del administrador; si es null se elige en el formulario
@@ -110,6 +112,11 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
     setErrores((prev) => ({ ...prev, [campo]: "" }))
   }
 
+  // Si es menor de edad, el bloque del acudiente aparece de una vez (es obligatorio)
+  useEffect(() => {
+    if (menor) setAcudientes((prev) => (prev.length ? prev : [acudienteVacio()]))
+  }, [menor])
+
   const validar = () => {
     const e: Record<string, string> = {}
     if (datos.nombre.trim().length < 2) e.nombre = "Escribe el nombre completo."
@@ -144,6 +151,12 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
       const errorA = validarAcudiente(a, tipos)
       if (Object.keys(errorA).length) porAcudiente[a.clave] = errorA
     })
+    // Menor de edad: el acudiente es obligatorio (el backend aplica la misma regla)
+    if (menor && conDatos.length === 0) {
+      e.acudientes = tr("El estudiante es menor de edad: agrega un acudiente para poder registrarlo.")
+      const primero = acudientes[0]
+      if (primero) porAcudiente[primero.clave] = validarAcudiente(primero, tipos)
+    }
 
     setErrores(e)
     setErroresAcudientes(porAcudiente)
@@ -154,7 +167,9 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
     setErrorGeneral(null)
     const { valido, conDatos } = validar()
     if (!valido) {
-      setErrorGeneral(tr("Revisa los campos marcados."))
+      setErrorGeneral(menor && !conDatos.length
+        ? tr("El estudiante es menor de edad: agrega un acudiente para poder registrarlo.")
+        : tr("Revisa los campos marcados."))
       return
     }
     const solicitud: InscripcionSolicitudDto = {
@@ -206,13 +221,7 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Seccion>{tr("Datos del estudiante")}</Seccion>
-        <Campo id="insc-nombre" etiqueta="Nombre completo" requerido ancho="completo" error={errores.nombre}>
-          {(p) => <input {...p} value={datos.nombre} maxLength={100} disabled={guardando} onChange={(e) => cambiar("nombre", e.target.value)} className={claseEntrada} />}
-        </Campo>
-        <Campo id="insc-nacimiento" etiqueta="Fecha de nacimiento" requerido error={errores.fecha_nacimiento}
-          ayuda={edad !== null && edad >= 0 ? `${edad} años${menor ? tr(" · menor de edad") : ""}` : undefined}>
-          {(p) => <input {...p} type="date" value={datos.fecha_nacimiento} disabled={guardando} onChange={(e) => cambiar("fecha_nacimiento", e.target.value)} className={claseEntrada} />}
-        </Campo>
+        {/* Orden acordado: tipo y número de documento, fecha de nacimiento y nombre completo */}
         <Campo id="insc-tipo" etiqueta="Tipo de documento" requerido error={errores.idTipoDocumento}
           ayuda="Registro civil hasta los 6 años, tarjeta de identidad de 7 a 17 y cédula desde los 18.">
           {(p) => (
@@ -224,8 +233,24 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
         <Campo id="insc-documento" etiqueta="Número de documento" requerido error={errores.documento}>
           {(p) => <input {...p} value={datos.documento} maxLength={20} autoComplete="off" disabled={guardando} onChange={(e) => cambiar("documento", e.target.value)} className={claseEntrada} />}
         </Campo>
-        <Campo id="insc-telefono" etiqueta="Teléfono" requerido error={errores.telefono} ayuda="10 dígitos, por ejemplo 3001234567.">
-          {(p) => <input {...p} type="tel" inputMode="numeric" value={datos.telefono} maxLength={10} disabled={guardando} onChange={(e) => cambiar("telefono", e.target.value.replace(/\D/g, ""))} className={claseEntrada} />}
+        <Campo id="insc-nacimiento" etiqueta="Fecha de nacimiento" requerido error={errores.fecha_nacimiento}
+          ayuda={edad !== null && edad >= 0 ? `${edad} años${menor ? tr(" · menor de edad: requiere acudiente") : ""}` : undefined}>
+          {(p) => <input {...p} type="date" value={datos.fecha_nacimiento} disabled={guardando} onChange={(e) => cambiar("fecha_nacimiento", e.target.value)} className={claseEntrada} />}
+        </Campo>
+        <Campo id="insc-nombre" etiqueta="Nombre completo" requerido error={errores.nombre}>
+          {(p) => <input {...p} value={datos.nombre} maxLength={100} disabled={guardando} onChange={(e) => cambiar("nombre", e.target.value)} className={claseEntrada} />}
+        </Campo>
+        <Campo id="insc-telefono" etiqueta="Teléfono" requerido error={errores.telefono} ayuda={`Máximo ${TELEFONO_DIGITOS} dígitos, por ejemplo 3001234567.`}>
+          {(p) => (
+            <input {...p} type="tel" inputMode="numeric" value={datos.telefono} maxLength={MAX_CARACTERES_TELEFONO} disabled={guardando}
+              onChange={(e) => {
+                const valor = e.target.value.replace(/\D/g, "")
+                cambiar("telefono", valor)
+                // Aviso inmediato si pasa del límite (se cuentan dígitos)
+                if (valor.length > TELEFONO_DIGITOS) setErrores((prev) => ({ ...prev, telefono: errorTelefono(valor) ?? "" }))
+              }}
+              className={claseEntrada} />
+          )}
         </Campo>
         <Campo id="insc-email" etiqueta="Correo electrónico" requerido={cuenta === "invitar"} error={errores.email}>
           {(p) => <input {...p} type="email" value={datos.email} maxLength={100} disabled={guardando} onChange={(e) => cambiar("email", e.target.value)} className={claseEntrada} />}
@@ -241,10 +266,10 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
           </Campo>
         )}
 
-        <Seccion>{tr("Acudiente (opcional)")}</Seccion>
+        <Seccion>{menor ? tr("Acudiente (obligatorio: es menor de edad)") : tr("Acudiente (opcional)")}</Seccion>
         {acudientes.length === 0 && (
           <p className="font-body text-xs text-text-muted sm:col-span-2">
-            {menor ? tr("Es menor de edad: se recomienda registrar a un acudiente.") : tr("Puedes registrar un acudiente si el estudiante lo necesita.")}
+            {menor ? tr("Es menor de edad: el acudiente es obligatorio para registrarlo.") : tr("Puedes registrar un acudiente si el estudiante lo necesita.")}
           </p>
         )}
         {errores.acudientes && <p role="alert" className="font-body text-xs font-medium text-red-600 dark:text-red-300 sm:col-span-2">{errores.acudientes}</p>}
@@ -262,7 +287,8 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
               // El error se recalcula al volver a enviar
               setErroresAcudientes((prev) => ({ ...prev, [a.clave]: {} }))
             }}
-            onQuitar={() => setAcudientes((prev) => prev.filter((x) => x.clave !== a.clave))}
+            // Un menor no puede quedarse sin acudiente
+            onQuitar={menor && acudientes.length <= 1 ? undefined : () => setAcudientes((prev) => prev.filter((x) => x.clave !== a.clave))}
           />
         ))}
         {acudientes.length < MAX_ACUDIENTES && (

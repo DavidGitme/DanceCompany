@@ -49,11 +49,23 @@ export function errorTipoParaEdad(tipo: string, edad: number | null): string | u
   return undefined
 }
 
+// Teléfono colombiano (dominio/reglas.py: TELEFONO_DIGITOS)
+export const TELEFONO_DIGITOS = 10
+// Mayoría de edad del proyecto (dominio/reglas.py: EDAD_ADULTO)
+export const EDAD_ADULTO = 18
+export const esMenorDeEdad = (fechaNacimiento: string | null | undefined) => {
+  const edad = edadEn(fechaNacimiento ?? "")
+  return edad !== null && edad >= 0 && edad < EDAD_ADULTO
+}
+
 export function errorTelefono(telefono: string, requerido = true): string | undefined {
   const digitos = telefono.replace(/\D/g, "")
   if (!telefono.trim()) return requerido ? tr("Este campo es obligatorio.") : undefined
   if (/[^\d\s+-]/.test(telefono)) return tr("Escribe solo números.")
-  if (digitos.length !== 10) return tr("El teléfono debe tener exactamente 10 dígitos.")
+  // Se cuentan los dígitos (no los espacios ni guiones) para avisar si pasa del límite
+  if (digitos.length > TELEFONO_DIGITOS)
+    return tr("El teléfono admite máximo {max} dígitos (tiene {n}).", { max: TELEFONO_DIGITOS, n: digitos.length })
+  if (digitos.length !== TELEFONO_DIGITOS) return tr("El teléfono debe tener exactamente 10 dígitos.")
   return undefined
 }
 

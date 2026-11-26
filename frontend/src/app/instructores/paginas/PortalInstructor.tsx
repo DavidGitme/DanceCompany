@@ -274,7 +274,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">
+          <div className="mx-auto w-full max-w-screen-2xl">
             {vista === "inicio" && (
               <InicioInstructor onVerGrupos={() => navegar("grupos")} />
             )}
