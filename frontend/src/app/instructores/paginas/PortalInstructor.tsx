@@ -1,4 +1,5 @@
 import SelectorIdioma from "@/compartido/ui/SelectorIdioma"
+import ThemeToggle from "@/compartido/ui/ThemeToggle"
 import { tr } from "@/nucleo/i18n/IdiomaContext"
 import {
   createContext,
@@ -149,13 +150,13 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
             <img
               src={logoFna}
               alt="F&A Dance Company"
-              className="h-10 w-10 object-contain"
+              className="h-10 w-10 object-contain brightness-0 opacity-85 dark:brightness-100 dark:opacity-100"
             />
             <div>
               <p className="font-display text-lg uppercase leading-none text-text">
                 F&A
               </p>
-              <p className="mt-1 font-condensed text-xs uppercase tracking-widest text-purple-400">
+              <p className="mt-1 font-condensed text-xs uppercase tracking-widest text-accent">
                 {tr("Portal instructor")}
               </p>
             </div>
@@ -224,7 +225,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
               <IconoInstructor nombre="menu" />
             </button>
             <div>
-              <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
+              <p className="font-condensed text-xs uppercase tracking-widest text-accent">
                 {tr("Panel de instructor")}
               </p>
               <p className="hidden text-sm text-text-muted sm:block">
@@ -235,6 +236,7 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
 
           <div className="relative flex items-center gap-2">
             <SelectorIdioma className="text-text-muted" />
+            <ThemeToggle className="text-text-muted" />
             <button
               className="flex items-center gap-2 rounded-xl border border-transparent p-1.5 transition-colors hover:border-border hover:bg-surface"
               onClick={() => setMenuUsuario((valor) => !valor)}
@@ -344,7 +346,7 @@ function InicioInstructor({ onVerGrupos }: { onVerGrupos: () => void }) {
       <section className={`${superficie} overflow-hidden`}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5 sm:p-6">
           <div>
-            <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
+            <p className="font-condensed text-xs uppercase tracking-widest text-accent">
               {tr("Tu programación")}
             </p>
             <h2 className="mt-1 font-display text-2xl uppercase text-text">
@@ -365,7 +367,7 @@ function InicioInstructor({ onVerGrupos }: { onVerGrupos: () => void }) {
               key={grupo.idGrupo}
               className="rounded-xl border border-border bg-surface-alt/60 p-4"
             >
-              <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
+              <p className="font-condensed text-xs uppercase tracking-widest text-accent">
                 {grupo.estilo} · {grupo.nivel}
               </p>
               <h3 className="mt-1 font-display text-xl uppercase text-text">
@@ -472,7 +474,7 @@ function GruposInstructor({
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
+                    <p className="font-condensed text-xs uppercase tracking-widest text-accent">
                       {grupo.estilo}
                     </p>
                     <h2 className="mt-1 font-display text-2xl uppercase text-text">
@@ -660,7 +662,7 @@ function EstudiantesInstructor() {
                     <td className="px-5 py-4">
                       <button
                         onClick={() => setDetalle(estudiante)}
-                        className="font-condensed text-xs font-semibold uppercase tracking-wider text-purple-400 hover:text-purple-100"
+                        className="font-condensed text-xs font-semibold uppercase tracking-wider text-accent hover:text-purple-100"
                       >
                         {tr("Ver detalle")}
                       </button>
@@ -725,7 +727,7 @@ function DetalleGrupo({
         <div className="h-1 bg-gradient-to-r from-purple-900 via-purple-700 to-purple-400" />
         <div className="p-6">
           <div>
-            <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
+            <p className="font-condensed text-xs uppercase tracking-widest text-accent">
               {tr("Detalle de grupo")}
             </p>
             <h1 className="mt-1 font-display text-4xl uppercase">{grupo.nombre}</h1>
@@ -749,7 +751,7 @@ function DetalleGrupo({
               {estudiantes.length} estudiantes asignados
             </p>
           </div>
-          <IconoInstructor nombre="estudiantes" className="h-6 w-6 text-purple-400" />
+          <IconoInstructor nombre="estudiantes" className="h-6 w-6 text-accent" />
         </div>
         <div className="divide-y divide-border">
           {paginacion.visibles.map((estudiante) => (
@@ -897,7 +899,7 @@ function PerfilInstructor() {
             </div>
             <div>
               <h3 className="font-display text-2xl uppercase text-text">{perfil.nombre}</h3>
-              <p className="mt-1 text-sm text-purple-400">{tr("Instructor")}</p>
+              <p className="mt-1 text-sm text-accent">{tr("Instructor")}</p>
               {perfil.especialidad && <p className="mt-3 text-sm text-text-muted">{perfil.especialidad}</p>}
             </div>
             <div className="flex w-full items-center justify-between rounded-xl border border-border bg-surface-alt px-4 py-3">
@@ -1019,7 +1021,7 @@ function DetalleEstudiante({
           <div className="flex items-center gap-4">
             <Avatar nombre={estudiante.nombre} />
             <div>
-              <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">
+              <p className="font-condensed text-xs uppercase tracking-widest text-accent">
                 {tr("Detalle del estudiante")}
               </p>
               <h2 className="mt-1 font-display text-2xl uppercase">
@@ -1098,7 +1100,7 @@ function CabeceraPagina({
 }) {
   return (
     <div>
-      <p className="font-condensed text-xs font-semibold uppercase tracking-widest text-purple-400">
+      <p className="font-condensed text-xs font-semibold uppercase tracking-widest text-accent">
         {ceja}
       </p>
       <h1 className="mt-1 font-display text-3xl uppercase text-text sm:text-4xl">
@@ -1138,7 +1140,7 @@ function TarjetaMetrica({
           </p>
         </div>
         <span
-          className={`rounded-xl p-3 ${alerta ? "bg-amber-500/10 text-amber-400" : "bg-purple-400/10 text-purple-400"}`}
+          className={`rounded-xl p-3 ${alerta ? "bg-amber-500/10 text-amber-400" : "bg-purple-400/10 text-accent"}`}
         >
           <IconoInstructor nombre={icono} />
         </span>
@@ -1206,7 +1208,7 @@ function MenuFiltros({
         className={[
           "flex w-full items-center justify-center gap-2 rounded-xl border px-5 py-2.5 font-condensed text-sm font-semibold uppercase tracking-wider transition-colors sm:w-auto",
           abierto || activos
-            ? "border-purple-400/50 bg-purple-400/10 text-purple-400"
+            ? "border-purple-400/50 bg-purple-400/10 text-accent"
             : "border-border bg-surface-alt text-text-soft hover:border-purple-400/40 hover:text-text",
         ].join(" ")}
       >
@@ -1245,7 +1247,7 @@ function MenuFiltros({
                 <button
                   type="button"
                   onClick={onLimpiar}
-                  className="font-condensed text-xs font-semibold uppercase tracking-wider text-purple-400 hover:text-purple-100"
+                  className="font-condensed text-xs font-semibold uppercase tracking-wider text-accent hover:text-purple-100"
                 >
                   {tr("Limpiar")}
                 </button>
@@ -1308,7 +1310,7 @@ function DatoIcono({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="rounded-xl bg-purple-400/10 p-2.5 text-purple-400">
+      <span className="rounded-xl bg-purple-400/10 p-2.5 text-accent">
         <IconoInstructor nombre={icono} className="h-4 w-4" />
       </span>
       <div>
@@ -1330,7 +1332,7 @@ function DatoCompacto({
 }) {
   return (
     <div className="flex items-center gap-2.5 text-sm text-text-soft">
-      <IconoInstructor nombre={icono} className="h-4 w-4 text-purple-400" />
+      <IconoInstructor nombre={icono} className="h-4 w-4 text-accent" />
       {texto}
     </div>
   )

@@ -135,8 +135,8 @@ export function getPermisoDesc(idPermiso: number): string {
 /* ─── STATUS BADGE ─── */
 export function estadoBadge(nombre: string): ReactNode {
   const map: Record<string, string> = {
-    Activo: 'bg-purple-400/15 text-purple-400 border-purple-400/30',
-    Activa: 'bg-purple-400/15 text-purple-400 border-purple-400/30',
+    Activo: 'bg-purple-400/15 text-accent border-purple-400/30',
+    Activa: 'bg-purple-400/15 text-accent border-purple-400/30',
     'Al día': 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     Pendiente: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
     Inactivo: 'bg-neutral-500/15 text-neutral-400 border-neutral-500/30',
@@ -148,7 +148,7 @@ export function estadoBadge(nombre: string): ReactNode {
     Publicada: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     Borrador: 'bg-neutral-500/15 text-neutral-400 border-neutral-500/30',
   };
-  const cls = map[nombre] ?? 'bg-purple-500/15 text-purple-400 border-purple-500/30';
+  const cls = map[nombre] ?? 'bg-purple-500/15 text-accent border-purple-500/30';
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-condensed font-600 uppercase tracking-wider border ${cls}`}>
       {nombre}

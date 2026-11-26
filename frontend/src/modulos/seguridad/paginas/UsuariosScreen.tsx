@@ -30,7 +30,7 @@ function RolesSelector({
 
   return (
     <div>
-      <p className="font-condensed font-600 text-xs uppercase tracking-wider text-purple-400 mb-3">
+      <p className="font-condensed font-600 text-xs uppercase tracking-wider text-accent mb-3">
         Roles asignados <span className="text-red-400">*</span>
       </p>
       <div className="grid grid-cols-2 gap-2">
@@ -127,7 +127,7 @@ export default function UsuariosScreen() {
       { key: 'roles', label: 'Roles', render: v => (
         <div className="flex gap-1 flex-wrap">
           {(v as number[]).map(id => (
-            <span key={id} className="px-2 py-0.5 rounded-full bg-purple-700/20 text-purple-400 font-condensed text-xs uppercase tracking-wider border border-purple-700/30">
+            <span key={id} className="px-2 py-0.5 rounded-full bg-purple-700/20 text-accent font-condensed text-xs uppercase tracking-wider border border-purple-700/30">
               {nombreRol(id)}
             </span>
           ))}
@@ -253,7 +253,7 @@ export default function UsuariosScreen() {
           {(row.roles ?? []).length === 0 ? (
             <span className="text-text-muted font-body text-xs">{tr("Sin roles asignados")}</span>
           ) : (row.roles ?? []).map(id => (
-            <span key={id} className="px-2.5 py-0.5 rounded-full bg-purple-700/20 text-purple-400 font-condensed text-xs uppercase tracking-wider border border-purple-700/30">
+            <span key={id} className="px-2.5 py-0.5 rounded-full bg-purple-700/20 text-accent font-condensed text-xs uppercase tracking-wider border border-purple-700/30">
               {nombreRol(id)}
             </span>
           ))}
@@ -265,7 +265,7 @@ export default function UsuariosScreen() {
   return (
     <>
       <div className="mb-1">
-        <span className="font-condensed text-xs uppercase tracking-[0.2em] text-purple-400">{tr("Seguridad")}</span>
+        <span className="font-condensed text-xs uppercase tracking-[0.2em] text-accent">{tr("Seguridad")}</span>
       </div>
       {error && (
         <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 font-body text-sm text-red-400">

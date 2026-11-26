@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react"
+import ThemeToggle from "@/compartido/ui/ThemeToggle"
 import Button from "@/compartido/ui/Button"
 import StatusBadge from "@/compartido/ui/StatusBadge"
 import logoFna from "@/recursos/logo-fna.png"
@@ -100,10 +101,10 @@ export default function PortalEstudiante({ nombre, onSalir }: PortalEstudiantePr
       >
         <div className="flex h-20 items-center justify-between border-b border-border px-6">
           <div className="flex items-center gap-3">
-            <img src={logoFna} alt="F&A Dance Company" className="h-10 w-10 object-contain" />
+            <img src={logoFna} alt="F&A Dance Company" className="h-10 w-10 object-contain brightness-0 opacity-85 dark:brightness-100 dark:opacity-100" />
             <div>
               <p className="font-display text-lg uppercase leading-none text-text">F&A</p>
-              <p className="mt-1 font-condensed text-xs uppercase tracking-widest text-purple-400">
+              <p className="mt-1 font-condensed text-xs uppercase tracking-widest text-accent">
                 Portal estudiante
               </p>
             </div>
@@ -165,13 +166,14 @@ export default function PortalEstudiante({ nombre, onSalir }: PortalEstudiantePr
               <IconoEstudiante nombre="menu" />
             </button>
             <div>
-              <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">Panel de estudiante</p>
+              <p className="font-condensed text-xs uppercase tracking-widest text-accent">Panel de estudiante</p>
               <p className="hidden text-sm text-text-muted sm:block">
                 {new Intl.DateTimeFormat("es-CO", { dateStyle: "full" }).format(new Date())}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle className="text-text-muted" />
             <div className="hidden text-right md:block">
               <p className="text-sm font-semibold text-text">{nombre}</p>
               <p className="text-xs text-text-muted">{datos?.perfil.sede ? `Sede ${datos.perfil.sede}` : "Estudiante"}</p>
@@ -251,7 +253,7 @@ function Inicio({ datos, nombre, onIr }: { datos: DatosPortal; nombre: string; o
 
       <div className="grid gap-6 lg:grid-cols-5">
         <section className={`${superficie} p-6 lg:col-span-3`}>
-          <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">Tu próxima clase</p>
+          <p className="font-condensed text-xs uppercase tracking-widest text-accent">Tu próxima clase</p>
           {proxima ? (
             <>
               <h2 className="mt-1 font-display text-3xl uppercase text-text">{proxima.clase.grupo}</h2>
@@ -275,8 +277,8 @@ function Inicio({ datos, nombre, onIr }: { datos: DatosPortal; nombre: string; o
 
         <section className={`${superficie} p-6 lg:col-span-2`}>
           <div className="flex items-center justify-between">
-            <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">Últimas noticias</p>
-            <button className="text-xs text-purple-400 hover:text-purple-300" onClick={() => onIr("noticias")}>Ver todas</button>
+            <p className="font-condensed text-xs uppercase tracking-widest text-accent">Últimas noticias</p>
+            <button className="text-xs text-accent hover:text-purple-300" onClick={() => onIr("noticias")}>Ver todas</button>
           </div>
           <div className="mt-4 space-y-4">
             {noticias.slice(0, 3).map((n) => (
@@ -319,7 +321,7 @@ function MisClases({ datos }: { datos: DatosPortal }) {
               <article key={c.idMatricula} className={`${superficie} p-6`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">{c.estilo} · {c.nivel}</p>
+                    <p className="font-condensed text-xs uppercase tracking-widest text-accent">{c.estilo} · {c.nivel}</p>
                     <h2 className="mt-1 font-display text-2xl uppercase text-text">{c.grupo}</h2>
                   </div>
                   <StatusBadge status={c.estado} />
@@ -451,7 +453,7 @@ function MisTalleres({ datos }: { datos: DatosPortal }) {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {disponibles.map((t) => (
               <article key={t.id} className={`${superficie} p-5`}>
-                <p className="font-condensed text-xs uppercase tracking-widest text-purple-400">Taller</p>
+                <p className="font-condensed text-xs uppercase tracking-widest text-accent">Taller</p>
                 <h3 className="mt-1 font-display text-xl uppercase text-text">{t.descripcion}</h3>
                 <p className="mt-2 font-display text-2xl text-text">{t.valor > 0 ? pesos(t.valor) : "Gratis"}</p>
                 <p className="mt-3 text-xs text-text-muted">Para inscribirte, acércate a la recepción de tu sede.</p>
@@ -504,7 +506,7 @@ function MisConvocatorias({ datos, onPostular }: { datos: DatosPortal; onPostula
               <article key={c.id} className={`${superficie} flex flex-col p-6`}>
                 <div className="flex items-center gap-2">
                   <StatusBadge status="Abierta" />
-                  <span className="font-condensed text-xs uppercase tracking-widest text-purple-400">{c.tipo}</span>
+                  <span className="font-condensed text-xs uppercase tracking-widest text-accent">{c.tipo}</span>
                 </div>
                 <h3 className="mt-3 font-display text-2xl uppercase text-text">{c.nombre}</h3>
                 {c.descripcion && <p className="mt-2 text-sm text-text-muted">{c.descripcion}</p>}
@@ -605,7 +607,7 @@ function MiPerfil({ datos }: { datos: DatosPortal }) {
 function CabeceraPagina({ ceja, titulo, descripcion }: { ceja: string; titulo: string; descripcion: string }) {
   return (
     <div>
-      <p className="font-condensed text-xs font-semibold uppercase tracking-widest text-purple-400">{ceja}</p>
+      <p className="font-condensed text-xs font-semibold uppercase tracking-widest text-accent">{ceja}</p>
       <h1 className="mt-1 font-display text-3xl uppercase text-text sm:text-4xl">{titulo}</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-muted">{descripcion}</p>
     </div>
@@ -632,7 +634,7 @@ function TarjetaMetrica({
           <p className="font-condensed text-xs uppercase tracking-wider text-text-muted">{etiqueta}</p>
           <p className={`mt-3 truncate font-display text-3xl ${alerta ? "text-amber-400" : "text-text"}`}>{valor}</p>
         </div>
-        <span className={`rounded-xl p-3 ${alerta ? "bg-amber-500/10 text-amber-400" : "bg-purple-400/10 text-purple-400"}`}>
+        <span className={`rounded-xl p-3 ${alerta ? "bg-amber-500/10 text-amber-400" : "bg-purple-400/10 text-accent"}`}>
           <IconoEstudiante nombre={icono} />
         </span>
       </div>
@@ -686,7 +688,7 @@ function Tabla({
 function Dato({ icono, texto }: { icono: NombreIconoEstudiante; texto: string }) {
   return (
     <p className="flex items-center gap-2 text-sm text-text-soft">
-      <IconoEstudiante nombre={icono} className="h-4 w-4 shrink-0 text-purple-400" />
+      <IconoEstudiante nombre={icono} className="h-4 w-4 shrink-0 text-accent" />
       <span className="first-letter:uppercase">{texto}</span>
     </p>
   )

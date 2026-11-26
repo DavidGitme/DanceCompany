@@ -100,7 +100,7 @@ export default function SlideOver({ open, mode, config, initialData, onSave, onC
               {row.map((field, fieldIndex) => (
                 <div key={`${field.key}-${field.label}-${fieldIndex}`} className="flex flex-col gap-1.5">
                   <label className="font-condensed font-600 text-xs uppercase tracking-wider text-text-muted">
-                    {field.label}{field.required && <span className="text-purple-400 ml-0.5">*</span>}
+                    {field.label}{field.required && <span className="text-accent ml-0.5">*</span>}
                   </label>
 
                   {field.type === 'select' ? (

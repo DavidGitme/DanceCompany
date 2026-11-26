@@ -10,10 +10,10 @@ const status = (val: string) => {
     Vencido: 'bg-red-500/15 text-red-400 border-red-500/30',
     Disponible: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     Ocupada: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    Confirmado: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    Confirmado: 'bg-purple-500/15 text-accent border-purple-500/30',
     Cancelado: 'bg-red-500/15 text-red-400 border-red-500/30',
   };
-  const cls = map[val] ?? 'bg-purple-500/15 text-purple-400 border-purple-500/30';
+  const cls = map[val] ?? 'bg-purple-500/15 text-accent border-purple-500/30';
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-condensed font-600 uppercase tracking-wider border ${cls}`}>
       {val}
@@ -523,7 +523,7 @@ export const usuariosConfig: ModuleConfig = {
   columns: [
     { key: 'nombre', label: 'Nombre', render: (v, r) => <span className="font-600 text-text">{v} {r.apellido}</span> },
     { key: 'correo', label: 'Correo' },
-    { key: 'rol', label: 'Rol', render: v => <span className="font-condensed text-xs uppercase tracking-wider text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded-full">{v}</span> },
+    { key: 'rol', label: 'Rol', render: v => <span className="font-condensed text-xs uppercase tracking-wider text-accent bg-purple-400/10 px-2 py-0.5 rounded-full">{v}</span> },
     { key: 'estado', label: 'Estado', render: status },
   ],
   fields: [

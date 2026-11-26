@@ -32,7 +32,7 @@ function Initials({ name }: { name: string }) {
   const initials = parts.slice(0, 2).map(w => w[0]).join('').toUpperCase();
   return (
     <div className="w-16 h-16 rounded-[20px] bg-purple-700/25 border border-purple-700/40 flex items-center justify-center flex-shrink-0">
-      <span className="font-display text-2xl text-purple-400">{initials}</span>
+      <span className="font-display text-2xl text-accent">{initials}</span>
     </div>
   );
 }
@@ -79,7 +79,7 @@ export default function DetailWidget({ open, config, row, onEdit, onClose, onDel
               <Initials name={title} />
               <div className="min-w-0">
                 <h2 className="font-display text-2xl text-text leading-tight truncate">{title}</h2>
-                <p className="font-condensed text-sm uppercase tracking-wider text-purple-400 mt-0.5">{subtitle}</p>
+                <p className="font-condensed text-sm uppercase tracking-wider text-accent mt-0.5">{subtitle}</p>
               </div>
             </div>
           </div>

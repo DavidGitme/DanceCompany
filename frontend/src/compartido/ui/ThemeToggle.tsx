@@ -1,23 +1,34 @@
 import { tr } from '@/nucleo/i18n/IdiomaContext';
+import { useTema } from '@/nucleo/tema/TemaContext';
+
 interface ThemeToggleProps {
-  isDark: boolean;
-  onToggle: () => void;
+  // Sin props usa el tema global (TemaProvider)
+  isDark?: boolean;
+  onToggle?: () => void;
+  className?: string;
 }
 
-export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
+export default function ThemeToggle({ isDark: isDarkProp, onToggle, className = '' }: ThemeToggleProps) {
+  const tema = useTema();
+  const isDark = isDarkProp ?? tema.isDark;
+  const alternar = onToggle ?? tema.alternarTema;
+  const etiqueta = tr(isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+
   return (
     <button
-      onClick={onToggle}
-      aria-label={tr(isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro')}
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-current/30 transition-all duration-300 hover:border-accent hover:text-accent cursor-pointer"
+      type="button"
+      onClick={alternar}
+      aria-label={etiqueta}
+      title={etiqueta}
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border border-current/30 transition-all duration-300 hover:border-accent hover:text-accent cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${className}`}
     >
       {isDark ? (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4" aria-hidden="true">
           <circle cx="12" cy="12" r="4" />
           <path strokeLinecap="round" d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
         </svg>
       ) : (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
         </svg>
       )}

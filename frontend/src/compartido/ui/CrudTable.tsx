@@ -21,7 +21,7 @@ function Avatar({ name }: { name: string }) {
   const initials = name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
   return (
     <div className="w-8 h-8 rounded-full bg-purple-700/30 border border-purple-400/30 flex items-center justify-center flex-shrink-0">
-      <span className="font-condensed font-bold text-xs text-purple-400">{initials}</span>
+      <span className="font-condensed font-bold text-xs text-accent">{initials}</span>
     </div>
   );
 }

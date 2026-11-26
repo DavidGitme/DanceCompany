@@ -23,6 +23,7 @@ import AceptarTerminos from "@/modulos/autenticacion/legal/AceptarTerminos"
 import AvisoCookies from "@/modulos/autenticacion/legal/AvisoCookies"
 import BotonVolverArriba from "@/compartido/ui/BotonVolverArriba"
 import { useIdioma } from "@/nucleo/i18n/useIdioma"
+import { useTema } from "@/nucleo/tema/TemaContext"
 
 // Enlace del correo: /restablecer?token=...
 const tokenDelEnlace = () =>
@@ -55,7 +56,8 @@ function SinVistaAsignada({ nombre, onSalir }: { nombre: string; onSalir: () => 
 
 export default function App() {
   const { t } = useIdioma()
-  const [isDark, setIsDark] = useState(true)
+  // Tema global: se cambia desde la landing, el login y cada vista interna
+  const { isDark, alternarTema } = useTema()
   const [page, setPage] = useState<RutaAplicacion>("home")
   const [token, setToken] = useState(tokenDelEnlace)
   const { usuario, cerrarSesion, marcarTerminosAceptados } = useAuth()
@@ -148,7 +150,7 @@ export default function App() {
     <div className={rootClass}>
       <Navbar
         isDark={isDark}
-        onToggleTheme={() => setIsDark((d) => !d)}
+        onToggleTheme={alternarTema}
         onLoginClick={() => setPage("login")}
       />
       <main className="landing-secciones">

@@ -23,7 +23,7 @@ export default function EstadoCuentaScreen() {
   return (
     <div className="space-y-6">
       <div>
-        <span className="font-condensed text-xs uppercase tracking-widest text-purple-400">Mensualidades y pagos</span>
+        <span className="font-condensed text-xs uppercase tracking-widest text-accent">Mensualidades y pagos</span>
         <h1 className="mt-1 font-display text-3xl uppercase text-text">Estado de cuenta</h1>
       </div>
       <div className="grid gap-4 rounded-2xl border border-border bg-surface p-5 md:grid-cols-2">
@@ -46,11 +46,11 @@ export default function EstadoCuentaScreen() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-4">
-            {[["Total pagado", money(paid), "text-emerald-400"], ["Total pendiente", money(pending), "text-amber-400"], ["Total vencido", money(overdue), "text-red-400"], ["Próxima fecha límite", nextDeadline ?? "Sin pendientes", "text-purple-400"]].map(([label, value, tone]) => <div key={label} className="rounded-2xl border border-border bg-surface p-5"><p className="font-condensed text-xs uppercase tracking-wider text-text-muted">{label}</p><p className={`mt-2 font-display text-2xl ${tone}`}>{value}</p></div>)}
+            {[["Total pagado", money(paid), "text-emerald-400"], ["Total pendiente", money(pending), "text-amber-400"], ["Total vencido", money(overdue), "text-red-400"], ["Próxima fecha límite", nextDeadline ?? "Sin pendientes", "text-accent"]].map(([label, value, tone]) => <div key={label} className="rounded-2xl border border-border bg-surface p-5"><p className="font-condensed text-xs uppercase tracking-wider text-text-muted">{label}</p><p className={`mt-2 font-display text-2xl ${tone}`}>{value}</p></div>)}
           </div>
 
           <section className="rounded-2xl border border-border bg-surface p-5">
-            <h2 className="font-condensed text-sm font-semibold uppercase tracking-wider text-purple-400">Matrícula vigente</h2>
+            <h2 className="font-condensed text-sm font-semibold uppercase tracking-wider text-accent">Matrícula vigente</h2>
             {activeEnrollment ? <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-text-soft"><span>{grupoMock.find((g) => g.idGrupo === activeEnrollment.idGrupo)?.nombre}</span><span>{sedeMock.find((s) => s.idSede === grupoMock.find((g) => g.idGrupo === activeEnrollment.idGrupo)?.idSede)?.nombre}</span><span>{activeEnrollment.fecha_matricula}</span><span>{money(activeEnrollment.valor_matricula)}</span><StatusBadge status="Activa" /></div> : <p className="mt-3 text-sm text-text-muted">Sin matrícula vigente</p>}
           </section>
 
@@ -63,5 +63,5 @@ export default function EstadoCuentaScreen() {
 }
 
 function AccountTable({ title, headers, rows }: { title: string; headers: string[]; rows: React.ReactNode[][] }) {
-  return <section className="overflow-hidden rounded-2xl border border-border bg-surface"><h2 className="border-b border-border px-5 py-4 font-condensed text-sm font-semibold uppercase tracking-wider text-purple-400">{title}</h2><div className="overflow-x-auto"><table className="w-full"><thead><tr>{headers.map((header) => <th key={header} className="px-4 py-3 text-left font-condensed text-xs uppercase tracking-wider text-text-muted">{header}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row, index) => <tr key={index} className="border-t border-border">{row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 text-sm text-text-soft">{cell}</td>)}</tr>) : <tr><td colSpan={headers.length} className="px-4 py-10 text-center text-sm text-text-muted">No hay registros</td></tr>}</tbody></table></div></section>
+  return <section className="overflow-hidden rounded-2xl border border-border bg-surface"><h2 className="border-b border-border px-5 py-4 font-condensed text-sm font-semibold uppercase tracking-wider text-accent">{title}</h2><div className="overflow-x-auto"><table className="w-full"><thead><tr>{headers.map((header) => <th key={header} className="px-4 py-3 text-left font-condensed text-xs uppercase tracking-wider text-text-muted">{header}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row, index) => <tr key={index} className="border-t border-border">{row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 text-sm text-text-soft">{cell}</td>)}</tr>) : <tr><td colSpan={headers.length} className="px-4 py-10 text-center text-sm text-text-muted">No hay registros</td></tr>}</tbody></table></div></section>
 }

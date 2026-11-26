@@ -68,7 +68,7 @@ export default function AdminCrudScreen({
   return (
     <>
       <div className="mb-1">
-        <span className="font-condensed text-xs uppercase tracking-[0.2em] text-purple-400">Administración y Operación</span>
+        <span className="font-condensed text-xs uppercase tracking-[0.2em] text-accent">Administración y Operación</span>
       </div>
       {childrenBefore}
       <CrudTable

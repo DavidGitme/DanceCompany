@@ -1,4 +1,5 @@
 import SelectorIdioma from "@/compartido/ui/SelectorIdioma"
+import ThemeToggle from "@/compartido/ui/ThemeToggle"
 import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useState } from "react"
 import logoFna from "@/recursos/logo-fna.png"
@@ -80,8 +81,9 @@ export default function Login({ onBack, onLogin }: LoginProps) {
             ← <span className="hidden sm:inline">{tr("Volver al inicio")}</span>
             <span className="sm:hidden">{tr("Volver")}</span>
           </button>
-          <div className="text-text-soft">
+          <div className="flex items-center gap-2 text-text-soft">
             <SelectorIdioma />
+            <ThemeToggle />
           </div>
         </header>
 

@@ -94,7 +94,7 @@ export default function SimuladorPago({ mensualidad }: { mensualidad: { idMensua
                   medio?.id === m.id ? "border-purple-500 bg-purple-500/10" : "border-border hover:border-purple-400"
                 }`}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-6 w-6 flex-shrink-0 text-purple-400" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-6 w-6 flex-shrink-0 text-accent" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d={RUTAS_ICONO[m.icono]} />
                 </svg>
                 <span>

@@ -1,4 +1,5 @@
 import SelectorIdioma from "@/compartido/ui/SelectorIdioma"
+import ThemeToggle from "@/compartido/ui/ThemeToggle"
 import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useEffect, useState } from 'react';
 import logoFna from '@/recursos/logo-fna.png';
@@ -102,7 +103,7 @@ export default function Sidebar({
       >
         {/* Marca */}
         <div className={['flex h-16 flex-shrink-0 items-center gap-3 border-b border-border px-4', compacto ? 'lg:justify-center' : ''].join(' ')}>
-          <img src={logoFna} alt="" className={['h-8 w-auto flex-shrink-0 object-contain', compacto ? 'lg:hidden' : ''].join(' ')} />
+          <img src={logoFna} alt="" className={['h-8 w-auto flex-shrink-0 object-contain brightness-0 opacity-85 dark:brightness-100 dark:opacity-100', compacto ? 'lg:hidden' : ''].join(' ')} />
           {!compacto && (
             <div className="min-w-0">
               <div className="font-display text-base leading-none text-text">F&amp;A Dance</div>
@@ -110,6 +111,17 @@ export default function Sidebar({
             </div>
           )}
           {/* Colapsar/expandir (solo escritorio): arriba y sin texto visible; la etiqueta queda para lectores de pantalla */}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-controls="menu-admin"
+            aria-expanded={!compacto}
+            title={tr(compacto ? "Expandir menú" : "Colapsar menú")}
+            className={['hidden h-9 w-9 flex-shrink-0 place-items-center rounded-full text-text-muted transition-colors hover:bg-accent/10 hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:grid', compacto ? '' : 'ml-auto'].join(' ')}
+          >
+            <span className={['transition-transform duration-300', compacto ? 'rotate-180' : ''].join(' ')}>{colapsar}</span>
+            <span className="sr-only">{tr(compacto ? "Expandir menú" : "Colapsar menú")}</span>
+          </button>
           <button type="button" onClick={onCloseMobile} className="ml-auto grid h-9 w-9 place-items-center rounded-full text-text-muted hover:bg-accent/10 hover:text-text lg:hidden" aria-label={tr("Cerrar menú")}>
             {cerrar}
           </button>
@@ -213,18 +225,11 @@ export default function Sidebar({
               </p>
             </div>
           )}
-          <div className={['flex px-1 py-1 text-text-muted', compacto ? 'justify-center' : ''].join(' ')}>
-            <SelectorIdioma />
+          {/* Idioma y tema; en modo compacto se apilan para caber en la barra */}
+          <div className={['flex items-center gap-2 px-1 py-1 text-text-muted', compacto ? 'flex-col justify-center' : 'justify-between'].join(' ')}>
+            {!compacto && <SelectorIdioma />}
+            <ThemeToggle />
           </div>
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className={['hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-text-muted transition-colors hover:bg-accent/10 hover:text-text lg:flex', compacto ? 'justify-center' : ''].join(' ')}
-            aria-label={tr(compacto ? "Expandir menú" : "Colapsar menú")}
-          >
-            <span className={['transition-transform duration-300', compacto ? 'rotate-180' : ''].join(' ')}>{colapsar}</span>
-            {!compacto && <span className="font-condensed text-sm font-semibold uppercase tracking-wider">{tr("Colapsar")}</span>}
-          </button>
           <button
             type="button"
             onClick={onExit}

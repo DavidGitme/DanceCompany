@@ -61,7 +61,7 @@ export default function AgendamientosInstructoresScreen() {
       </div>
       {view === "semana" && <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-surface p-4 md:grid-cols-7">
         {dias.map((dia) => <div key={dia} className="min-h-28 rounded-xl bg-surface-alt p-2">
-          <p className="mb-2 font-condensed text-xs font-semibold uppercase tracking-wider text-purple-400">{dia}</p>
+          <p className="mb-2 font-condensed text-xs font-semibold uppercase tracking-wider text-accent">{dia}</p>
           {data.agendamientosInstructores.filter((row) => row.dia_semana === dia && (!instructor || grupoMock.find((g) => g.idGrupo === row.idGrupo)?.idInstructor === Number(instructor))).map((row) => <div key={row.idAgendamiento} className="mb-2 rounded-lg border border-purple-400/30 bg-purple-400/10 p-2 text-xs text-text-soft">{grupoMock.find((g) => g.idGrupo === row.idGrupo)?.nombre}<br />{row.hora_inicio}–{row.hora_fin}</div>)}
         </div>)}
       </div>}
