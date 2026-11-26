@@ -635,4 +635,6 @@ export const en: Record<string, string> = {
   "sin límites": "no limits",
   "Hip Hop urbano · Bello y Copacabana": "Urban Hip Hop · Bello and Copacabana",
   "Bailarina urbana agachada estirando la mano hacia la cámara": "Urban dancer crouching and reaching toward the camera",
+  "Puro": "Pure",
+  "Academia de Hip Hop urbano en Bello y Copacabana": "Urban Hip Hop academy in Bello and Copacabana",
 }
