@@ -639,4 +639,6 @@ export const en: Record<string, string> = {
   "Danza": "Urban",
   "Urbana": "Dance",
   "Academia especializada en Hip Hop urbano. Clases por nivel y edad, desde los 5 años, en Bello y Copacabana.": "An academy specialized in urban Hip Hop. Classes by level and age, from 5 years old, in Bello and Copacabana.",
+  "Domina": "Own the",
+  "la pista": "floor",
 }
