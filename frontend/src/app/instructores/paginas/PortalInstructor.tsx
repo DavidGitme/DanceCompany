@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useState,
+  type FormEvent,
   type ReactNode,
 } from "react"
 import Paginacion from "@/compartido/ui/Paginacion"
@@ -778,19 +779,62 @@ function DetalleGrupo({
   )
 }
 
+// Reglas iguales a las del backend (persona.telefono VARCHAR(20) y la regla de contraseñas)
+const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const TELEFONO_VALIDO = /^[0-9+()\s-]{0,20}$/
+
+function errorClave(clave: string) {
+  if (clave.length < 8 || clave.length > 128) return tr("La contraseña debe tener entre 8 y 128 caracteres.")
+  if (!/[a-zA-ZÀ-ÿ]/.test(clave) || !/[0-9]/.test(clave)) return tr("La contraseña debe tener al menos una letra y un número.")
+  return ""
+}
+
+/**
+ * "Mi perfil": tarjeta con el formulario a la izquierda y la identidad del instructor a la derecha.
+ * Nombre y documento los gestiona la sede (solo lectura); correo y teléfono se guardan en la base.
+ */
 function PerfilInstructor() {
   const { instructor } = useDatosPortal()
-  const [editando, setEditando] = useState(false)
-  const [cambiarClave, setCambiarClave] = useState(false)
-  const [mensaje, setMensaje] = useState("")
   const [perfil, setPerfil] = useState(instructor)
-  const [borrador, setBorrador] = useState(instructor)
+  const [correo, setCorreo] = useState(instructor.correo)
+  const [telefono, setTelefono] = useState(instructor.telefono)
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState("")
+  const [mensaje, setMensaje] = useState("")
+  const [cambiarClave, setCambiarClave] = useState(false)
 
-  const guardar = () => {
-    setPerfil(borrador)
-    setEditando(false)
-    setMensaje(tr("Tu información se actualizó correctamente."))
+  const hayCambios = correo.trim() !== perfil.correo || telefono.trim() !== perfil.telefono
+  const errorCorreo = correo.trim() && !CORREO_VALIDO.test(correo.trim()) ? tr("Escribe un correo válido.") : ""
+  const errorTelefono = !TELEFONO_VALIDO.test(telefono.trim()) ? tr("El teléfono solo puede tener números, espacios y los signos + ( ) -.") : ""
+  const puedeGuardar = hayCambios && !!correo.trim() && !errorCorreo && !errorTelefono && !guardando
+
+  const avisar = (texto: string) => {
+    setMensaje(texto)
     window.setTimeout(() => setMensaje(""), 3500)
+  }
+
+  const cancelar = () => {
+    setCorreo(perfil.correo)
+    setTelefono(perfil.telefono)
+    setError("")
+  }
+
+  const guardar = async (evento: FormEvent) => {
+    evento.preventDefault()
+    if (!puedeGuardar) return
+    setGuardando(true)
+    setError("")
+    try {
+      const actualizado = await portalInstructorServicio.actualizarContacto(correo.trim(), telefono.trim())
+      setPerfil(actualizado)
+      setCorreo(actualizado.correo)
+      setTelefono(actualizado.telefono)
+      avisar(tr("Tu información se actualizó correctamente."))
+    } catch (causa) {
+      setError((causa as { mensaje?: string })?.mensaje ?? tr("No fue posible guardar los cambios."))
+    } finally {
+      setGuardando(false)
+    }
   }
 
   return (
@@ -798,154 +842,157 @@ function PerfilInstructor() {
       <CabeceraPagina
         ceja="Cuenta personal"
         titulo={tr("Mi perfil")}
-        descripcion="Consulta y actualiza tu información personal y de contacto."
+        descripcion="Consulta tus datos y mantén al día tu correo y teléfono de contacto."
       />
       {mensaje && <MensajeExito texto={mensaje} />}
-      <div className="grid gap-6 lg:grid-cols-[0.7fr_1.3fr]">
-        <section className={`${superficie} p-6 text-center`}>
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-900 to-purple-400 font-display text-3xl text-white shadow-xl shadow-purple-700/20">
-            {iniciales(perfil.nombre)}
+
+      <form onSubmit={guardar} className={`${superficie} overflow-hidden`} noValidate>
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+          <h2 className="font-display text-xl uppercase">{tr("Edita tu perfil")}</h2>
+          <span className="font-condensed text-xs uppercase tracking-wider text-text-muted">{tr("Instructor")}</span>
+        </header>
+
+        <div className="flex flex-col gap-8 px-6 py-6 md:flex-row">
+          {/* Formulario */}
+          <div className="order-last flex w-full max-w-xl flex-col gap-5 md:order-first md:border-e md:border-border md:pe-10">
+            <CampoLectura etiqueta="Nombre completo" valor={perfil.nombre} />
+            <CampoLectura etiqueta="Identificación" valor={perfil.documento} />
+            <CampoEditable
+              id="perfil-correo"
+              etiqueta="Correo electrónico"
+              tipo="email"
+              valor={correo}
+              onChange={setCorreo}
+              error={errorCorreo || (!correo.trim() && hayCambios ? tr("El correo es obligatorio.") : "")}
+              ayuda={tr("Lo usamos para enviarte el enlace si olvidas tu contraseña.")}
+            />
+            <CampoEditable
+              id="perfil-telefono"
+              etiqueta="Teléfono"
+              tipo="tel"
+              valor={telefono}
+              onChange={setTelefono}
+              error={errorTelefono}
+            />
+
+            <div className="flex items-center justify-between gap-6 rounded-xl border border-border bg-surface-alt p-4">
+              <div>
+                <p className="text-sm font-semibold text-text">{tr("Contraseña")}</p>
+                <p className="mt-0.5 text-sm text-text-muted">{tr("Para cambiarla necesitas escribir la actual.")}</p>
+              </div>
+              <Button type="button" size="sm" variant="outline" className="shrink-0 whitespace-nowrap" onClick={() => setCambiarClave(true)}>
+                {tr("Cambiar contraseña")}
+              </Button>
+            </div>
           </div>
-          <h2 className="mt-5 font-display text-2xl uppercase">{perfil.nombre}</h2>
-          <p className="mt-1 text-sm text-purple-400">{tr("Instructor")}</p>
-          <p className="mt-4 text-sm text-text-muted">{perfil.especialidad}</p>
-          <div className="mt-6 rounded-xl border border-border bg-surface-alt p-4 text-left">
-            <p className="font-condensed text-xs uppercase tracking-wider text-text-muted">
-              {tr("Estado de cuenta")}
-            </p>
-            <div className="mt-2 flex items-center justify-between">
+
+          {/* Identidad */}
+          <aside className="flex flex-1 flex-col items-center gap-5 text-center">
+            <div className="self-stretch text-left">
+              <p className="text-sm font-semibold text-text">{tr("Tu cuenta")}</p>
+              <p className="mt-0.5 text-sm text-text-muted">{tr("Nombre y documento los actualiza la sede.")}</p>
+            </div>
+            <div className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-purple-900 to-purple-400 font-display text-4xl text-white shadow-xl shadow-purple-700/25">
+              {iniciales(perfil.nombre)}
+            </div>
+            <div>
+              <h3 className="font-display text-2xl uppercase text-text">{perfil.nombre}</h3>
+              <p className="mt-1 text-sm text-purple-400">{tr("Instructor")}</p>
+              {perfil.especialidad && <p className="mt-3 text-sm text-text-muted">{perfil.especialidad}</p>}
+            </div>
+            <div className="flex w-full items-center justify-between rounded-xl border border-border bg-surface-alt px-4 py-3">
               <span className="text-sm text-text-soft">{tr("Acceso habilitado")}</span>
               <StatusBadge status="Activo" />
             </div>
-          </div>
-        </section>
+          </aside>
+        </div>
 
-        <section className={`${superficie} p-6`}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5">
-            <div>
-              <h2 className="font-display text-2xl uppercase">
-                {tr("Información personal")}
-              </h2>
-              <p className="mt-1 text-sm text-text-muted">
-                {tr("Datos visibles para la academia.")}
-              </p>
-            </div>
-            {!editando && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setBorrador(perfil)
-                  setEditando(true)
-                }}
-              >
-                <IconoInstructor nombre="editar" className="h-4 w-4" />
-                {tr("Editar información")}
-              </Button>
-            )}
-          </div>
-          <div className="grid gap-5 py-6 sm:grid-cols-2">
-            <CampoPerfil
-              etiqueta="Nombre completo"
-              valor={borrador.nombre}
-              editando={editando}
-              onChange={(valor) =>
-                setBorrador((actual) => ({ ...actual, nombre: valor }))
-              }
-            />
-            <CampoPerfil
-              etiqueta="Identificación"
-              valor={borrador.documento}
-              editando={false}
-              onChange={() => undefined}
-            />
-            <CampoPerfil
-              etiqueta="Correo electrónico"
-              valor={borrador.correo}
-              editando={editando}
-              tipo="email"
-              onChange={(valor) =>
-                setBorrador((actual) => ({ ...actual, correo: valor }))
-              }
-            />
-            <CampoPerfil
-              etiqueta="Teléfono"
-              valor={borrador.telefono}
-              editando={editando}
-              onChange={(valor) =>
-                setBorrador((actual) => ({ ...actual, telefono: valor }))
-              }
-            />
-          </div>
-          {editando && (
-            <div className="flex justify-end gap-3 border-t border-border pt-5">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setBorrador(perfil)
-                  setEditando(false)
-                }}
-              >
-                {tr("Cancelar")}
-              </Button>
-              <Button size="sm" onClick={guardar}>
-                {tr("Guardar cambios")}
-              </Button>
-            </div>
-          )}
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-surface-alt p-4">
-            <div className="flex items-center gap-3">
-              <span className="rounded-xl bg-purple-400/10 p-2.5 text-purple-400">
-                <IconoInstructor nombre="seguridad" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-text">
-                  {tr("Información de acceso")}
-                </p>
-                <p className="text-xs text-text-muted">
-                  {tr("Última actualización hace 3 meses")}
-                </p>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setCambiarClave(true)}
-            >
-              {tr("Cambiar contraseña")}
+        <footer className="flex flex-col items-start justify-between gap-4 border-t border-border bg-surface-alt/60 px-6 py-4 sm:flex-row sm:items-center">
+          <p className="text-sm text-text-muted" role={error ? "alert" : undefined}>
+            {error ? <span className="text-red-400">{error}</span> : hayCambios ? tr("Tienes cambios sin guardar.") : tr("Todo está al día.")}
+          </p>
+          <div className="flex gap-3">
+            <Button type="button" size="sm" variant="ghost" onClick={cancelar} disabled={!hayCambios || guardando}>
+              {tr("Cancelar")}
+            </Button>
+            <Button type="submit" size="sm" disabled={!puedeGuardar}>
+              {guardando ? tr("Guardando...") : tr("Guardar cambios")}
             </Button>
           </div>
-        </section>
-      </div>
+        </footer>
+      </form>
+
       {cambiarClave && (
-        <Modal titulo={tr("Cambiar contraseña")} onClose={() => setCambiarClave(false)}>
-          <div className="space-y-4">
-            {["Contraseña actual", "Nueva contraseña", "Confirmar contraseña"].map(
-              (etiqueta) => (
-                <label key={etiqueta}>
-                  <span className="mb-1.5 block font-condensed text-xs uppercase tracking-wider text-text-muted">
-                    {etiqueta}
-                  </span>
-                  <input type="password" className={campo} placeholder="••••••••" />
-                </label>
-              ),
-            )}
-            <Button
-              fullWidth
-              size="sm"
-              onClick={() => {
-                setCambiarClave(false)
-                setMensaje(tr("Tu contraseña se actualizó correctamente."))
-                window.setTimeout(() => setMensaje(""), 3500)
-              }}
-            >
-              {tr("Actualizar contraseña")}
-            </Button>
-          </div>
-        </Modal>
+        <ModalCambiarClave
+          onClose={() => setCambiarClave(false)}
+          onListo={() => {
+            setCambiarClave(false)
+            avisar(tr("Tu contraseña se actualizó correctamente."))
+          }}
+        />
       )}
     </div>
+  )
+}
+
+function ModalCambiarClave({ onClose, onListo }: { onClose: () => void; onListo: () => void }) {
+  const [actual, setActual] = useState("")
+  const [nueva, setNueva] = useState("")
+  const [confirmar, setConfirmar] = useState("")
+  const [error, setError] = useState("")
+  const [guardando, setGuardando] = useState(false)
+
+  const enviar = async (evento: FormEvent) => {
+    evento.preventDefault()
+    const problema =
+      !actual ? tr("Escribe tu contraseña actual.") : errorClave(nueva) || (nueva !== confirmar ? tr("Las contraseñas no coinciden.") : "")
+    if (problema) {
+      setError(problema)
+      return
+    }
+    setGuardando(true)
+    setError("")
+    try {
+      await portalInstructorServicio.cambiarClave(actual, nueva)
+      onListo()
+    } catch (causa) {
+      setError((causa as { mensaje?: string })?.mensaje ?? tr("No fue posible cambiar la contraseña."))
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <Modal titulo={tr("Cambiar contraseña")} onClose={onClose}>
+      <form onSubmit={enviar} className="space-y-4" noValidate>
+        {[
+          { id: "clave-actual", etiqueta: "Contraseña actual", valor: actual, cambiar: setActual, auto: "current-password" },
+          { id: "clave-nueva", etiqueta: "Nueva contraseña", valor: nueva, cambiar: setNueva, auto: "new-password" },
+          { id: "clave-confirmar", etiqueta: "Confirmar contraseña", valor: confirmar, cambiar: setConfirmar, auto: "new-password" },
+        ].map((c) => (
+          <label key={c.id} htmlFor={c.id} className="block">
+            <span className="mb-1.5 block font-condensed text-xs uppercase tracking-wider text-text-muted">{tr(c.etiqueta)}</span>
+            <input
+              id={c.id}
+              type="password"
+              autoComplete={c.auto}
+              className={campo}
+              value={c.valor}
+              onChange={(e) => c.cambiar(e.target.value)}
+            />
+          </label>
+        ))}
+        <p className="text-xs text-text-muted">{tr("Mínimo 8 caracteres, con al menos una letra y un número.")}</p>
+        {error && (
+          <p role="alert" className="text-sm text-red-400">
+            {error}
+          </p>
+        )}
+        <Button type="submit" fullWidth size="sm" disabled={guardando}>
+          {guardando ? tr("Guardando...") : tr("Actualizar contraseña")}
+        </Button>
+      </form>
+    </Modal>
   )
 }
 
@@ -1300,37 +1347,53 @@ function DatoTexto({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   )
 }
 
-function CampoPerfil({
+function CampoLectura({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+  return (
+    <div>
+      <span className="mb-1.5 block font-condensed text-xs uppercase tracking-wider text-text-muted">{tr(etiqueta)}</span>
+      <div className="rounded-xl border border-border bg-surface-alt px-4 py-2.5 text-sm text-text-soft">{valor || "—"}</div>
+    </div>
+  )
+}
+
+function CampoEditable({
+  id,
   etiqueta,
   valor,
-  editando,
   onChange,
   tipo = "text",
+  error,
+  ayuda,
 }: {
+  id: string
   etiqueta: string
   valor: string
-  editando: boolean
   onChange: (valor: string) => void
   tipo?: string
+  error?: string
+  ayuda?: string
 }) {
+  const idAyuda = `${id}-ayuda`
   return (
-    <label>
-      <span className="mb-1.5 block font-condensed text-xs uppercase tracking-wider text-text-muted">
-        {etiqueta}
-      </span>
-      {editando ? (
-        <input
-          type={tipo}
-          className={campo}
-          value={valor}
-          onChange={(evento) => onChange(evento.target.value)}
-        />
-      ) : (
-        <div className="rounded-xl border border-border bg-surface-alt px-4 py-3 text-sm text-text">
-          {valor}
-        </div>
+    <div>
+      <label htmlFor={id} className="mb-1.5 block font-condensed text-xs uppercase tracking-wider text-text-muted">
+        {tr(etiqueta)}
+      </label>
+      <input
+        id={id}
+        type={tipo}
+        className={`${campo} ${error ? "!border-red-400" : ""}`}
+        value={valor}
+        onChange={(evento) => onChange(evento.target.value)}
+        aria-invalid={!!error}
+        aria-describedby={error || ayuda ? idAyuda : undefined}
+      />
+      {(error || ayuda) && (
+        <p id={idAyuda} className={`mt-1.5 text-xs ${error ? "text-red-400" : "text-text-muted"}`}>
+          {error || ayuda}
+        </p>
       )}
-    </label>
+    </div>
   )
 }
 

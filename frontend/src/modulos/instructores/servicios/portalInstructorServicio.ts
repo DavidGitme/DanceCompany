@@ -32,4 +32,18 @@ export const portalInstructorServicio = {
     ])
     return { instructor, grupos, estudiantes }
   },
+
+  /** Guarda el correo y el teléfono del instructor que inició sesión (persona.email y persona.telefono). */
+  async actualizarContacto(correo: string, telefono: string): Promise<PerfilInstructor> {
+    if (env.usarMock) {
+      return { ...instructorMock, correo, telefono }
+    }
+    return clienteHttp.put<PerfilInstructor>("/portal-instructor/perfil", { correo, telefono })
+  },
+
+  /** Cambia la contraseña; el backend verifica la actual antes de guardar la nueva. */
+  async cambiarClave(actual: string, nueva: string): Promise<void> {
+    if (env.usarMock) return
+    await clienteHttp.put<void>("/portal-instructor/clave", { actual, nueva })
+  },
 }

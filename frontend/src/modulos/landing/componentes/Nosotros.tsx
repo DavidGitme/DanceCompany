@@ -53,16 +53,13 @@ export default function ValueProposition() {
 
         <ul className="border-t border-white/25 dark:border-border">
           {values.map((v, i) => (
-            <Reveal as="li" key={v.title} delay={i * 80} className="group border-b border-white/25 dark:border-border">
-              <div className="grid md:grid-cols-[80px_1.1fr_1fr_40px] gap-3 md:gap-8 items-baseline py-8 px-2 transition-colors duration-300 hover:bg-white/10 dark:hover:bg-surface-alt">
+            <Reveal as="li" key={v.title} delay={i * 80} className="border-b border-white/25 dark:border-border">
+              <div className="grid md:grid-cols-[80px_1.1fr_1fr] gap-3 md:gap-8 items-baseline py-8 px-2">
                 <span className="font-condensed text-sm text-white/70 dark:text-text-muted">({String(i + 1).padStart(2, '0')})</span>
-                <h3 className="display text-3xl md:text-5xl text-white dark:text-text transition-all duration-500 group-hover:translate-x-3 group-hover:text-purple-100 dark:group-hover:text-accent">
+                <h3 className="display text-3xl md:text-5xl text-white dark:text-text">
                   {t(v.title)}
                 </h3>
                 <p className="font-body text-sm md:text-base text-white/85 dark:text-text-soft leading-relaxed">{t(v.description)}</p>
-                <span className="hidden md:block text-2xl text-purple-100 dark:text-accent opacity-0 -translate-x-3 transition-all duration-500 group-hover:opacity-100 group-hover:translate-x-0" aria-hidden="true">
-                  →
-                </span>
               </div>
             </Reveal>
           ))}
