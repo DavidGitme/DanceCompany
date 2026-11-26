@@ -278,3 +278,68 @@ def test_portal_estado_del_estudiante_es_el_peor_de_sus_mensualidades():
 def test_portal_usuario_sin_instructor_da_404():
     with pytest.raises(NoEncontrado):
         ConsultarPortalInstructor(PortalMemoria()).perfil("999")
+
+
+# ---------- Mi perfil del instructor: contacto y contraseña ----------
+from app.aplicacion.casos_uso.portal_instructor.actualizar_cuenta_instructor import (  # noqa: E402
+    ActualizarCuentaInstructor,
+)
+
+
+class HasherFalso:
+    def crear_hash(self, clave):
+        return f"hash:{clave}"
+
+    def verificar(self, clave, hash_guardado):
+        return hash_guardado == f"hash:{clave}"
+
+
+class CuentaMemoria(PortalMemoria):
+    def __init__(self):
+        self.persona = {"nombre": "Ana", "correo": "", "telefono": ""}
+        self.clave = "hash:Clave123"
+        self.confirmados = 0
+
+    def perfil_por_documento(self, documento):
+        return {"idInstructor": 1, **self.persona} if documento == "100" else None
+
+    def actualizar_contacto(self, documento, correo, telefono):
+        self.persona.update(correo=correo, telefono=telefono or "")
+
+    def hash_clave(self, documento):
+        return self.clave if documento == "100" else None
+
+    def guardar_clave(self, documento, password_hash):
+        self.clave = password_hash
+
+    def confirmar(self):
+        self.confirmados += 1
+
+    def deshacer(self):
+        pass
+
+
+def test_instructor_actualiza_su_contacto():
+    repo = CuentaMemoria()
+    perfil = ActualizarCuentaInstructor(repo, HasherFalso()).actualizar_contacto("100", " Ana@Correo.com ", "300 123 4567")
+    assert perfil["correo"] == "ana@correo.com"
+    assert perfil["telefono"] == "300 123 4567"
+    assert repo.confirmados == 1
+
+
+def test_usuario_sin_instructor_no_puede_actualizar_contacto():
+    with pytest.raises(NoEncontrado):
+        ActualizarCuentaInstructor(CuentaMemoria(), HasherFalso()).actualizar_contacto("999", "a@b.co", "")
+
+
+def test_cambiar_clave_exige_la_actual_y_la_regla_de_seguridad():
+    repo = CuentaMemoria()
+    caso = ActualizarCuentaInstructor(repo, HasherFalso())
+    with pytest.raises(DatoInvalido):
+        caso.cambiar_clave("100", "Incorrecta1", "NuevaClave1")
+    with pytest.raises(DatoInvalido):
+        caso.cambiar_clave("100", "Clave123", "sinnumeros")
+    with pytest.raises(DatoInvalido):
+        caso.cambiar_clave("100", "Clave123", "Clave123")
+    caso.cambiar_clave("100", "Clave123", "NuevaClave1")
+    assert repo.clave == "hash:NuevaClave1"
