@@ -6,7 +6,11 @@ from app.aplicacion.dtos.personas_rol_dto import (
     EstudianteRespuesta,
     EstudianteUpdateDto,
 )
-from app.aplicacion.dtos.inscripcion_dto import AcudienteRespuesta, VincularAcudienteSolicitud
+from app.aplicacion.dtos.inscripcion_dto import (
+    AcudienteRespuesta,
+    EditarAcudienteSolicitud,
+    VincularAcudienteSolicitud,
+)
 from app.presentacion.dependencias.academicos import gestor_estudiantes, gestor_inscripciones
 from app.presentacion.dependencias.auth import requiere_permiso
 from app.presentacion.dependencias.sede import alcance_sede, filtro_sede
@@ -70,6 +74,20 @@ def agregar_acudiente(
     return gestor.agregar_acudiente(identificador, solicitud.model_dump())
 
 
+# Edición del acudiente desde la edición del estudiante (nombre, contacto y parentesco)
+@router.put(
+    "/{identificador}/acudientes/{id_acudiente}", response_model=list[AcudienteRespuesta], dependencies=permiso
+)
+def editar_acudiente(
+    identificador: int,
+    id_acudiente: int,
+    solicitud: EditarAcudienteSolicitud,
+    gestor=Depends(gestor_inscripciones),
+):
+    return gestor.editar_acudiente(identificador, id_acudiente, solicitud.model_dump())
+
+
+# Bloqueado si el estudiante es menor de edad (debe tener acudiente)
 @router.delete(
     "/{identificador}/acudientes/{id_acudiente}", response_model=list[AcudienteRespuesta], dependencies=permiso
 )

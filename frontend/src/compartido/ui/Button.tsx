@@ -45,6 +45,7 @@ export default function Button({
       className={[
         'inline-flex items-center justify-center gap-2 rounded-full font-condensed font-bold tracking-wider uppercase',
         'transition-all duration-300 cursor-pointer select-none hover:-translate-y-0.5 active:translate-y-0',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         variants[variant],
         sizes[size],
         fullWidth ? 'w-full' : '',

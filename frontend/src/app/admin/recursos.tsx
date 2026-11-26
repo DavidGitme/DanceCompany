@@ -122,8 +122,13 @@ const validarFecha = (v: Valores): Record<string, string> =>
     : {}
 
 // Teléfono colombiano: exactamente 10 dígitos (el backend aplica la misma regla)
-export const errorTelefono = (valor: string): string | undefined =>
-  valor && !/^\d{10}$/.test(valor.replace(/[\s-]/g, "")) ? "El teléfono debe tener exactamente 10 dígitos." : undefined
+// Se cuentan dígitos: si pasa de 10 el mensaje lo dice
+export const errorTelefono = (valor: string): string | undefined => {
+  const digitos = valor.replace(/\D/g, "")
+  if (!valor) return undefined
+  if (digitos.length > 10) return `El teléfono admite máximo 10 dígitos (tiene ${digitos.length}).`
+  return /^\d{10}$/.test(valor.replace(/[\s-]/g, "")) ? undefined : "El teléfono debe tener exactamente 10 dígitos."
+}
 
 // Cédula, tarjeta de identidad y registro civil: solo números (el pasaporte admite letras)
 export const errorDocumento = (valor: string, tipo: string | undefined): string | undefined => {
@@ -310,11 +315,19 @@ export const estudiantes: DefinicionRecurso<Estudiante> = {
     { clave: "sede", etiqueta: "Sede" },
     { clave: "grupos", etiqueta: "Grupos", render: (e) => e.grupos.map((g) => g.nombre).join(", ") || "Sin matrícula" },
   ],
-  // Teléfono y fecha de nacimiento son obligatorios para el estudiante (el backend también lo exige)
+  // Teléfono y fecha de nacimiento son obligatorios para el estudiante (el backend también lo exige).
+  // Orden: tipo y número de documento, fecha de nacimiento, nombre completo y luego contacto
   campos: [
-    ...camposPersona.map((c) =>
-      c.clave === "telefono" || c.clave === "fecha_nacimiento" ? { ...c, requerido: true } : c,
-    ),
+    ...["idTipoDocumento", "documento", "fecha_nacimiento", "nombre", "telefono", "email"].map((clave, i) => {
+      const c = camposPersona.find((campo) => campo.clave === clave)!
+      return {
+        ...c,
+        ...(clave === "telefono" || clave === "fecha_nacimiento" ? { requerido: true } : {}),
+        // La sección va en el primer campo
+        ...(i === 0 ? { seccion: "Datos personales" } : { seccion: undefined }),
+        ...(clave === "nombre" ? { ancho: "mitad" as const } : {}),
+      }
+    }),
     {
       clave: "idSede", etiqueta: "Sede", tipo: "seleccion", fuente: "sedes", requerido: true,
       seccion: "Datos del estudiante", ancho: "mitad",

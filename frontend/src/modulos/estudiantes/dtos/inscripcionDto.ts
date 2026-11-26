@@ -45,6 +45,14 @@ export interface AcudienteDto {
   parentesco: string
 }
 
+// PUT /estudiantes/{id}/acudientes/{idAcudiente}
+export interface AcudienteEdicionDto {
+  nombre: string
+  telefono: string
+  email?: string
+  idParentesco: number
+}
+
 export interface InscripcionRespuestaDto {
   estudiante: { idEstudiante: number; nombre: string }
   acudientes: AcudienteDto[]

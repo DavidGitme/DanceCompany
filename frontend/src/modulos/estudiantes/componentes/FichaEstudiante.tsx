@@ -1,17 +1,14 @@
 import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useCallback, useEffect, useState } from "react"
-import ConfirmDialog from "@/compartido/ui/ConfirmDialog"
-import type { Opcion } from "@/compartido/ui/PantallaRecurso"
-import { Icono, claseBotonIcono, claseBotonPrincipal, claseBotonSecundario, hoverPeligro } from "@/compartido/ui/PantallaRecurso"
+import { claseBotonPrincipal, claseBotonSecundario } from "@/compartido/ui/PantallaRecurso"
 import { mensajeError } from "@/compartido/api/recursos"
 import type { AcudienteDto } from "../dtos/inscripcionDto"
 import { inscripcionServicio } from "../servicios/inscripcionServicio"
-import CamposAcudiente, { acudienteASolicitud, acudienteVacio, validarAcudiente } from "./CamposAcudiente"
-import { Dialogo, MensajeError, Seccion, edadEn } from "./formulario"
+import { Dialogo, MensajeError, Seccion, edadEn, esMenorDeEdad } from "./formulario"
 
 /*
- * Ficha del estudiante ("Ver"): datos, grupos y acudientes. Es la única tarea del panel
- * que no cubre el formulario de edición: agregar o quitar acudientes.
+ * Ficha del estudiante ("Ver"): solo lectura. Datos, grupos y acudiente.
+ * Cualquier cambio (también del acudiente) se hace desde "Editar".
  */
 
 export interface EstudianteFicha {
@@ -29,8 +26,9 @@ export interface EstudianteFicha {
 
 interface Props {
   estudiante: EstudianteFicha
-  cargarCatalogo: (ruta: string) => Promise<Opcion[]>
   onCerrar: () => void
+  // Abre la edición (si el rol puede editar)
+  onEditar?: () => void
 }
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
@@ -42,19 +40,13 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   )
 }
 
-export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }: Props) {
+export default function FichaEstudiante({ estudiante, onCerrar, onEditar }: Props) {
   const [acudientes, setAcudientes] = useState<AcudienteDto[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tipos, setTipos] = useState<Opcion[]>([])
-  const [parentescos, setParentescos] = useState<Opcion[]>([])
-  const [nuevo, setNuevo] = useState<ReturnType<typeof acudienteVacio> | null>(null)
-  const [erroresNuevo, setErroresNuevo] = useState<Record<string, string>>({})
-  const [porQuitar, setPorQuitar] = useState<AcudienteDto | null>(null)
-  const [ocupado, setOcupado] = useState(false)
 
   const edad = edadEn(estudiante.fecha_nacimiento ?? "")
-  const menor = edad !== null && edad < 18
+  const menor = esMenorDeEdad(estudiante.fecha_nacimiento)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -70,134 +62,55 @@ export default function FichaEstudiante({ estudiante, cargarCatalogo, onCerrar }
 
   useEffect(() => {
     cargar()
-    cargarCatalogo("/catalogos/tipos-documento").then(setTipos).catch(() => setTipos([]))
-    cargarCatalogo("/catalogos/parentescos").then(setParentescos).catch(() => setParentescos([]))
-  }, [cargar, cargarCatalogo])
-
-  const guardarNuevo = async () => {
-    if (!nuevo) return
-    const errores = validarAcudiente(nuevo, tipos)
-    setErroresNuevo(errores)
-    if (Object.keys(errores).length) return
-    setOcupado(true)
-    try {
-      setAcudientes(await inscripcionServicio.agregarAcudiente(estudiante.idEstudiante, acudienteASolicitud(nuevo)))
-      setNuevo(null)
-      setError(null)
-    } catch (e) {
-      setError(mensajeError(e))
-    } finally {
-      setOcupado(false)
-    }
-  }
-
-  const quitar = async () => {
-    if (!porQuitar) return
-    setOcupado(true)
-    try {
-      setAcudientes(await inscripcionServicio.quitarAcudiente(estudiante.idEstudiante, porQuitar.idAcudiente))
-      setPorQuitar(null)
-      setError(null)
-    } catch (e) {
-      setError(mensajeError(e))
-      setPorQuitar(null)
-    } finally {
-      setOcupado(false)
-    }
-  }
-
-  // El acudiente es opcional: se puede quitar siempre
-  const bloqueoQuitar: string | undefined = undefined
+  }, [cargar])
 
   return (
-    <>
-      <Dialogo
-        antetitulo={`Estudiante · ${estudiante.sede}`}
-        titulo={estudiante.nombre}
-        ocupado={ocupado}
-        onCerrar={onCerrar}
-        pie={<button type="button" onClick={onCerrar} disabled={ocupado} className={claseBotonSecundario}>{tr("Cerrar")}</button>}
-      >
-        <MensajeError mensaje={error} />
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
-          <Dato etiqueta="Documento" valor={`${estudiante.tipoDocumento} ${estudiante.documento ?? "—"}`} />
-          <Dato etiqueta="Edad" valor={edad !== null ? tr("{edad} años", { edad }) : tr("Sin fecha de nacimiento")} />
-          <Dato etiqueta="Estado" valor={tr(estudiante.estado)} />
-          <Dato etiqueta="Teléfono" valor={estudiante.telefono ?? "—"} />
-          <Dato etiqueta="Correo" valor={estudiante.email ?? "—"} />
-          <Dato etiqueta="Grupos" valor={estudiante.grupos.map((g) => g.nombre).join(", ") || tr("Sin matrícula")} />
-        </dl>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <Seccion>{tr("Acudientes")}</Seccion>
-          {cargando ? (
-            <p className="font-body text-sm text-text-muted sm:col-span-2">{tr("Cargando acudientes…")}</p>
-          ) : acudientes.length === 0 ? (
-            <p className="font-body text-sm text-text-muted sm:col-span-2">
-              Sin acudiente registrado{menor ? tr(". Es opcional, pero se recomienda para menores de edad.") : "."}
-            </p>
-          ) : (
-            <ul className="divide-y divide-border rounded-2xl border border-border sm:col-span-2">
-              {acudientes.map((a) => (
-                <li key={a.idAcudiente} className="flex items-center justify-between gap-3 p-3">
-                  <div className="min-w-0">
-                    <p className="font-body text-sm font-semibold text-text">{a.nombre} <span className="font-normal text-text-muted">· {a.parentesco}</span></p>
-                    <p className="truncate font-body text-xs text-text-muted">
-                      {a.tipoDocumento} {a.documento}{a.telefono ? ` · ${a.telefono}` : ""}{a.email ? ` · ${a.email}` : ""}
-                    </p>
-                  </div>
-                  <button type="button" onClick={() => setPorQuitar(a)} disabled={ocupado}
-                    className={`${claseBotonIcono} ${hoverPeligro}`} aria-label={`Quitar a ${a.nombre} como acudiente`} title={tr("Quitar acudiente")}>
-                    <Icono nombre="eliminar" />
-                  </button>
-                </li>
-              ))}
-            </ul>
+    <Dialogo
+      antetitulo={`Estudiante · ${estudiante.sede}`}
+      titulo={estudiante.nombre}
+      onCerrar={onCerrar}
+      pie={
+        <>
+          <button type="button" onClick={onCerrar} className={claseBotonSecundario}>{tr("Cerrar")}</button>
+          {onEditar && (
+            <button type="button" onClick={onEditar} className={claseBotonPrincipal}>{tr("Editar")}</button>
           )}
+        </>
+      }
+    >
+      <MensajeError mensaje={error} />
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+        <Dato etiqueta="Documento" valor={`${estudiante.tipoDocumento} ${estudiante.documento ?? "—"}`} />
+        <Dato etiqueta="Edad" valor={edad !== null ? tr("{edad} años", { edad }) : tr("Sin fecha de nacimiento")} />
+        <Dato etiqueta="Estado" valor={tr(estudiante.estado)} />
+        <Dato etiqueta="Teléfono" valor={estudiante.telefono ?? "—"} />
+        <Dato etiqueta="Correo" valor={estudiante.email ?? "—"} />
+        <Dato etiqueta="Grupos" valor={estudiante.grupos.map((g) => g.nombre).join(", ") || tr("Sin matrícula")} />
+      </dl>
 
-          {nuevo ? (
-            <>
-              <CamposAcudiente
-                valor={nuevo}
-                numero={acudientes.length + 1}
-                tipos={tipos}
-                parentescos={parentescos}
-                errores={erroresNuevo}
-                deshabilitado={ocupado}
-                onCambiar={(valor) => {
-                  setNuevo(valor)
-                  setErroresNuevo({})
-                }}
-              />
-              <div className="flex justify-end gap-3 sm:col-span-2">
-                <button type="button" onClick={() => setNuevo(null)} disabled={ocupado} className={claseBotonSecundario}>{tr("Cancelar")}</button>
-                <button type="button" onClick={guardarNuevo} disabled={ocupado} className={claseBotonPrincipal}>
-                  {ocupado ? tr("Guardando…") : tr("Guardar acudiente")}
-                </button>
-              </div>
-            </>
-          ) : (
-            acudientes.length < 1 && (
-              <button type="button" onClick={() => { setNuevo(acudienteVacio()); setErroresNuevo({}) }} disabled={ocupado || cargando}
-                className={`${claseBotonSecundario} sm:col-span-2`}>
-                {tr("Agregar acudiente")}
-              </button>
-            )
-          )}
-        </div>
-      </Dialogo>
-
-      <ConfirmDialog
-        open={Boolean(porQuitar)}
-        title={tr("Quitar acudiente")}
-        message={porQuitar ? `${porQuitar.nombre} dejará de ser acudiente de ${estudiante.nombre}. Sus pagos anteriores se conservan.` : ""}
-        confirmLabel="Quitar"
-        blockedMessage={bloqueoQuitar}
-        tone="peligro"
-        loading={ocupado}
-        onConfirm={quitar}
-        onClose={() => setPorQuitar(null)}
-      />
-    </>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <Seccion>{tr("Acudiente")}</Seccion>
+        {cargando ? (
+          <p className="font-body text-sm text-text-muted sm:col-span-2">{tr("Cargando acudientes…")}</p>
+        ) : acudientes.length === 0 ? (
+          <p className="font-body text-sm text-text-muted sm:col-span-2">
+            {menor
+              ? tr("Sin acudiente registrado. Es menor de edad: agrégalo desde Editar.")
+              : tr("Sin acudiente registrado.")}
+          </p>
+        ) : (
+          <ul className="divide-y divide-border rounded-2xl border border-border sm:col-span-2">
+            {acudientes.map((a) => (
+              <li key={a.idAcudiente} className="p-3">
+                <p className="font-body text-sm font-semibold text-text">{a.nombre} <span className="font-normal text-text-muted">· {a.parentesco}</span></p>
+                <p className="truncate font-body text-xs text-text-muted">
+                  {a.tipoDocumento} {a.documento}{a.telefono ? ` · ${a.telefono}` : ""}{a.email ? ` · ${a.email}` : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Dialogo>
   )
 }

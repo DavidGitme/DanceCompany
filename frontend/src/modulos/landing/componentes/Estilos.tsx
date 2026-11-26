@@ -6,9 +6,13 @@ import { useIdioma } from '@/nucleo/i18n/useIdioma';
  * Estilos que enseña la academia. Los rasgos y el origen salen literalmente de cada descripción;
  * el origen queda vacío cuando la descripción no lo menciona (no se inventa).
  */
+// Fotos de Unsplash (provisionales hasta tener fotos propias de cada clase)
+const foto = (id: string) => `https://images.unsplash.com/photo-${id}?w=900&h=1100&fit=crop&auto=format`;
+
 const estilos = [
   {
     nombre: 'Hip Hop',
+    foto: foto('1601128422269-0874c1bb0332'),
     rasgos: ['Groove', 'Bounce', 'Rock'],
     origen: 'Bronx · años 70',
     descripcion:
@@ -16,6 +20,7 @@ const estilos = [
   },
   {
     nombre: 'Breaking',
+    foto: foto('1508700929628-666bc8bd84ea'),
     rasgos: ['Toprock', 'Footwork', 'Freezes', 'Power moves'],
     origen: '',
     descripcion:
@@ -23,6 +28,7 @@ const estilos = [
   },
   {
     nombre: 'Popping',
+    foto: foto('1761882628233-1e23102da76d'),
     rasgos: ['Waving', 'Robot'],
     origen: 'California · años 70',
     descripcion:
@@ -30,6 +36,7 @@ const estilos = [
   },
   {
     nombre: 'Locking',
+    foto: foto('1611418608118-e6afdb56c35e'),
     rasgos: ['Points', 'Wrist rolls'],
     origen: 'Los Ángeles',
     descripcion:
@@ -37,6 +44,7 @@ const estilos = [
   },
   {
     nombre: 'New Style',
+    foto: foto('1621976360623-004223992275'),
     rasgos: ['Musicalidad', 'Fluidez', 'Transiciones'],
     origen: 'Años 90 y 2000',
     descripcion:
@@ -44,6 +52,7 @@ const estilos = [
   },
   {
     nombre: 'Krump',
+    foto: foto('1454486837617-ce8e1ba5ebfe'),
     rasgos: ['Stomps', 'Chest pops', 'Arm swings'],
     origen: 'Los Ángeles',
     descripcion:
@@ -51,6 +60,7 @@ const estilos = [
   },
   {
     nombre: 'Freestyle',
+    foto: foto('1511929958725-bd96f4db195f'),
     rasgos: ['Improvisación', 'Batallas'],
     origen: '',
     descripcion:
@@ -59,67 +69,72 @@ const estilos = [
 ];
 
 /**
- * Tarjeta informativa (no es un botón): aparece al hacer scroll y, con mouse, se inclina levemente
- * y muestra un brillo lila que sigue al cursor. Idea tomada del "Spotlight Card" de 21st.dev,
- * hecha aquí con variables CSS y sin dependencias.
+ * Tarjeta partida (split image): media foto, media texto. El lado de la foto se alterna como un
+ * damero para que la cuadrícula tenga ritmo. Es informativa (no es un botón): con mouse, el brillo
+ * lila sigue al cursor sobre el texto y la foto pasa del duotono morado a color.
  */
-function TarjetaEstilo({ estilo, indice, morada }: { estilo: (typeof estilos)[number]; indice: number; morada: boolean }) {
+function TarjetaEstilo({
+  estilo,
+  indice,
+  fotoDerecha,
+  ancha,
+}: {
+  estilo: (typeof estilos)[number];
+  indice: number;
+  fotoDerecha: boolean;
+  ancha: boolean;
+}) {
   const { t } = useIdioma();
   const ref = useRef<HTMLElement>(null);
+  const morada = fotoDerecha;
+  const numero = String(indice + 1).padStart(2, '0');
 
   const mover = (e: EventoPuntero<HTMLElement>) => {
     if (e.pointerType !== 'mouse') return;
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width;
-    const y = (e.clientY - r.top) / r.height;
-    el.style.setProperty('--gx', `${(x * 100).toFixed(1)}%`);
-    el.style.setProperty('--gy', `${(y * 100).toFixed(1)}%`);
-    el.style.setProperty('--rx', `${((0.5 - y) * 5).toFixed(2)}deg`);
-    el.style.setProperty('--ry', `${((x - 0.5) * 6).toFixed(2)}deg`);
-  };
-  const salir = () => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.setProperty('--rx', '0deg');
-    el.style.setProperty('--ry', '0deg');
+    el.style.setProperty('--gx', `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}%`);
+    el.style.setProperty('--gy', `${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`);
   };
 
   return (
     <article
       ref={ref}
       onPointerMove={mover}
-      onPointerLeave={salir}
       aria-labelledby={`estilo-${indice}`}
-      className={['tarjeta-estilo', morada ? 'tarjeta-estilo-morada' : 'tarjeta-estilo-clara'].join(' ')}
+      className={['tarjeta-split', fotoDerecha ? 'tarjeta-split-invertida' : '', ancha ? 'tarjeta-split-ancha' : ''].join(' ')}
     >
-      <div className="relative z-10 flex h-full flex-col">
-        <div className="flex items-start justify-between gap-4">
-          <span className={`font-condensed text-sm ${morada ? 'text-white/80' : 'text-text-muted'}`}>({String(indice + 1).padStart(2, '0')})</span>
-          {estilo.origen && (
-            <span className={`font-condensed text-xs uppercase tracking-[0.2em] ${morada ? 'text-white/85' : 'text-[#5a4577] dark:text-text-muted'}`}>
-              {t(estilo.origen)}
-            </span>
-          )}
+      <div className="tarjeta-split-foto" aria-hidden="true">
+        <img src={estilo.foto} alt="" loading="lazy" decoding="async" />
+        <span className="tarjeta-split-indice display">{numero}</span>
+      </div>
+
+      <div className={['tarjeta-split-texto', morada ? 'tarjeta-estilo-morada' : 'tarjeta-estilo-clara'].join(' ')}>
+        <div className="relative z-10 flex h-full flex-col">
+          <span className={`font-condensed text-xs uppercase tracking-[0.2em] ${morada ? 'text-white/85' : 'text-[#5a4577] dark:text-text-muted'}`}>
+            {estilo.origen ? t(estilo.origen) : `(${numero})`}
+          </span>
+          <h3 id={`estilo-${indice}`} className="tarjeta-estilo-nombre display mt-3 text-4xl leading-none xl:text-5xl">
+            {estilo.nombre}
+          </h3>
+          <p className={`mt-3 font-body text-sm leading-relaxed xl:text-[0.95rem] ${morada ? 'text-white' : 'text-text-soft'}`}>
+            {t(estilo.descripcion)}
+          </p>
+          <ul className="mt-auto flex flex-wrap gap-1.5 pt-5" aria-label={t('Lo que vas a entrenar')}>
+            {estilo.rasgos.map((rasgo) => (
+              <li
+                key={rasgo}
+                className={[
+                  'rounded-full px-2.5 py-1 font-condensed text-[0.7rem] font-semibold uppercase tracking-wider',
+                  morada ? 'bg-white/15 text-white' : 'bg-purple-700/[0.08] text-[#5a4577] dark:bg-white/10 dark:text-text-soft',
+                ].join(' ')}
+              >
+                {t(rasgo)}
+              </li>
+            ))}
+          </ul>
         </div>
-        <h3 id={`estilo-${indice}`} className="tarjeta-estilo-nombre display mt-6 text-5xl leading-none md:text-6xl">
-          {estilo.nombre}
-        </h3>
-        <p className={`mt-4 font-body text-base leading-relaxed ${morada ? 'text-white' : 'text-text-soft'}`}>{t(estilo.descripcion)}</p>
-        <ul className="mt-auto flex flex-wrap gap-2 pt-6" aria-label={t('Lo que vas a entrenar')}>
-          {estilo.rasgos.map((rasgo) => (
-            <li
-              key={rasgo}
-              className={[
-                'rounded-full px-3 py-1 font-condensed text-xs font-semibold uppercase tracking-wider',
-                morada ? 'bg-white/15 text-white' : 'bg-purple-700/[0.08] text-[#5a4577] dark:bg-white/10 dark:text-text-soft',
-              ].join(' ')}
-            >
-              {t(rasgo)}
-            </li>
-          ))}
-        </ul>
       </div>
     </article>
   );
@@ -153,12 +168,17 @@ export default function Estilos() {
           </Reveal>
         </div>
 
-        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 [perspective:1200px]">
-          {estilos.map((estilo, i) => (
-            <Reveal as="li" key={estilo.nombre} delay={(i % 4) * 90} className={i === 0 ? 'xl:col-span-2' : ''}>
-              <TarjetaEstilo estilo={estilo} indice={i} morada={i % 2 === 0} />
-            </Reveal>
-          ))}
+        {/* Split image grid: 2 columnas en damero; la última tarjeta (impar) ocupa el ancho completo */}
+        <ul className="grid gap-4 md:grid-cols-2 xl:gap-5">
+          {estilos.map((estilo, i) => {
+            const fila = Math.floor(i / 2);
+            const ancha = i === estilos.length - 1 && estilos.length % 2 === 1;
+            return (
+              <Reveal as="li" key={estilo.nombre} delay={(i % 2) * 90} className={ancha ? 'md:col-span-2' : ''}>
+                <TarjetaEstilo estilo={estilo} indice={i} fotoDerecha={(i + fila) % 2 === 1} ancha={ancha} />
+              </Reveal>
+            );
+          })}
         </ul>
 
         {/* Única acción real de la sección: los horarios están en cada sede */}

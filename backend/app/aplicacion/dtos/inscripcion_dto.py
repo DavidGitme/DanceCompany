@@ -95,3 +95,12 @@ class PersonaEncontrada(BaseModel):
 
 class VincularAcudienteSolicitud(AcudienteInscripcion):
     pass
+
+
+class EditarAcudienteSolicitud(BaseModel):
+    """Datos del acudiente que se editan desde la edición del estudiante (el documento no cambia)."""
+
+    nombre: Texto(100, minimo=2)
+    telefono: Texto(20, minimo=7)
+    email: Correo | None = None
+    idParentesco: int = Field(gt=0)

@@ -2,7 +2,7 @@ from datetime import date
 
 from app.aplicacion.casos_uso.gestionar_persona_rol import CAMPOS_PERSONA, GestionarPersonaRol
 from app.dominio.excepciones.errores import Conflicto, DatoInvalido
-from app.dominio.reglas import edad_en, error_tipo_para_edad
+from app.dominio.reglas import EDAD_ADULTO, edad_en, error_tipo_para_edad
 from app.dominio.repositorios.repositorio_estudiantes import RepositorioEstudiantes
 
 
@@ -26,9 +26,15 @@ class GestionarEstudiantes(GestionarPersonaRol):
             raise DatoInvalido("El teléfono del estudiante es obligatorio.")
         if not datos.get("fecha_nacimiento"):
             raise DatoInvalido("La fecha de nacimiento del estudiante es obligatoria.")
-        error = error_tipo_para_edad(tipo, edad_en(datos["fecha_nacimiento"], date.today()))
+        edad = edad_en(datos["fecha_nacimiento"], date.today())
+        error = error_tipo_para_edad(tipo, edad)
         if error:
             raise DatoInvalido(error)
+        # Un menor de edad siempre tiene acudiente (al crear lo revisa la inscripción)
+        if identificador and edad < EDAD_ADULTO and not self.repositorio.tiene_acudiente(identificador):
+            raise DatoInvalido(
+                "El estudiante es menor de edad: agrégale un acudiente antes de guardar."
+            )
 
         # Solo se revisa la sede si es nueva o cambió (una sede inactivada no bloquea otras ediciones)
         sede_actual = self.obtener(identificador)["idSede"] if identificador else None

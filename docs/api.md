@@ -73,7 +73,8 @@ No hay autorregistro público. El administrador inscribe al estudiante en la sed
 | GET | `/inscripciones/personas?documento=` | Busca a una persona para reutilizarla como acudiente. Devuelve solo id, nombre y documento; no encuentra administradores ni estudiantes de otra sede. |
 | GET | `/estudiantes/{id}/acudientes` | Acudientes del estudiante. |
 | POST | `/estudiantes/{id}/acudientes` | Agrega un acudiente (`idPersona` existente o `persona` nueva, más `idParentesco`). |
-| DELETE | `/estudiantes/{id}/acudientes/{idAcudiente}` | Quita el vínculo; un menor conserva al menos uno. |
+| PUT | `/estudiantes/{id}/acudientes/{idAcudiente}` | Edita nombre, teléfono, correo y parentesco del acudiente (el documento no cambia). |
+| DELETE | `/estudiantes/{id}/acudientes/{idAcudiente}` | Quita el vínculo. Bloqueado (409) si el estudiante es menor de edad. |
 | GET | `/catalogos/tipos-documento` | Tipos de documento (requiere sesión). |
 | GET | `/catalogos/parentescos` | Parentescos (requiere sesión). |
 
@@ -87,7 +88,13 @@ Reglas (las valida el backend; el formulario las repite para avisar antes):
   registro civil solo admiten números. Es único en todo el sistema (es la llave de `usuarios`).
 - Tipo según la edad: registro civil de 0 a 6 años, tarjeta de identidad de 7 a 17 y
   cédula desde los 18. Cédula de extranjería y pasaporte, a cualquier edad.
-- Teléfono: de 7 a 15 dígitos. Correo en minúscula.
+- Teléfono: exactamente 10 dígitos (máximo 10; si trae más, el error lo dice). Correo en minúscula.
+- Menor de edad (menos de 18 años según la fecha de nacimiento): el acudiente es obligatorio al
+  inscribir y al editar, y no se puede quitar mientras siga siendo menor.
+- Acudiente compartido: si el documento del acudiente nuevo ya existe, se reutiliza esa persona
+  (por ejemplo, la madre de dos hermanos). Así el mismo correo sirve para varios estudiantes.
+  El índice `uq_persona_email` sigue exigiendo un correo por persona: dos personas distintas
+  no pueden compartirlo.
 - Menor de 18 años: al menos un acudiente (máximo 3), mayor de edad y distinto del estudiante.
 - Matrícula opcional (`idGrupo` y `valor_matricula`): mismas reglas de `/matriculas`
   (sede, edad del nivel y cupo).

@@ -5,12 +5,25 @@ from app.aplicacion.casos_uso.estudiantes.gestionar_estudiantes import Gestionar
 from app.aplicacion.casos_uso.matriculas.gestionar_matriculas import GestionarMatriculas
 from app.aplicacion.servicios.seguridad import HasherClaves
 from app.dominio.excepciones.errores import Conflicto, DatoInvalido, NoEncontrado
-from app.dominio.reglas import EDAD_ADULTO, edad_en, error_clave, normalizar_documento
+from app.dominio.reglas import (
+    EDAD_ADULTO,
+    TELEFONO_DIGITOS,
+    edad_en,
+    error_clave,
+    normalizar_documento,
+    normalizar_telefono,
+    telefono_valido,
+)
 from app.dominio.repositorios.repositorio_estudiantes import RepositorioInscripciones
 
 CAMPOS_ESTUDIANTE = ("nombre", "idTipoDocumento", "documento", "telefono", "email", "fecha_nacimiento", "idSede")
 MAX_ACUDIENTES = 1
 CAMPOS_PERSONA = ("nombre", "idTipoDocumento", "documento", "telefono", "email", "fecha_nacimiento")
+
+
+def es_menor(fecha_nacimiento) -> bool:
+    """Misma regla de mayoría de edad del proyecto (EDAD_ADULTO, dominio/reglas.py)."""
+    return bool(fecha_nacimiento) and edad_en(fecha_nacimiento, date.today()) < EDAD_ADULTO
 
 
 def puede_ser_acudiente(persona: dict, sede: int | None) -> bool:
@@ -65,6 +78,11 @@ class InscribirEstudiante:
         acudientes = solicitud.get("acudientes") or []
         if len(acudientes) > MAX_ACUDIENTES:
             raise DatoInvalido("El estudiante puede tener un solo acudiente.")
+        # Regla de negocio: un menor de edad no se registra sin acudiente
+        if es_menor(datos["fecha_nacimiento"]) and not acudientes:
+            raise DatoInvalido(
+                "El estudiante es menor de edad: agrega un acudiente para poder registrarlo."
+            )
 
         clave = solicitud.get("clave")
         crear_cuenta = bool(clave) or bool(solicitud.get("crearCuenta"))
@@ -159,8 +177,53 @@ class InscribirEstudiante:
         acudientes = self.inscripciones.acudientes_de(id_estudiante)
         if not any(a["idAcudiente"] == id_acudiente for a in acudientes):
             raise NoEncontrado("acudiente", "Ese acudiente no está asociado al estudiante.")
+        # Mientras sea menor de edad, el acudiente no se puede quitar
+        if es_menor(estudiante.get("fecha_nacimiento")) and len(acudientes) <= 1:
+            raise Conflicto(
+                "No se puede quitar el acudiente: el estudiante es menor de edad y debe tener uno."
+            )
         try:
             self.inscripciones.desvincular_acudiente(id_estudiante, id_acudiente)
+            self.inscripciones.confirmar()
+        except Exception:
+            self.inscripciones.deshacer()
+            raise
+        return self.inscripciones.acudientes_de(id_estudiante)
+
+    def editar_acudiente(self, id_estudiante: int, id_acudiente: int, cambios: dict):
+        """Edita, desde la edición del estudiante, los datos de contacto del acudiente y el parentesco.
+
+        El tipo y el número de documento no cambian: el documento es el usuario de su cuenta.
+        El acudiente puede ser compartido por hermanos: el cambio se ve en todos.
+        """
+        self.estudiantes.obtener(id_estudiante)
+        vinculado = next(
+            (a for a in self.inscripciones.acudientes_de(id_estudiante) if a["idAcudiente"] == id_acudiente), None
+        )
+        if not vinculado:
+            raise NoEncontrado("acudiente", "Ese acudiente no está asociado al estudiante.")
+        if not self.inscripciones.parentesco_existe(cambios["idParentesco"]):
+            raise DatoInvalido("El parentesco no existe.")
+
+        nombre = (cambios.get("nombre") or "").strip()
+        if len(nombre) < 2:
+            raise DatoInvalido("Escribe el nombre completo del acudiente.")
+        telefono = normalizar_telefono(cambios.get("telefono") or "")
+        if len(telefono) > TELEFONO_DIGITOS:
+            raise DatoInvalido(f"El teléfono admite máximo {TELEFONO_DIGITOS} dígitos (tiene {len(telefono)}).")
+        if not telefono_valido(telefono):
+            raise DatoInvalido("El teléfono debe tener exactamente 10 dígitos.")
+        correo = (cambios.get("email") or "").strip().lower() or None
+        # El correo puede repetirse entre estudiantes porque es la misma persona; solo choca
+        # si pertenece a OTRA persona (la base de datos lo exige único por persona)
+        if correo and self.inscripciones.email_existe(correo, vinculado["idPersona"]):
+            raise Conflicto("Ese correo ya pertenece a otra persona registrada.")
+
+        try:
+            self.inscripciones.actualizar_acudiente(
+                vinculado["idPersona"], {"nombre": nombre, "telefono": telefono, "email": correo}
+            )
+            self.inscripciones.cambiar_parentesco(id_estudiante, id_acudiente, cambios["idParentesco"])
             self.inscripciones.confirmar()
         except Exception:
             self.inscripciones.deshacer()
@@ -177,9 +240,23 @@ class InscribirEstudiante:
                 raise DatoInvalido("La persona indicada no puede ser acudiente.")
         else:
             persona = {campo: acudiente["persona"].get(campo) for campo in CAMPOS_PERSONA}
-            # Se valida con las mismas reglas de documento, teléfono y duplicados
-            self.estudiantes.validar_persona(persona)
-            persona["idPersona"] = self.inscripciones.insertar_persona(persona)
+            existente = self.inscripciones.buscar_persona(normalizar_documento(persona["documento"] or ""))
+            if existente:
+                # Mismo documento = misma persona: se reutiliza (por ejemplo, el acudiente de un
+                # hermano). Así su correo sirve para varios estudiantes sin duplicar personas.
+                if not puede_ser_acudiente(existente, sede):
+                    raise DatoInvalido("La persona indicada no puede ser acudiente.")
+                persona = existente
+            else:
+                correo = (persona.get("email") or "").strip().lower()
+                if correo and self.inscripciones.email_existe(correo):
+                    raise Conflicto(
+                        "Ese correo ya pertenece a otra persona registrada. Si es el mismo acudiente, "
+                        "búscalo por su número de documento para reutilizarlo."
+                    )
+                # Se valida con las mismas reglas de documento, teléfono y duplicados
+                self.estudiantes.validar_persona(persona)
+                persona["idPersona"] = self.inscripciones.insertar_persona(persona)
 
         if persona["documento"] in vistos:
             raise DatoInvalido("El acudiente no puede ser el mismo estudiante ni repetirse.")

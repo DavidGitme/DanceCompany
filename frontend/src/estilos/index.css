@@ -425,6 +425,103 @@ textarea { cursor: text; }
   .tarjeta-estilo:hover { translate: none; }
 }
 
+/* ---------- Split image grid de estilos: media foto + medio texto, en damero ---------- */
+.tarjeta-split {
+  --gx: 50%;
+  --gy: 0%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  isolation: isolate;
+  transition: translate 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s ease;
+}
+.tarjeta-split-foto {
+  position: relative;
+  flex: none;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #2e2240;
+}
+.tarjeta-split-foto img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 30%;
+  filter: grayscale(1) contrast(1.1);
+  transition: filter 0.6s ease, scale 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Duotono con el morado corporativo; desaparece al pasar el mouse */
+.tarjeta-split-foto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(138, 116, 178, 0.55), rgba(46, 34, 64, 0.8));
+  mix-blend-mode: multiply;
+  transition: opacity 0.6s ease;
+}
+.tarjeta-split-indice {
+  position: absolute;
+  z-index: 1;
+  right: 1rem;
+  bottom: 0.25rem;
+  font-size: clamp(3.5rem, 7vw, 6rem);
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.75);
+  line-height: 1;
+}
+.tarjeta-split-texto {
+  position: relative;
+  flex: 1;
+  padding: 1.5rem;
+  border-width: 1px;
+}
+.tarjeta-split-texto.tarjeta-estilo-morada { border-color: transparent; }
+/* Bordes redondeados solo hacia afuera para que foto y texto se lean como una pieza */
+.tarjeta-split-texto { border-radius: 0 0 1.75rem 1.75rem; }
+.tarjeta-split-texto::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(18rem circle at var(--gx) var(--gy), rgba(195, 168, 240, 0.3), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.tarjeta-split-texto.tarjeta-estilo-morada::before {
+  background: radial-gradient(18rem circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.2), transparent 60%);
+}
+@media (min-width: 640px) {
+  .tarjeta-split { min-height: 21rem; }
+  .tarjeta-split-foto { width: 46%; aspect-ratio: auto; }
+  .tarjeta-split-ancha .tarjeta-split-foto { width: 50%; }
+  .tarjeta-split { flex-direction: row; }
+  .tarjeta-split-invertida { flex-direction: row-reverse; }
+  .tarjeta-split-texto { border-radius: 0 1.75rem 1.75rem 0; }
+  .tarjeta-split-invertida .tarjeta-split-texto { border-radius: 1.75rem 0 0 1.75rem; }
+  .tarjeta-split-ancha .tarjeta-split-texto { padding: 2rem 2.5rem; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .tarjeta-split:hover {
+    translate: 0 -4px;
+    box-shadow: 0 2px 4px rgba(46, 34, 64, 0.08), 0 30px 50px -24px rgba(46, 34, 64, 0.5);
+  }
+  .tarjeta-split:hover .tarjeta-split-foto img { filter: grayscale(0) contrast(1); scale: 1.06; }
+  .tarjeta-split:hover .tarjeta-split-foto::after { opacity: 0.25; }
+  .tarjeta-split:hover .tarjeta-split-texto::before { opacity: 1; }
+  .tarjeta-split:hover .tarjeta-estilo-nombre { translate: 0 -3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-split, .tarjeta-split-foto img { transition: none; }
+  .tarjeta-split:hover { translate: none; }
+  .tarjeta-split:hover .tarjeta-split-foto img { scale: none; }
+}
+
 /* ---------- Landing por pantallas: cada sección ocupa al menos una pantalla en escritorio ---------- */
 @media (min-width: 1024px) and (min-height: 640px) {
   .landing-secciones > section:not(#inicio) {

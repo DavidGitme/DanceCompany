@@ -60,10 +60,11 @@ export default function Sidebar({
 
   const grupoActivo = visibles.find((n) => n.hijos?.some((h) => h.id === activeModule))?.id;
   const [abiertos, setAbiertos] = useState<string[]>(() => (grupoActivo ? [grupoActivo] : ['personas']));
+  // Un solo grupo abierto a la vez: abrir uno cierra el anterior
 
-  // El grupo del módulo activo siempre queda abierto
+  // Al cambiar de módulo queda abierto solo el grupo que lo contiene
   useEffect(() => {
-    if (grupoActivo) setAbiertos((prev) => (prev.includes(grupoActivo) ? prev : [...prev, grupoActivo]));
+    if (grupoActivo) setAbiertos([grupoActivo]);
   }, [grupoActivo]);
 
   // Escape cierra el menú móvil
@@ -75,7 +76,7 @@ export default function Sidebar({
   }, [mobileOpen, onCloseMobile]);
 
   const alternar = (id: string) =>
-    setAbiertos((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setAbiertos((prev) => (prev.includes(id) ? [] : [id]));
 
   const elegir = (id: string) => {
     onModuleChange(id);
@@ -101,13 +102,14 @@ export default function Sidebar({
       >
         {/* Marca */}
         <div className={['flex h-16 flex-shrink-0 items-center gap-3 border-b border-border px-4', compacto ? 'lg:justify-center' : ''].join(' ')}>
-          <img src={logoFna} alt="" className="h-8 w-auto flex-shrink-0 object-contain" />
+          <img src={logoFna} alt="" className={['h-8 w-auto flex-shrink-0 object-contain', compacto ? 'lg:hidden' : ''].join(' ')} />
           {!compacto && (
             <div className="min-w-0">
               <div className="font-display text-base leading-none text-text">F&amp;A Dance</div>
               <div className="mt-1 font-condensed text-[11px] uppercase leading-none tracking-[0.2em] text-text-muted">{tr("Administración")}</div>
             </div>
           )}
+          {/* Colapsar/expandir (solo escritorio): arriba y sin texto visible; la etiqueta queda para lectores de pantalla */}
           <button type="button" onClick={onCloseMobile} className="ml-auto grid h-9 w-9 place-items-center rounded-full text-text-muted hover:bg-accent/10 hover:text-text lg:hidden" aria-label={tr("Cerrar menú")}>
             {cerrar}
           </button>
@@ -148,7 +150,7 @@ export default function Sidebar({
                     if (compacto) {
                       // En modo compacto se expande el menú para ver las opciones
                       onToggleCollapse();
-                      setAbiertos((prev) => (prev.includes(nodo.id) ? prev : [...prev, nodo.id]));
+                      setAbiertos([nodo.id]);
                     } else {
                       alternar(nodo.id);
                     }
@@ -201,7 +203,7 @@ export default function Sidebar({
           })}
         </nav>
 
-        {/* Pie: usuario, colapsar y salir */}
+        {/* Pie: usuario, idioma y salir */}
         <div className="flex flex-shrink-0 flex-col gap-1 border-t border-border p-2">
           {usuario && !compacto && (
             <div className="mb-1 rounded-xl bg-surface-alt px-3 py-2.5">

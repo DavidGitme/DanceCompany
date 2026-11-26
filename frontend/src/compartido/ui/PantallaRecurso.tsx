@@ -526,6 +526,8 @@ interface PantallaRecursoProps<T> {
   sedeFija?: number | null
   // Reemplaza el formulario genérico de creación (inscripción del estudiante)
   alCrear?: () => void
+  // Reemplaza el formulario genérico de edición (edición del estudiante con su acudiente)
+  alEditar?: (fila: T) => void
   // Botones adicionales por fila (por ejemplo, ver la ficha)
   accionesFila?: (fila: T) => ReactNode
   // Cambia el valor para volver a cargar la lista desde afuera
@@ -546,6 +548,7 @@ export default function PantallaRecurso<T extends FilaBase>({
   onCrearAbierto,
   sedeFija,
   alCrear,
+  alEditar,
   accionesFila,
   recargar,
   permiteCrear: permiteCrearProp = true,
@@ -729,7 +732,7 @@ export default function PantallaRecurso<T extends FilaBase>({
       <div className="flex items-center justify-end gap-1">
         {accionesFila?.(fila)}
         {permitido("editar") && (
-          <button type="button" className={`${claseBotonIcono} ${hoverNeutro}`} onClick={() => setFormulario({ modo: "editar", fila })} aria-label={tr("Editar {nombre}", { nombre })} title={tr("Editar")}>
+          <button type="button" className={`${claseBotonIcono} ${hoverNeutro}`} onClick={() => (alEditar ? alEditar(fila) : setFormulario({ modo: "editar", fila }))} aria-label={tr("Editar {nombre}", { nombre })} title={tr("Editar")}>
             <Icono nombre="editar" />
           </button>
         )}
