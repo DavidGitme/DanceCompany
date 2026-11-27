@@ -33,11 +33,11 @@ export default function InterruptorEstado({ encendido, pendiente = false, nombre
         title={pista}
         disabled={deshabilitado}
         onClick={onCambiar}
-        className={`group relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border shadow-inner transition-all duration-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${claseColor}`}
+        className={`group relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border shadow-inner transition-all duration-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-95 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50 ${claseColor}`}
       >
         <span
           aria-hidden="true"
-          className={`pointer-events-none grid h-[18px] w-[18px] place-items-center rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ease-out group-hover:scale-110 ${
+          className={`pointer-events-none grid h-[18px] w-[18px] place-items-center rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ease-out group-hover:scale-110 motion-reduce:transition-none ${
             encendido ? "translate-x-[21px]" : "translate-x-[2px]"
           }`}
         >

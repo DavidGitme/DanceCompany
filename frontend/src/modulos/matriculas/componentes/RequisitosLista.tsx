@@ -24,7 +24,7 @@ export function ProgresoRequisitos({ cumplidos, total, compacto = false }: { cum
         aria-label={tr("{n} de {total} requisitos cumplidos", { n: cumplidos, total })}
       >
         <span
-          className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out ${completo ? "bg-emerald-500" : "bg-amber-500"}`}
+          className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none ${completo ? "bg-emerald-500" : "bg-amber-500"}`}
           style={{ width: `${porcentaje}%` }}
         />
       </span>
