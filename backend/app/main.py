@@ -33,6 +33,9 @@ from app.presentacion.rutas import (
     portal_estudiante,
     portal_instructor,
     postulaciones,
+    publico,
+    reportes,
+    sitio_admin,
     sedes,
     seguridad,
     talleres,
@@ -73,6 +76,12 @@ for modulo in (
     app.include_router(modulo.router, prefix="/api/v1")
 for router_catalogo in catalogos_simples.routers:
     app.include_router(router_catalogo, prefix="/api/v1")
+
+# Sitio público (sin sesión) y sus módulos del panel
+app.include_router(publico.router, prefix="/api/v1")
+for router_sitio in sitio_admin.routers:
+    app.include_router(router_sitio, prefix="/api/v1")
+app.include_router(reportes.router, prefix="/api/v1")
 
 # Portal del estudiante (login por correo y su información)
 app.include_router(portal_estudiante.router, prefix="/api/v1")

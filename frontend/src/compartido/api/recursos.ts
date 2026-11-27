@@ -23,11 +23,11 @@ export const recursoApi = {
   opciones: <T>(ruta: string, parametros: ParametrosLista = {}) =>
     clienteHttp.get<T[]>(`${ruta}${consulta(parametros)}`),
   crear: <T>(ruta: string, cuerpo: unknown) => clienteHttp.post<T>(ruta, cuerpo),
-  actualizar: <T>(ruta: string, id: number, cuerpo: unknown) =>
-    clienteHttp.put<T>(`${ruta}/${id}`, cuerpo),
-  cambiarEstado: <T>(ruta: string, id: number, idEstado: number) =>
-    clienteHttp.patch<T>(`${ruta}/${id}/estado`, { idEstado }),
-  eliminar: (ruta: string, id: number) => clienteHttp.delete<void>(`${ruta}/${id}`),
+  actualizar: <T>(ruta: string, id: number | string, cuerpo: unknown) =>
+    clienteHttp.put<T>(`${ruta}/${encodeURIComponent(String(id))}`, cuerpo),
+  cambiarEstado: <T>(ruta: string, id: number | string, idEstado: number) =>
+    clienteHttp.patch<T>(`${ruta}/${encodeURIComponent(String(id))}/estado`, { idEstado }),
+  eliminar: (ruta: string, id: number | string) => clienteHttp.delete<void>(`${ruta}/${encodeURIComponent(String(id))}`),
 }
 
 // Mensaje legible de un error de la API (o de red)
@@ -70,7 +70,8 @@ const traducir = ({ type, msg, ctx }: DetalleValidacion) => {
     case "date_parsing":
       return "Escribe una fecha válida."
     case "value_error":
-      return msg?.includes("email") ? "Escribe un correo válido." : (msg ?? "Valor no válido.")
+      // Las reglas del backend llegan como "Value error, <mensaje en español>"
+      return msg?.includes("email") ? "Escribe un correo válido." : (msg?.replace(/^Value error,\s*/, "") ?? "Valor no válido.")
     default:
       return msg ?? "Valor no válido."
   }

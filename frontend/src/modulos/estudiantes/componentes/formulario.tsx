@@ -1,3 +1,4 @@
+import { errorNombrePersona } from "@/compartido/ui/PantallaRecurso"
 import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useEffect, useId, useRef, type FormEvent, type ReactNode } from "react"
 import { Icono, claseBotonIcono, hoverNeutro } from "@/compartido/ui/PantallaRecurso"
@@ -50,6 +51,12 @@ export function errorTipoParaEdad(tipo: string, edad: number | null): string | u
 }
 
 // Teléfono colombiano (dominio/reglas.py: TELEFONO_DIGITOS)
+// Nombre de una persona: sin números (el backend aplica la misma regla)
+export function errorNombre(nombre: string): string | undefined {
+  if (nombre.trim().length < 2) return "Escribe el nombre completo."
+  return errorNombrePersona(nombre)
+}
+
 export const TELEFONO_DIGITOS = 10
 // Mayoría de edad del proyecto (dominio/reglas.py: EDAD_ADULTO)
 export const EDAD_ADULTO = 18

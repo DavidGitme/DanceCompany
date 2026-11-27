@@ -20,7 +20,7 @@ export interface Opcion {
 export interface CampoFormulario {
   clave: string
   etiqueta: string
-  tipo?: "texto" | "numero" | "fecha" | "email" | "tel" | "area" | "seleccion" | "multiple"
+  tipo?: "texto" | "numero" | "fecha" | "email" | "tel" | "area" | "seleccion" | "multiple" | "clave"
   requerido?: boolean
   ayuda?: string
   min?: number
@@ -34,6 +34,12 @@ export interface CampoFormulario {
   placeholder?: string
   // Solo aparece al crear (por ejemplo, el grupo de un grupo de competencia no cambia)
   soloCrear?: boolean
+  // Solo aparece al editar
+  soloEditar?: boolean
+  // Se muestra pero no se edita (p. ej. el documento de una cuenta)
+  soloLectura?: boolean
+  // Nombre de una persona: no admite números (el backend aplica la misma regla)
+  nombrePersona?: boolean
 }
 
 export interface ColumnaTabla<T> {
@@ -86,6 +92,10 @@ export interface DefinicionRecurso<T> {
   sinBusqueda?: boolean
   // Texto cuando no hay registros (por defecto invita a crear el primero)
   textoVacio?: string
+  // Campos extra que muestra "Ver" además de las columnas
+  detalle?: ColumnaTabla<T>[]
+  // Oculta la acción "Ver" (el módulo tiene su propia ficha)
+  sinVer?: boolean
 }
 
 // Valor de los campos padre ("" si falta alguno)
@@ -98,7 +108,7 @@ const dependeDeCampo = (campo: CampoFormulario, clave: string) =>
 
 // Campos visibles según el modo del formulario
 export function camposDelModo<T>(definicion: DefinicionRecurso<T>, modo: "crear" | "editar"): DefinicionRecurso<T> {
-  return modo === "editar" ? { ...definicion, campos: definicion.campos.filter((c) => !c.soloCrear) } : definicion
+  return { ...definicion, campos: definicion.campos.filter((c) => (modo === "editar" ? !c.soloCrear : !c.soloEditar)) }
 }
 
 /*
@@ -181,6 +191,60 @@ const hoverExito = "hover:bg-emerald-500/10 hover:text-emerald-500"
 
 const comoTexto = (valor: string | string[] | undefined) => (Array.isArray(valor) ? valor.join(",") : (valor ?? ""))
 
+// Nombre de persona: letras (con tildes y ñ), espacios, apóstrofo, guion y punto. Sin números.
+export const errorNombrePersona = (valor: string): string | undefined => {
+  const limpio = valor.trim()
+  if (!limpio) return undefined
+  if (/\d/.test(limpio)) return "El nombre no puede tener números."
+  if (!/^[\p{L}\s'.-]+$/u.test(limpio)) return "El nombre solo admite letras, espacios, apóstrofo y guion."
+  if (limpio.length < 2) return "Escribe al menos 2 caracteres."
+  return undefined
+}
+
+/*
+ * Validación de un formulario completo. Se ejecuta en cada cambio: los mensajes se
+ * muestran apenas la persona toca un campo, no solo al pulsar «Guardar».
+ */
+export function validarCampos(
+  campos: CampoFormulario[],
+  valores: Valores,
+  extra?: Record<string, string>,
+): Record<string, string> {
+  const encontrados: Record<string, string> = {}
+  campos.forEach((campo) => {
+    if (campo.soloLectura) return
+    const valor = valores[campo.clave]
+    const vacio = Array.isArray(valor) ? valor.length === 0 : !String(valor ?? "").trim()
+    if (campo.requerido && vacio) {
+      encontrados[campo.clave] = campo.tipo === "multiple" ? "Selecciona al menos una opción." : "Este campo es obligatorio."
+      return
+    }
+    if (vacio || Array.isArray(valor)) return
+    const texto = String(valor).trim()
+    if (campo.tipo === "numero") {
+      const numero = Number(texto)
+      if (Number.isNaN(numero)) encontrados[campo.clave] = "Escribe un número válido."
+      else if (campo.min !== undefined && numero < campo.min) encontrados[campo.clave] = tr("El valor mínimo es {min}.", { min: campo.min })
+      else if (campo.max !== undefined && numero > campo.max) encontrados[campo.clave] = tr("El valor máximo es {max}.", { max: campo.max })
+    } else if (campo.max !== undefined && texto.length > campo.max) {
+      encontrados[campo.clave] = tr("Máximo {max} caracteres.", { max: campo.max })
+    } else if (campo.min !== undefined && texto.length < campo.min) {
+      encontrados[campo.clave] = tr("Escribe al menos {min} caracteres.", { min: campo.min })
+    }
+    if (!encontrados[campo.clave] && campo.nombrePersona) {
+      const error = errorNombrePersona(texto)
+      if (error) encontrados[campo.clave] = error
+    }
+    if (campo.tipo === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto)) {
+      encontrados[campo.clave] = "Escribe un correo válido."
+    }
+  })
+  Object.entries(extra ?? {}).forEach(([clave, mensaje]) => {
+    if (mensaje && !encontrados[clave]) encontrados[clave] = mensaje
+  })
+  return encontrados
+}
+
 /* ─── Formulario (diálogo modal) ─── */
 
 interface ErrorGuardado {
@@ -199,7 +263,10 @@ interface FormularioProps<T> {
 
 function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase, onGuardar, onCerrar }: FormularioProps<T>) {
   const [valores, setValores] = useState<Valores>(valoresIniciales)
-  const [errores, setErrores] = useState<Record<string, string>>({})
+  // Campos que la persona ya tocó y errores que devolvió el servidor
+  const [tocados, setTocados] = useState<Set<string>>(new Set())
+  const [intentoGuardar, setIntentoGuardar] = useState(false)
+  const [erroresServidor, setErroresServidor] = useState<Record<string, string>>({})
   const [opciones, setOpciones] = useState<Record<string, Opcion[]>>(opcionesBase)
   const [cargandoOpciones, setCargandoOpciones] = useState<Record<string, boolean>>({})
   const [guardando, setGuardando] = useState(false)
@@ -273,45 +340,27 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
         })
       return siguiente
     })
-    setErrores((prev) => ({ ...prev, [clave]: "" }))
+    setTocados((prev) => new Set(prev).add(clave))
+    setErroresServidor((prev) => ({ ...prev, [clave]: "" }))
   }
+  const tocar = (clave: string) => setTocados((prev) => (prev.has(clave) ? prev : new Set(prev).add(clave)))
 
-  const validar = () => {
-    const encontrados: Record<string, string> = {}
-    definicion.campos.forEach((campo) => {
-      const valor = valores[campo.clave]
-      const vacio = Array.isArray(valor) ? valor.length === 0 : !String(valor ?? "").trim()
-      if (campo.requerido && vacio) {
-        encontrados[campo.clave] = campo.tipo === "multiple" ? tr("Selecciona al menos una opción.") : tr("Este campo es obligatorio.")
-        return
-      }
-      if (vacio || Array.isArray(valor)) return
-      const texto = String(valor).trim()
-      if (campo.tipo === "numero") {
-        const numero = Number(texto)
-        if (Number.isNaN(numero)) encontrados[campo.clave] = tr("Escribe un número válido.")
-        else if (campo.min !== undefined && numero < campo.min) encontrados[campo.clave] = tr("El valor mínimo es {min}.", { min: campo.min })
-        else if (campo.max !== undefined && numero > campo.max) encontrados[campo.clave] = tr("El valor máximo es {max}.", { max: campo.max })
-      } else if (campo.max !== undefined && texto.length > campo.max) {
-        encontrados[campo.clave] = tr("Máximo {max} caracteres.", { max: campo.max })
-      } else if (campo.min !== undefined && texto.length < campo.min) {
-        encontrados[campo.clave] = tr("Escribe al menos {min} caracteres.", { min: campo.min })
-      }
-      if (campo.tipo === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto)) {
-        encontrados[campo.clave] = tr("Escribe un correo válido.")
-      }
-    })
-    Object.assign(encontrados, Object.fromEntries(
-      Object.entries(definicion.validar?.(valores, opciones) ?? {}).filter(([clave]) => !encontrados[clave]),
-    ))
-    setErrores(encontrados)
-    return encontrados
-  }
+  // Se recalcula en cada cambio; se muestra solo en los campos tocados (o todos al guardar)
+  const erroresActuales = useMemo(
+    () => validarCampos(definicion.campos, valores, definicion.validar?.(valores, opciones)),
+    [definicion, valores, opciones],
+  )
+  const errores: Record<string, string> = {}
+  definicion.campos.forEach(({ clave }) => {
+    const mensaje = erroresServidor[clave] || ((intentoGuardar || tocados.has(clave)) && erroresActuales[clave])
+    if (mensaje) errores[clave] = mensaje
+  })
 
   const enviar = async (evento: React.FormEvent) => {
     evento.preventDefault()
     setErrorGeneral(null)
-    const encontrados = validar()
+    setIntentoGuardar(true)
+    const encontrados = erroresActuales
     const primero = Object.keys(encontrados).find((clave) => encontrados[clave])
     if (primero) {
       dialogoRef.current?.querySelector<HTMLElement>(`[name="${primero}"]`)?.focus()
@@ -321,7 +370,7 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
     try {
       const resultado = await onGuardar(valores)
       if (resultado) {
-        setErrores(resultado.campos)
+        setErroresServidor(resultado.campos)
         setErrorGeneral(resultado.general)
       }
     } finally {
@@ -386,7 +435,9 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
                 "aria-invalid": error ? true : undefined,
                 "aria-describedby": describe,
                 "aria-required": campo.requerido || undefined,
-                disabled: guardando,
+                disabled: guardando || campo.soloLectura,
+                readOnly: campo.soloLectura || undefined,
+                onBlur: () => tocar(campo.clave),
               }
 
               let control: ReactNode
@@ -463,7 +514,7 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
                   />
                 )
               } else {
-                const tipos = { texto: "text", numero: "number", fecha: "date", email: "email", tel: "tel" } as const
+                const tipos = { texto: "text", numero: "number", fecha: "date", email: "email", tel: "tel", clave: "password" } as const
                 control = (
                   <input
                     {...comunes}
@@ -473,7 +524,7 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
                     max={campo.tipo === "numero" ? campo.max : undefined}
                     maxLength={campo.tipo !== "numero" ? campo.max : undefined}
                     placeholder={campo.placeholder}
-                    autoComplete="off"
+                    autoComplete={campo.tipo === "clave" ? "new-password" : "off"}
                     value={comoTexto(valor)}
                     onChange={(e) => cambiar(campo.clave, e.target.value)}
                     className={claseEntrada}
@@ -515,6 +566,75 @@ function FormularioRecurso<T>({ definicion, modo, valoresIniciales, opcionesBase
   )
 }
 
+/* ─── Ver: ficha de solo lectura (sin botones de editar, activar ni eliminar) ─── */
+
+export function DetalleRecurso<T>({
+  definicion,
+  fila,
+  onCerrar,
+}: {
+  definicion: DefinicionRecurso<T>
+  fila: T
+  onCerrar: () => void
+}) {
+  const tituloId = useId()
+  const cerrarRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    const anterior = document.activeElement as HTMLElement | null
+    cerrarRef.current?.focus()
+    const alTeclear = (e: KeyboardEvent) => e.key === "Escape" && onCerrar()
+    document.addEventListener("keydown", alTeclear)
+    return () => {
+      document.removeEventListener("keydown", alTeclear)
+      anterior?.focus?.()
+    }
+  }, [onCerrar])
+  const columnas = [...definicion.columnas, ...(definicion.detalle ?? [])]
+  const valor = (col: ColumnaTabla<T>) =>
+    col.render ? col.render(fila) : tr(String((fila as Record<string, unknown>)[col.clave] ?? "—"))
+  const estado = (fila as FilaBase).estado
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4 animar-fondo"
+      onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={tituloId}
+        className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border border-border bg-surface shadow-2xl sm:rounded-3xl animar-entrada"
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
+          <div className="min-w-0">
+            <p className="font-condensed text-xs font-semibold uppercase tracking-[0.2em] text-accent">{tr(definicion.titulo)} · {tr("Solo lectura")}</p>
+            <h2 id={tituloId} className="mt-1 truncate font-display text-2xl uppercase leading-none text-text">{definicion.nombreFila(fila)}</h2>
+          </div>
+          <button ref={cerrarRef} type="button" onClick={onCerrar} className={`${claseBotonIcono} ${hoverNeutro}`} aria-label={tr("Cerrar")}>
+            <Icono nombre="cerrar" clase="h-5 w-5" />
+          </button>
+        </header>
+        <dl className="grid flex-1 gap-x-6 gap-y-4 overflow-y-auto px-6 py-5 sm:grid-cols-2">
+          {columnas.map((col) => (
+            <div key={col.clave} className="min-w-0">
+              <dt className="font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">{tr(col.etiqueta)}</dt>
+              <dd className="mt-1 break-words font-body text-sm text-text">{valor(col)}</dd>
+            </div>
+          ))}
+          {definicion.conEstado && (
+            <div>
+              <dt className="font-condensed text-xs font-semibold uppercase tracking-wider text-text-muted">{tr("Estado")}</dt>
+              <dd className="mt-1"><StatusBadge status={estado ?? "—"} /></dd>
+            </div>
+          )}
+        </dl>
+        <footer className="flex justify-end border-t border-border px-6 py-4">
+          <button type="button" onClick={onCerrar} className={claseBotonSecundario}>{tr("Cerrar")}</button>
+        </footer>
+      </section>
+    </div>
+  )
+}
+
 /* ─── Pantalla ─── */
 
 interface PantallaRecursoProps<T> {
@@ -538,6 +658,8 @@ interface PantallaRecursoProps<T> {
   puedeGestionar?: (fila: T) => boolean
   // Privilegios del rol en el módulo (nivel 3). Sin valor = todos
   privilegios?: string[]
+  // Contenido bajo el encabezado (avisos propios del módulo)
+  antesDeLista?: ReactNode
 }
 
 type Accion<T> = { tipo: "estado" | "eliminar"; fila: T } | null
@@ -554,6 +676,7 @@ export default function PantallaRecurso<T extends FilaBase>({
   permiteCrear: permiteCrearProp = true,
   puedeGestionar,
   privilegios,
+  antesDeLista,
 }: PantallaRecursoProps<T>) {
   // Lo que el rol puede hacer en el módulo; el backend vuelve a validar cada acción
   const permitido = (accion: string) => !privilegios || privilegios.includes(accion)
@@ -571,6 +694,8 @@ export default function PantallaRecurso<T extends FilaBase>({
   const [procesando, setProcesando] = useState(false)
   const [errorAccion, setErrorAccion] = useState<string | undefined>()
   const [aviso, setAviso] = useState<string | null>(null)
+  const [viendo, setViendo] = useState<T | null>(null)
+  const cerrarVer = useCallback(() => setViendo(null), [])
   const peticion = useRef(0)
 
   // Guarda filtros y página para volver al mismo punto
@@ -673,7 +798,7 @@ export default function PantallaRecurso<T extends FilaBase>({
       if (modo === "crear") {
         await recursoApi.crear(definicion.ruta, cuerpo)
       } else if (formulario?.fila) {
-        await recursoApi.actualizar(definicion.ruta, Number(formulario.fila[definicion.idClave]), cuerpo)
+        await recursoApi.actualizar(definicion.ruta, formulario.fila[definicion.idClave] as unknown as string, cuerpo)
       }
       setFormulario(null)
       setAviso(tr(modo === "crear" ? "{articulo} {singular} se creó correctamente." : "{articulo} {singular} se actualizó correctamente.", { articulo, singular: tr(definicion.singular) }))
@@ -694,7 +819,7 @@ export default function PantallaRecurso<T extends FilaBase>({
     if (!accion) return
     setProcesando(true)
     setErrorAccion(undefined)
-    const id = Number(accion.fila[definicion.idClave])
+    const id = accion.fila[definicion.idClave] as unknown as string
     try {
       if (accion.tipo === "eliminar") {
         await recursoApi.eliminar(definicion.ruta, id)
@@ -725,13 +850,20 @@ export default function PantallaRecurso<T extends FilaBase>({
   const acciones = (fila: T) => {
     const activo = fila.idEstado === ESTADO_ACTIVO
     const nombre = nombreDe(fila)
+    // Ver va primero en todos los módulos y es solo lectura
+    const ver = !definicion.sinVer && (
+      <button type="button" className={`${claseBotonIcono} ${hoverNeutro}`} onClick={() => setViendo(fila)} aria-label={tr("Ver {nombre}", { nombre })} title={tr("Ver")}>
+        <Icono nombre="ojo" />
+      </button>
+    )
     if (puedeGestionar && !puedeGestionar(fila)) {
-      return <div className="flex items-center justify-end gap-1">{accionesFila?.(fila)}</div>
+      return <div className="flex items-center justify-end gap-1">{ver}{accionesFila?.(fila)}</div>
     }
     return (
       <div className="flex items-center justify-end gap-1">
+        {ver}
         {accionesFila?.(fila)}
-        {permitido("editar") && (
+        {permitido("editar") && (definicion.campos.length > 0 || alEditar) && (
           <button type="button" className={`${claseBotonIcono} ${hoverNeutro}`} onClick={() => (alEditar ? alEditar(fila) : setFormulario({ modo: "editar", fila }))} aria-label={tr("Editar {nombre}", { nombre })} title={tr("Editar")}>
             <Icono nombre="editar" />
           </button>
@@ -824,6 +956,8 @@ export default function PantallaRecurso<T extends FilaBase>({
           </button>
         )}
       </header>
+
+      {antesDeLista}
 
       {/* Búsqueda y filtros */}
       <div role="search" className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-3 md:flex-row md:flex-wrap md:items-center">
@@ -1000,6 +1134,8 @@ export default function PantallaRecurso<T extends FilaBase>({
           onCerrar={() => setFormulario(null)}
         />
       )}
+
+      {viendo && <DetalleRecurso definicion={definicion} fila={viendo} onCerrar={cerrarVer} />}
 
       <ConfirmDialog
         open={Boolean(accion)}

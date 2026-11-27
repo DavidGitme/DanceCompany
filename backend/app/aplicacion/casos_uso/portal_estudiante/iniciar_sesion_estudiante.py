@@ -1,7 +1,7 @@
 from app.aplicacion.dtos.auth_dto import TokenRespuesta, UsuarioSesionRespuesta
 from app.aplicacion.servicios.seguridad import EmisorTokens, HasherClaves
 from app.dominio.excepciones.errores import NoAutenticado
-from app.dominio.reglas import ESTADO_ACTIVO
+from app.dominio.reglas import ESTADO_ACTIVO, MENSAJE_CUENTA_INACTIVA
 from app.dominio.repositorios.repositorio_portal_estudiante import RepositorioCuentaEstudiante
 
 ROL_ESTUDIANTE = "estudiante"
@@ -26,13 +26,11 @@ class IniciarSesionEstudiante:
             raise NoAutenticado(MENSAJE_ERROR)
         if cuenta["bloqueado"]:
             raise NoAutenticado("Tu cuenta está bloqueada temporalmente. Intenta más tarde.")
-        if (
-            not cuenta["esEstudiante"]
-            or cuenta["idEstudiante"] is None
-            or cuenta["idEstadoUsuario"] != ESTADO_ACTIVO
-            or cuenta["idEstadoEstudiante"] != ESTADO_ACTIVO
-        ):
+        if not cuenta["esEstudiante"] or cuenta["idEstudiante"] is None:
             raise NoAutenticado(MENSAJE_ERROR)
+        # Clave correcta pero cuenta o estudiante inactivos: se explica qué hacer
+        if cuenta["idEstadoUsuario"] != ESTADO_ACTIVO or cuenta["idEstadoEstudiante"] != ESTADO_ACTIVO:
+            raise NoAutenticado(MENSAJE_CUENTA_INACTIVA)
 
         acceso, expira_en = self.tokens.emitir_acceso(cuenta["documento"], [ROL_ESTUDIANTE], [])
         return TokenRespuesta(

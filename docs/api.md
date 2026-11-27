@@ -274,3 +274,20 @@ Usa las cuentas de `bd/02_datos_iniciales.sql` y no necesita instalar nada.
 `/reportes` todavía devuelve una lista vacía.
 
 FastAPI genera el contrato completo en `/docs`.
+
+## Sitio público y finanzas (bd/07_sitio_publico.sql)
+
+Sin sesión (`/publico`, los POST con límite de 5 envíos por minuto por IP):
+
+| Método | Ruta | Uso |
+| --- | --- | --- |
+| GET | `/publico/planes`, `/publico/sedes`, `/publico/estilos`, `/publico/tipos-documento` | Catálogos del sitio |
+| GET | `/publico/disponibilidad?sede=&fecha=` | Aulas de la sede y franjas ocupadas ese día |
+| POST | `/publico/solicitudes-espacio` | Solicitud de alquiler (queda Pendiente) |
+| GET | `/publico/preinscripcion` | Si hay periodo de matrícula abierto |
+| POST | `/publico/preinscripciones` | Preinscripción (exige términos) |
+| POST | `/publico/preinscripciones/confirmar` | Confirma el correo con el token del enlace |
+
+Panel: `/planes` (pagos), `/periodos-matricula` (matriculas), `/preinscripciones` (matriculas, por sede),
+`/solicitudes-espacio` (aulas, por sede), `/reportes/finanzas?periodo=YYYY-MM&meses=6` (pagos, por sede),
+`POST /instructores/{id}/invitacion` (reemplaza `POST /instructores/{id}/cuenta`), `GET /usuarios/candidatos`.

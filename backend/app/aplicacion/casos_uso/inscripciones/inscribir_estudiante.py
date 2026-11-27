@@ -10,6 +10,7 @@ from app.dominio.reglas import (
     TELEFONO_DIGITOS,
     edad_en,
     error_clave,
+    error_nombre_persona,
     normalizar_documento,
     normalizar_telefono,
     telefono_valido,
@@ -208,6 +209,8 @@ class InscribirEstudiante:
         nombre = (cambios.get("nombre") or "").strip()
         if len(nombre) < 2:
             raise DatoInvalido("Escribe el nombre completo del acudiente.")
+        if error := error_nombre_persona(nombre):
+            raise DatoInvalido(error)
         telefono = normalizar_telefono(cambios.get("telefono") or "")
         if len(telefono) > TELEFONO_DIGITOS:
             raise DatoInvalido(f"El teléfono admite máximo {TELEFONO_DIGITOS} dígitos (tiene {len(telefono)}).")

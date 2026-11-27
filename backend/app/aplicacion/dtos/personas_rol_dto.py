@@ -4,11 +4,11 @@ from datetime import date
 
 from pydantic import BaseModel, Field
 
-from app.aplicacion.dtos.comun_dto import Correo, Texto
+from app.aplicacion.dtos.comun_dto import Correo, NombrePersona, Texto
 
 
 class PersonaDatos(BaseModel):
-    nombre: Texto(100, minimo=2)
+    nombre: NombrePersona
     idTipoDocumento: int = Field(gt=0)
     documento: Texto(20, minimo=5)
     telefono: Texto(20, minimo=7) | None = None
@@ -17,7 +17,7 @@ class PersonaDatos(BaseModel):
 
 
 class PersonaCambios(BaseModel):
-    nombre: Texto(100, minimo=2) | None = None
+    nombre: NombrePersona | None = None
     idTipoDocumento: int | None = Field(default=None, gt=0)
     documento: Texto(20, minimo=5) | None = None
     telefono: Texto(20, minimo=7) | None = None
@@ -62,8 +62,9 @@ class InstructorRespuesta(PersonaRespuesta):
     tieneCuenta: bool
 
 
-class CuentaInstructorSolicitud(BaseModel):
-    clave: str = Field(min_length=8, max_length=128)
+class InvitacionInstructorRespuesta(InstructorRespuesta):
+    invitacionEnviada: bool
+    aviso: str | None = None
 
 
 class InstructorOpcion(BaseModel):
