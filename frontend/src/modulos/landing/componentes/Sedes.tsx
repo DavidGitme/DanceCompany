@@ -118,7 +118,7 @@ export default function Locations() {
       <div className="max-w-[88rem] mx-auto px-6">
         <div className="mb-16">
           <Reveal>
-            <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(06) {t('Dónde entrenar')}</span>
+            <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(07) {t('Dónde entrenar')}</span>
           </Reveal>
           <Reveal variant="mask" as="h2" className="display text-[clamp(3rem,9vw,8rem)] text-text mt-4">
             <span id="titulo-sedes">

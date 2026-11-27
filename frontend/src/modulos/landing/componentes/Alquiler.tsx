@@ -227,7 +227,7 @@ export default function RentalForm() {
           {/* Info */}
           <div className="lg:sticky lg:top-28">
             <Reveal>
-              <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(07) {t('Espacio profesional')}</span>
+              <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(08) {t('Espacio profesional')}</span>
             </Reveal>
             <Reveal variant="mask" as="h2" className="display text-[clamp(2.8rem,7vw,6.5rem)] text-text mt-4 mb-6">
               <span id="titulo-alquiler">

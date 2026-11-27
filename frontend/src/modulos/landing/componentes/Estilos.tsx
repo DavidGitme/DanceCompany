@@ -1,6 +1,7 @@
 import { useRef, type PointerEvent as EventoPuntero } from 'react';
 import Reveal, { MaskLine } from '@/compartido/ui/Reveal';
 import { useIdioma } from '@/nucleo/i18n/useIdioma';
+import HorariosPorSede from './HorariosPorSede';
 
 /*
  * Estilos que enseña la academia. Los rasgos y el origen salen literalmente de cada descripción;
@@ -142,29 +143,21 @@ function TarjetaEstilo({
 
 export default function Estilos() {
   const { t } = useIdioma();
-  const irASedes = () => document.querySelector('#sedes')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <section id="estilos" aria-labelledby="titulo-estilos" className="relative py-28 bg-page overflow-hidden">
       <div className="max-w-[88rem] mx-auto px-6">
-        <div className="mb-12 grid lg:grid-cols-[1.4fr_1fr] gap-8 items-end">
-          <div>
-            <Reveal>
-              <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">
-                (02) {t('Lo que enseñamos')}
-              </span>
-            </Reveal>
-            <Reveal variant="mask" as="h2" className="display text-[clamp(3rem,9vw,8rem)] text-text mt-4">
-              <span id="titulo-estilos">
-                <MaskLine>{t('Nuestros')}</MaskLine>
-                <MaskLine delay={150}><span className="text-blush">{t('estilos')}</span></MaskLine>
-              </span>
-            </Reveal>
-          </div>
-          <Reveal delay={200}>
-            <p className="font-body text-text-soft text-lg leading-relaxed">
-              {t('Siete estilos de la cultura urbana: de dónde viene cada uno y qué vas a entrenar en clase.')}
-            </p>
+        <div className="mb-12">
+          <Reveal>
+            <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">
+              (02) {t('Lo que enseñamos')}
+            </span>
+          </Reveal>
+          <Reveal variant="mask" as="h2" className="display text-[clamp(3rem,9vw,8rem)] text-text mt-4">
+            <span id="titulo-estilos">
+              <MaskLine>{t('Nuestros')}</MaskLine>
+              <MaskLine delay={150}><span className="text-blush">{t('estilos')}</span></MaskLine>
+            </span>
           </Reveal>
         </div>
 
@@ -181,20 +174,7 @@ export default function Estilos() {
           })}
         </ul>
 
-        {/* Única acción real de la sección: los horarios están en cada sede */}
-        <Reveal delay={150} className="mt-10 flex flex-col items-start gap-4 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-body text-text-soft">{t('Los horarios de cada estilo dependen de la sede.')}</p>
-          <button
-            type="button"
-            onClick={irASedes}
-            className="inline-flex items-center gap-3 rounded-full bg-purple-700 px-6 py-3 font-condensed text-sm font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#2e2240] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700 dark:bg-purple-400 dark:text-[#1b1326] dark:hover:bg-purple-100"
-          >
-            {t('Ver sedes y horarios')}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </button>
-        </Reveal>
+        <HorariosPorSede estilos={estilos.map((e) => e.nombre)} />
       </div>
     </section>
   );
