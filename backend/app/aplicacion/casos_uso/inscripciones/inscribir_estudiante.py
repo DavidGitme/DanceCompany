@@ -113,12 +113,12 @@ class InscribirEstudiante:
 
             id_matricula = None
             if solicitud.get("idGrupo"):
-                # Valida sede, edad del nivel y cupo; al guardar confirma toda la transacción
+                # Valida sede, edad del nivel y cupo; al guardar confirma toda la transacción.
+                # Nace pendiente de aprobación y con el valor único de la matrícula.
                 matricula = self.matriculas.crear({
                     "idEstudiante": id_estudiante,
                     "idGrupo": solicitud["idGrupo"],
                     "fecha_matricula": solicitud.get("fecha_matricula") or date.today(),
-                    "valor_matricula": solicitud["valor_matricula"],
                 })
                 id_matricula = matricula["idMatricula"]
             else:
