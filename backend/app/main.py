@@ -74,6 +74,8 @@ for modulo in (
     mensualidades, pagos, convocatorias, postulaciones, grupos_competencia, noticias,
 ):
     app.include_router(modulo.router, prefix="/api/v1")
+# El instructor da el visto bueno a las matrículas de sus grupos
+app.include_router(matriculas.router_instructor, prefix="/api/v1")
 for router_catalogo in catalogos_simples.routers:
     app.include_router(router_catalogo, prefix="/api/v1")
 

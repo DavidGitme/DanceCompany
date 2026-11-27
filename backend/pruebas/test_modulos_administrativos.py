@@ -14,8 +14,15 @@ from app.aplicacion.casos_uso.mensualidades.gestionar_mensualidades import Gesti
 from app.aplicacion.casos_uso.noticias.gestionar_noticias import GestionarNoticias
 from app.aplicacion.casos_uso.pagos.gestionar_pagos import GestionarPagos
 from app.aplicacion.casos_uso.postulaciones.gestionar_postulaciones import GestionarPostulaciones
-from app.dominio.excepciones.errores import Conflicto, DatoInvalido, NoEncontrado
-from app.dominio.reglas import ESTADO_ACTIVO, ESTADO_INACTIVO, edad_en, normalizar_dia, normalizar_texto
+from app.dominio.excepciones.errores import Conflicto, DatoInvalido, NoAutorizado, NoEncontrado
+from app.dominio.reglas import (
+    ESTADO_ACTIVO,
+    ESTADO_INACTIVO,
+    VALOR_MATRICULA,
+    edad_en,
+    normalizar_dia,
+    normalizar_texto,
+)
 
 HOY = date.today()
 
@@ -184,8 +191,19 @@ def test_horario_eliminar_y_no_encontrado():
 
 
 # ---------- Matrículas ----------
+MATRICULA_PENDIENTE_ID = 12
+REQUISITOS = {
+    1: {"idRequisito": 1, "nombre": "Documento de identidad", "descripcion": None,
+        "responsable": "administrador", "idEstado": ESTADO_ACTIVO},
+    2: {"idRequisito": 2, "nombre": "Examen de nivel", "descripcion": None,
+        "responsable": "instructor", "idEstado": ESTADO_ACTIVO},
+}
+
+
 class MatriculasMemoria(Memoria):
-    def __init__(self, capacidad=2, edad_min=5, edad_max=99):
+    """Con `aprobacion=False` simula una base sin bd/08_matricula_aprobacion.sql."""
+
+    def __init__(self, capacidad=2, edad_min=5, edad_max=99, aprobacion=True):
         super().__init__("idMatricula")
         self.estudiantes = {
             1: {"idEstudiante": 1, "idSede": 1, "idEstado": ESTADO_ACTIVO, "fecha_nacimiento": date(2015, 1, 1)},
@@ -194,39 +212,102 @@ class MatriculasMemoria(Memoria):
             4: {"idEstudiante": 4, "idSede": 1, "idEstado": ESTADO_ACTIVO, "fecha_nacimiento": None},
         }
         self.grupo = {
-            "idGrupo": 1, "idSede": 1, "idEstado": ESTADO_ACTIVO,
+            "idGrupo": 1, "idSede": 1, "idEstado": ESTADO_ACTIVO, "idInstructor": 5,
             "capacidad": capacidad, "edadMin": edad_min, "edadMax": edad_max,
         }
         self.movimientos = set()
+        self.aprobacion = aprobacion
+        self.cumplidos: set[tuple[int, int]] = set()
+
+    def crear(self, datos):
+        return super().crear({**datos, "idInstructor": self.grupo["idInstructor"], "fecha_aprobacion": None})
 
     def obtener_estudiante(self, id_estudiante):
         return self.estudiantes.get(id_estudiante)
 
+    def _ocupa(self, m):
+        return m["idEstado"] in (ESTADO_ACTIVO, MATRICULA_PENDIENTE_ID)
+
     def obtener_grupo(self, id_grupo):
         if id_grupo != 1:
             return None
-        activas = sum(1 for m in self.registros.values() if m["idGrupo"] == 1 and m["idEstado"] == ESTADO_ACTIVO)
+        activas = sum(1 for m in self.registros.values() if m["idGrupo"] == 1 and self._ocupa(m))
         return {**self.grupo, "matriculasActivas": activas}
 
     def matricula_activa_en_grupo(self, id_estudiante, id_grupo, excluir_id=None):
         return any(
             m["idEstudiante"] == id_estudiante and m["idGrupo"] == id_grupo
-            and m["idEstado"] == ESTADO_ACTIVO and i != excluir_id
+            and self._ocupa(m) and i != excluir_id
             for i, m in self.registros.items()
         )
 
     def tiene_movimientos(self, id_matricula):
         return id_matricula in self.movimientos
 
+    # Proceso de aprobación
+    def aprobacion_disponible(self):
+        return self.aprobacion
+
+    def id_estado_pendiente(self):
+        return MATRICULA_PENDIENTE_ID if self.aprobacion else None
+
+    def estados(self):
+        return []
+
+    def requisitos(self, id_matricula=None):
+        return [
+            {**r, "cumplido": (id_matricula, r["idRequisito"]) in self.cumplidos}
+            for r in REQUISITOS.values() if r["idEstado"] == ESTADO_ACTIVO
+        ]
+
+    def obtener_requisito(self, id_requisito):
+        return REQUISITOS.get(id_requisito)
+
+    def marcar_requisito(self, id_matricula, id_requisito, cumplido, documento, observacion):
+        (self.cumplidos.add if cumplido else self.cumplidos.discard)((id_matricula, id_requisito))
+
+    def aprobar(self, id_matricula, documento):
+        return self.actualizar(
+            id_matricula, {"idEstado": ESTADO_ACTIVO, "fecha_aprobacion": datetime.now(), "aprobadaPor": documento}
+        )
+
+    def id_instructor_por_documento(self, documento):
+        return {"500": 5, "600": 6}.get(documento)
+
+    def pendientes_de_instructor(self, id_instructor):
+        return [
+            dict(m) for m in self.registros.values()
+            if m["idInstructor"] == id_instructor and m["idEstado"] == MATRICULA_PENDIENTE_ID
+        ]
+
 
 def matricula(estudiante, grupo=1):
+    # Si llega un valor distinto, se ignora: la matrícula tiene precio único
     return {"idEstudiante": estudiante, "idGrupo": grupo, "fecha_matricula": None, "valor_matricula": Decimal("100")}
 
 
-def test_matricula_nueva_queda_activa_con_fecha_de_hoy():
+def aprobada(gestor, repositorio, datos):
+    """Crea una matrícula, cumple todos sus requisitos y la aprueba."""
+    nueva = gestor.crear(datos)
+    for id_requisito in REQUISITOS:
+        repositorio.cumplidos.add((nueva["idMatricula"], id_requisito))
+    return gestor.aprobar(nueva["idMatricula"], "1000000001")
+
+
+def test_matricula_nueva_queda_pendiente_con_precio_unico_y_fecha_de_hoy():
     gestor = GestionarMatriculas(MatriculasMemoria())
     nueva = gestor.crear(matricula(1))
-    assert nueva["idEstado"] == ESTADO_ACTIVO and nueva["fecha_matricula"] == HOY
+    assert nueva["idEstado"] == MATRICULA_PENDIENTE_ID
+    assert nueva["fecha_matricula"] == HOY
+    assert nueva["valor_matricula"] == VALOR_MATRICULA == Decimal("60000")
+
+
+def test_sin_migracion_la_matricula_queda_activa_como_antes():
+    gestor = GestionarMatriculas(MatriculasMemoria(aprobacion=False))
+    nueva = gestor.crear(matricula(1))
+    assert nueva["idEstado"] == ESTADO_ACTIVO and nueva["valor_matricula"] == VALOR_MATRICULA
+    with pytest.raises(DatoInvalido):
+        gestor.aprobar(nueva["idMatricula"], "1")
 
 
 def test_matricula_valida_sede_edad_duplicado_y_cupo():
@@ -234,30 +315,100 @@ def test_matricula_valida_sede_edad_duplicado_y_cupo():
     gestor = GestionarMatriculas(repositorio)
     gestor.crear(matricula(1))
     with pytest.raises(Conflicto):
-        gestor.crear(matricula(1))  # ya está en el grupo
+        gestor.crear(matricula(1))  # ya está en proceso en el grupo
     with pytest.raises(DatoInvalido):
         gestor.crear(matricula(3))  # otra sede
     gestor.crear(matricula(2))
     with pytest.raises(Conflicto):
-        gestor.crear(matricula(4))  # grupo lleno
+        gestor.crear(matricula(4))  # grupo lleno: las pendientes ocupan cupo
 
     con_edad = GestionarMatriculas(MatriculasMemoria(edad_min=18))
     with pytest.raises(DatoInvalido):
         con_edad.crear(matricula(1))  # nació en 2015
 
 
+def test_matricula_valida_la_fecha():
+    gestor = GestionarMatriculas(MatriculasMemoria())
+    with pytest.raises(DatoInvalido):
+        gestor.crear({**matricula(2), "fecha_matricula": HOY + timedelta(days=400)})
+    with pytest.raises(DatoInvalido):
+        gestor.crear({**matricula(2), "fecha_matricula": HOY - timedelta(days=400)})
+    assert gestor.crear({**matricula(2), "fecha_matricula": HOY + timedelta(days=30)})["idMatricula"] == 1
+
+
+def test_aprobar_exige_todos_los_requisitos():
+    repositorio = MatriculasMemoria()
+    gestor = GestionarMatriculas(repositorio)
+    nueva = gestor.crear(matricula(1))
+    gestor.marcar_requisito(nueva["idMatricula"], 1, True, "1000000001")
+    with pytest.raises(Conflicto) as error:
+        gestor.aprobar(nueva["idMatricula"], "1000000001")
+    assert "Examen de nivel" in error.value.mensaje
+
+    gestor.marcar_requisito(nueva["idMatricula"], 2, True, "1000000001")
+    resultado = gestor.aprobar(nueva["idMatricula"], "1000000001")
+    assert resultado["idEstado"] == ESTADO_ACTIVO
+    assert all(r["cumplido"] for r in resultado["requisitos"])
+    with pytest.raises(Conflicto):
+        gestor.aprobar(nueva["idMatricula"], "1000000001")  # ya aprobada
+    with pytest.raises(Conflicto):
+        gestor.marcar_requisito(nueva["idMatricula"], 1, False, "1000000001")  # ya no está pendiente
+
+
+def test_pendiente_no_se_activa_con_el_interruptor():
+    gestor = GestionarMatriculas(MatriculasMemoria())
+    nueva = gestor.crear(matricula(1))
+    with pytest.raises(Conflicto):
+        gestor.cambiar_estado(nueva["idMatricula"], ESTADO_ACTIVO)
+    with pytest.raises(DatoInvalido):
+        gestor.cambiar_estado(nueva["idMatricula"], MATRICULA_PENDIENTE_ID)
+    # Inactivar cancela el proceso y al reactivarla vuelve a quedar pendiente
+    assert gestor.cambiar_estado(nueva["idMatricula"], ESTADO_INACTIVO)["idEstado"] == ESTADO_INACTIVO
+    assert gestor.cambiar_estado(nueva["idMatricula"], ESTADO_ACTIVO)["idEstado"] == MATRICULA_PENDIENTE_ID
+
+
+def test_instructor_solo_marca_su_requisito_y_solo_en_sus_grupos():
+    repositorio = MatriculasMemoria()
+    gestor = GestionarMatriculas(repositorio)
+    nueva = gestor.crear(matricula(1))
+    id_matricula = nueva["idMatricula"]
+
+    assert [m["idMatricula"] for m in gestor.pendientes_de_instructor("500")] == [id_matricula]
+    assert gestor.pendientes_de_instructor("600") == []
+    with pytest.raises(NoEncontrado):
+        gestor.exigir_instructor_del_grupo(id_matricula, "600")  # no es su grupo
+    with pytest.raises(NoEncontrado):
+        gestor.pendientes_de_instructor("999")  # no es instructor
+
+    gestor.exigir_instructor_del_grupo(id_matricula, "500")
+    with pytest.raises(NoAutorizado):
+        gestor.marcar_requisito(id_matricula, 1, True, "500", solo_instructor=True)  # lo revisa la sede
+    detalle = gestor.marcar_requisito(id_matricula, 2, True, "500", solo_instructor=True)
+    assert [r["cumplido"] for r in detalle["requisitos"]] == [False, True]
+
+
 def test_matricula_reactivar_revisa_cupo_y_movimientos_bloquean_cambio_de_estudiante():
     repositorio = MatriculasMemoria(capacidad=1)
     gestor = GestionarMatriculas(repositorio)
-    primera = gestor.crear(matricula(1))
+    primera = aprobada(gestor, repositorio, matricula(1))
     gestor.cambiar_estado(primera["idMatricula"], ESTADO_INACTIVO)
     gestor.crear(matricula(2))  # el cupo liberado se usa
     with pytest.raises(Conflicto):
         gestor.cambiar_estado(primera["idMatricula"], ESTADO_ACTIVO)
 
-    repositorio.movimientos.add(primera["idMatricula"])
+    # Una matrícula inactiva no se edita
     with pytest.raises(Conflicto):
-        gestor.actualizar(primera["idMatricula"], {"idEstudiante": 4})
+        gestor.actualizar(primera["idMatricula"], {"fecha_matricula": HOY})
+
+    otra = MatriculasMemoria(capacidad=3)
+    gestor_otro = GestionarMatriculas(otra)
+    activa = aprobada(gestor_otro, otra, matricula(1))
+    otra.movimientos.add(activa["idMatricula"])
+    with pytest.raises(Conflicto):
+        gestor_otro.actualizar(activa["idMatricula"], {"idEstudiante": 4})
+    # Al reactivarla, una matrícula ya aprobada vuelve a quedar activa
+    gestor_otro.cambiar_estado(activa["idMatricula"], ESTADO_INACTIVO)
+    assert gestor_otro.cambiar_estado(activa["idMatricula"], ESTADO_ACTIVO)["idEstado"] == ESTADO_ACTIVO
 
 
 # ---------- Mensualidades ----------

@@ -96,8 +96,9 @@ Reglas (las valida el backend; el formulario las repite para avisar antes):
   El índice `uq_persona_email` sigue exigiendo un correo por persona: dos personas distintas
   no pueden compartirlo.
 - Menor de 18 años: al menos un acudiente (máximo 3), mayor de edad y distinto del estudiante.
-- Matrícula opcional (`idGrupo` y `valor_matricula`): mismas reglas de `/matriculas`
-  (sede, edad del nivel y cupo).
+- Matrícula opcional (`idGrupo`): mismas reglas de `/matriculas` (sede, edad del nivel y
+  cupo). El valor no se envía (precio único) y la matrícula queda Pendiente de aprobación.
+  «Nueva matrícula» del panel usa esta ruta para registrar a la persona con su matrícula.
 - Traslado de sede (`PUT /estudiantes/{id}` con otra `idSede`): solo sin matrícula activa.
 
 ## Seguridad
@@ -174,7 +175,7 @@ mismos códigos de error que los módulos académicos.
 | --- | --- | --- | --- |
 | `/aulas` | `aula` | `aulas` | `PATCH /{id}/estado` (Activo/Inactivo) |
 | `/horarios` | `horario` | `horarios` | Sin estado: `DELETE /{id}` |
-| `/matriculas` | `matricula` | `matriculas` | `PATCH /{id}/estado` (Activo/Inactivo) |
+| `/matriculas` | `matricula` | `matriculas` | Nace Pendiente; `PUT /{id}/aprobacion` la activa; `PATCH /{id}/estado` (Activo/Inactivo) |
 | `/inscripciones-taller` | `inscripcion_talle` | `talleres` | `DELETE /{id}` anula la inscripción y su pago |
 | `/mensualidades` | `mensualidad` | `pagos` | `PATCH /{id}/estado` (Pendiente, Pagada, Vencida, Mora) |
 | `/pagos` | `pago` | `pagos` | `DELETE /{id}` anula el pago |
@@ -194,8 +195,12 @@ Filtros y rutas de apoyo:
 - `aulas`: `estado`, `sede`; `GET /aulas/disponibles?sede=`.
 - `horarios`: `grupo`, `sede`, `instructor`, `aula`, `dia` (acepta `miércoles`, `SABADO`...).
   Ordena de lunes a domingo.
-- `matriculas`: `estado`, `estudiante`, `grupo`, `sede`; `GET /matriculas/disponibles`.
-  Devuelve `valorPagado`, `saldo` y `mensualidades`.
+- `matriculas`: `estado`, `estudiante`, `grupo`, `sede`; `GET /matriculas/disponibles` (activas).
+  Devuelve `valorPagado`, `saldo`, `mensualidades`, `requisitosCumplidos`, `requisitosTotal`,
+  `fecha_aprobacion` y `aprobadaPor`. Apoyo: `GET /matriculas/configuracion` (precio único y si
+  la base tiene `bd/08`), `GET /matriculas/estados`, `GET /matriculas/requisitos`,
+  `GET /matriculas/opciones/estudiantes?sede=` y `GET /matriculas/opciones/grupos?sede=`
+  (rango de edad del nivel, capacidad y cupos ocupados).
 - `inscripciones-taller`: `estudiante`, `taller`; `GET /inscripciones-taller/acudientes?estudiante=`.
 - `mensualidades`: `estado`, `matricula`, `estudiante`, `grupo`, `periodo` (`AAAA-MM`);
   `GET /mensualidades/disponibles` (con saldo) y `POST /mensualidades/actualizar-vencidas`.
@@ -216,9 +221,22 @@ Reglas principales:
 - **Horarios**: `hora_fin > hora_inicio`; el grupo debe estar activo; no se cruza con
   otra clase del mismo grupo ni con otro grupo activo en la misma aula.
 - **Matrículas**: estudiante y grupo activos, de la misma sede; la edad del estudiante
-  debe estar en el rango del nivel; sin matrícula activa repetida en el grupo y con
-  cupo disponible (también al reactivar). Con mensualidades o pagos no cambia de
-  estudiante. Sin borrado físico: Inactivo conserva el historial.
+  debe estar en el rango del nivel; sin matrícula activa o pendiente repetida en el grupo
+  y con cupo disponible (las pendientes ya ocupan cupo; también al reactivar). Fecha a
+  máximo un año antes o después de hoy. Precio único `VALOR_MATRICULA` (60.000), no se
+  edita. Con mensualidades o pagos no cambia de estudiante; una inactiva no se edita.
+  Sin borrado físico: Inactivo conserva el historial.
+- **Proceso de matrícula** (`bd/08_matricula_aprobacion.sql`): nace **Pendiente**
+  (estado de la categoría `matricula`). Los requisitos (`requisito_matricula`) se marcan con
+  `PUT /matriculas/{id}/requisitos/{idRequisito}` `{ "cumplido": true }` y se consultan con
+  `GET /matriculas/{id}/requisitos`. `PUT /matriculas/{id}/aprobacion` la deja **Activa**
+  solo si cumple todos (`409` con la lista de lo que falta). Una pendiente no se activa con
+  `PATCH /estado`; inactivarla cancela el proceso y, al reactivarla, vuelve a Pendiente si
+  nunca se aprobó. Sin la migración 08 todo funciona como antes (nace Activa).
+- **Portal del instructor**: `GET /portal-instructor/matriculas` (pendientes de sus grupos),
+  `PUT /portal-instructor/matriculas/{id}/requisitos/{idRequisito}` (solo los requisitos con
+  `responsable = instructor`, como el examen de nivel) y `PUT /portal-instructor/matriculas/{id}/aprobacion`.
+  Una matrícula de otro instructor responde `404`.
 - **Mensualidades**: nacen Pendiente; una por matrícula y mes (`fecha_pago` es la fecha
   de cobro del periodo); `fecha_limite >= fecha_pago`. Pasan a Pagada solas cuando los
   pagos cubren el valor y vuelven a Pendiente/Vencida si se anula un pago.
