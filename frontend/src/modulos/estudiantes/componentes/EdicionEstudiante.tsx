@@ -16,6 +16,7 @@ import {
   correoValido,
   edadEn,
   errorDocumento,
+  errorNombre,
   errorTelefono,
   errorTipoParaEdad,
   esMenorDeEdad,
@@ -120,15 +121,28 @@ export default function EdicionEstudiante({ estudiante, cargarCatalogo, onCerrar
     if (!cargando && menor && !acudiente) setNuevo((prev) => prev ?? acudienteVacio())
   }, [cargando, menor, acudiente])
 
+  // Validación en vivo: formato al escribir y, tras el primer intento, todo el formulario
+  const [intento, setIntento] = useState(false)
+  const formato = (campo: string, valor: string) =>
+    campo === "nombre" ? (valor.trim() ? errorNombre(valor) : undefined)
+    : campo === "documento" ? errorDocumento(tipoNombre, valor)
+    : campo === "telefono" ? (valor ? errorTelefono(valor) : undefined)
+    : campo === "email" ? (valor && !correoValido(valor) ? "Escribe un correo válido." : undefined)
+    : undefined
   const cambiar = (campo: keyof typeof datos, valor: string) => {
     setDatos((prev) => ({ ...prev, [campo]: valor }))
-    setErrores((prev) => ({ ...prev, [campo]: "" }))
+    setErrores((prev) => ({ ...prev, [campo]: formato(campo, valor) ?? "" }))
   }
 
   const cambiarAcudiente = (campo: keyof DatosAcudiente, valor: string) => {
     setDatosAcudiente((prev) => (prev ? { ...prev, [campo]: valor } : prev))
-    setErroresAcudiente((prev) => ({ ...prev, [campo]: "" }))
+    setErroresAcudiente((prev) => ({ ...prev, [campo]: formato(campo, valor) ?? "" }))
   }
+
+  useEffect(() => {
+    if (intento) validar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intento, datos, datosAcudiente, nuevo])
 
   const validar = () => {
     const e: Record<string, string> = {}
@@ -138,7 +152,8 @@ export default function EdicionEstudiante({ estudiante, cargarCatalogo, onCerrar
     if (!datos.fecha_nacimiento) e.fecha_nacimiento = "Este campo es obligatorio."
     else if (edad === null || edad < 0) e.fecha_nacimiento = "La fecha de nacimiento no puede ser futura."
     else if (avisoTipo) e.idTipoDocumento = avisoTipo
-    if (datos.nombre.trim().length < 2) e.nombre = "Escribe el nombre completo."
+    const errorNom = errorNombre(datos.nombre)
+    if (errorNom) e.nombre = errorNom
     const errorTel = errorTelefono(datos.telefono)
     if (errorTel) e.telefono = errorTel
     if (datos.email && !correoValido(datos.email)) e.email = "Escribe un correo válido."
@@ -146,7 +161,8 @@ export default function EdicionEstudiante({ estudiante, cargarCatalogo, onCerrar
 
     const eA: Record<string, string> = {}
     if (datosAcudiente) {
-      if (datosAcudiente.nombre.trim().length < 2) eA.nombre = "Escribe el nombre completo."
+      const nomA = errorNombre(datosAcudiente.nombre)
+      if (nomA) eA.nombre = nomA
       const telA = errorTelefono(datosAcudiente.telefono)
       if (telA) eA.telefono = telA
       if (datosAcudiente.email && !correoValido(datosAcudiente.email)) eA.email = "Escribe un correo válido."
@@ -170,6 +186,7 @@ export default function EdicionEstudiante({ estudiante, cargarCatalogo, onCerrar
 
   const enviar = async () => {
     setErrorGeneral(null)
+    setIntento(true)
     const { valido, faltaAcudiente, agregar } = validar()
     if (!valido) {
       setErrorGeneral(

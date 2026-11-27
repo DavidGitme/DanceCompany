@@ -67,6 +67,13 @@ function proximaClase(clases: Clase[]) {
   return mejor
 }
 
+// Mensualidad vencida: con saldo y fecha límite pasada, o en estado Vencida o Mora
+// (misma regla que el resumen financiero del backend)
+const hoyIso = () => new Date().toISOString().slice(0, 10)
+function vencidasDe(f: DatosPortal["finanzas"]) {
+  return f.mensualidades.filter((m) => m.saldo > 0 && (m.fechaLimite < hoyIso() || ["Vencida", "Mora"].includes(m.estado)))
+}
+
 interface PortalEstudianteProps {
   nombre: string
   onSalir: () => void
@@ -190,6 +197,13 @@ export default function PortalEstudiante({ nombre, onSalir }: PortalEstudiantePr
             )}
             {!cargando && datos && (
               <>
+                {/* Con mensualidades vencidas, el acceso a pagar queda visible en todas las vistas.
+                    No se bloquea nada: el sistema no tiene una regla de restricción por mora. */}
+                {vista !== "pagos" && vista !== "inicio" && vencidasDe(datos.finanzas).length > 0 && (
+                  <div className="mb-6">
+                    <AvisoMora vencidas={vencidasDe(datos.finanzas)} onPagar={() => navegar("pagos")} />
+                  </div>
+                )}
                 {vista === "inicio" && <Inicio datos={datos} nombre={nombre} onIr={navegar} />}
                 {vista === "clases" && <MisClases datos={datos} />}
                 {vista === "pagos" && <MisPagos datos={datos} />}
@@ -211,7 +225,7 @@ function Inicio({ datos, nombre, onIr }: { datos: DatosPortal; nombre: string; o
   const { clases, finanzas, talleres, noticias } = datos
   const proxima = proximaClase(clases.vigentes)
   const clasesSemana = clases.vigentes.reduce((total, c) => total + c.horarios.length, 0)
-  const vencidas = finanzas.mensualidades.filter((m) => m.saldo > 0 && m.estado !== "Pendiente")
+  const vencidas = vencidasDe(finanzas)
 
   return (
     <div className="space-y-8">
@@ -221,15 +235,7 @@ function Inicio({ datos, nombre, onIr }: { datos: DatosPortal; nombre: string; o
         descripcion="Aquí tienes tus clases, tu estado de cuenta y lo que pasa en F&A Dance Company."
       />
 
-      {vencidas.length > 0 && (
-        <Aviso
-          tono="alerta"
-          titulo={`Tienes ${vencidas.length} mensualidad${vencidas.length > 1 ? "es" : ""} por ponerte al día`}
-          texto="Acércate a la recepción de tu sede para registrar el pago y seguir disfrutando tus clases."
-        >
-          <Button size="sm" variant="outline" onClick={() => onIr("pagos")}>Ver mis pagos</Button>
-        </Aviso>
-      )}
+      {vencidas.length > 0 && <AvisoMora vencidas={vencidas} onPagar={() => onIr("pagos")} />}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaMetrica etiqueta="Clases por semana" valor={String(clasesSemana)} ayuda={`${clases.vigentes.length} grupo(s) activo(s)`} icono="clases" />
@@ -377,6 +383,10 @@ function MisClases({ datos }: { datos: DatosPortal }) {
 // ---------- Mis pagos ----------
 function MisPagos({ datos }: { datos: DatosPortal }) {
   const f = datos.finanzas
+  const vencidas = vencidasDe(f)
+  const totalVencido = vencidas.reduce((suma, m) => suma + m.saldo, 0)
+  // Historial claro: del pago más reciente al más antiguo
+  const pagos = [...f.pagos].sort((a, b) => b.fecha.localeCompare(a.fecha))
   return (
     <div className="space-y-8">
       <CabeceraPagina
@@ -384,6 +394,31 @@ function MisPagos({ datos }: { datos: DatosPortal }) {
         titulo="Mis pagos"
         descripcion="Tus mensualidades, tu matrícula y los pagos registrados. Los pagos se realizan en la recepción de tu sede."
       />
+
+      {vencidas.length > 0 && (
+        <section id="pagar" aria-labelledby="titulo-pagar" className="rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
+          <h2 id="titulo-pagar" className="font-display text-2xl uppercase text-text">Pagar lo adeudado</h2>
+          <p className="mt-1 text-sm text-text-soft">
+            Saldo vencido: <strong className="text-text">{pesos(totalVencido)}</strong> en {vencidas.length} mensualidad{vencidas.length > 1 ? "es" : ""}.
+          </p>
+          <ul className="mt-4 divide-y divide-border rounded-xl border border-border bg-surface">
+            {vencidas.map((m) => (
+              <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                <span className="text-text">{periodo(m.periodo)} · {m.grupo}</span>
+                <span className="text-text-muted">Venció el {fecha(m.fechaLimite)}</span>
+                <span className="font-semibold tabular-nums text-text">{pesos(m.saldo)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 rounded-xl border border-border bg-surface p-4 text-sm text-text-soft">
+            <p className="font-semibold text-text">Cómo pagar</p>
+            <p className="mt-1">
+              El pago se registra en la recepción de tu sede{datos.perfil.sede ? ` ${datos.perfil.sede}` : ""}. Lleva este detalle o tu
+              documento: al registrarlo, la mensualidad queda pagada y el aviso desaparece de tu portal.
+            </p>
+          </div>
+        </section>
+      )}
       <div className="grid gap-4 sm:grid-cols-3">
         <TarjetaMetrica etiqueta="Saldo pendiente" valor={pesos(f.saldoPendiente)} ayuda={f.saldoPendiente > 0 ? "Por pagar" : "Estás al día"} icono="pagos" alerta={f.saldoPendiente > 0} />
         <TarjetaMetrica etiqueta="Total pagado" valor={pesos(f.totalPagado)} ayuda={`${f.pagos.length} pago(s) registrados`} icono="check" />
@@ -409,10 +444,10 @@ function MisPagos({ datos }: { datos: DatosPortal }) {
       />
 
       <Tabla
-        titulo="Historial de pagos"
+        titulo="Historial de pagos (más recientes primero)"
         vacio="Aún no hay pagos registrados."
         columnas={["Fecha", "Concepto", "Método", "Pagado por", "Monto"]}
-        filas={f.pagos.map((p) => [fecha(p.fecha), p.concepto, p.metodo, p.pagador, pesos(p.monto)])}
+        filas={pagos.map((p) => [fecha(p.fecha), p.concepto, p.metodo, p.pagador, pesos(p.monto)])}
       />
     </div>
   )
@@ -707,6 +742,19 @@ function Avatar({ nombre, pequeno = false, grande = false }: { nombre: string; p
     <div className={`flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-900 to-purple-400 font-condensed font-bold text-white ${tamano}`}>
       {iniciales(nombre)}
     </div>
+  )
+}
+
+function AvisoMora({ vencidas, onPagar }: { vencidas: DatosPortal["finanzas"]["mensualidades"]; onPagar: () => void }) {
+  const total = vencidas.reduce((suma, m) => suma + m.saldo, 0)
+  return (
+    <Aviso
+      tono="alerta"
+      titulo={`Tienes ${vencidas.length} mensualidad${vencidas.length > 1 ? "es" : ""} vencida${vencidas.length > 1 ? "s" : ""}: ${pesos(total)}`}
+      texto="Ponte al día para seguir disfrutando tus clases. Puedes ver el detalle y cómo pagar."
+    >
+      <Button size="sm" onClick={onPagar}>Pagar lo adeudado</Button>
+    </Aviso>
   )
 }
 

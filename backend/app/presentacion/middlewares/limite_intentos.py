@@ -32,3 +32,18 @@ async def limitar_recuperacion(request: Request):
     if len(ventana) >= 3:
         raise DemasiadosIntentos()
     ventana.append(ahora)
+
+
+formularios: dict[str, deque[float]] = defaultdict(deque)
+
+
+async def limitar_formulario_publico(request: Request):
+    """Formularios del sitio público (sin sesión): máximo 5 envíos por minuto por IP."""
+    cliente = request.client.host if request.client else "desconocido"
+    ahora = monotonic()
+    ventana = formularios[cliente]
+    while ventana and ahora - ventana[0] > 60:
+        ventana.popleft()
+    if len(ventana) >= 5:
+        raise DemasiadosIntentos()
+    ventana.append(ahora)

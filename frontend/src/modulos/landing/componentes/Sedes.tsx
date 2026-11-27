@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { sitioPublico, type SedePublica } from '../servicios/sitioPublico';
 import Reveal, { MaskLine } from '@/compartido/ui/Reveal';
 import { useIdioma } from '@/nucleo/i18n/useIdioma';
 
@@ -15,7 +16,13 @@ interface Sede {
    */
   photo?: string;
   photoAlt?: string;
+  // true = imagen provisional de un salón de baile, no la sede real (se indica en la tarjeta)
+  photoReferencia?: boolean;
 }
+
+// Fotos provisionales (Unsplash, licencia libre), como las demás imágenes del sitio,
+// hasta tener fotos propias de cada sede en src/recursos/sedes/
+const foto = (id: string) => `https://images.unsplash.com/photo-${id}?w=1200&h=900&fit=crop&auto=format`;
 
 const locations: Sede[] = [
   {
@@ -25,6 +32,9 @@ const locations: Sede[] = [
     description:
       'Nuestra sede principal, con 3 salones equipados, espejos profesionales, sistema de sonido de alta fidelidad y zona de entrenamiento libre.',
     tag: 'Sede principal',
+    photo: foto('1685307678313-f3565007f75b'),
+    photoAlt: 'Salón de baile con espejo de pared completa (foto de referencia)',
+    photoReferencia: true,
   },
   {
     name: 'Copacabana',
@@ -33,6 +43,9 @@ const locations: Sede[] = [
     description:
       'Sede moderna con 2 salones de práctica, aire acondicionado, vestieres y estacionamiento propio para un entrenamiento sin contratiempos.',
     tag: 'Nueva sede',
+    photo: foto('1756314355464-96764066ed21'),
+    photoAlt: 'Personas bailando en un salón con cortinas (foto de referencia)',
+    photoReferencia: true,
   },
 ];
 
@@ -90,8 +103,16 @@ function ImagenSede({ sede }: { sede: Sede }) {
   );
 }
 
+// Franja de atención registrada en la base (tabla sede); sin ella se usa el texto del sitio
+const horarioDe = (sede: SedePublica | undefined) =>
+  sede?.horaApertura && sede.horaCierre ? `Todos los días · ${sede.horaApertura} – ${sede.horaCierre}` : null;
+
 export default function Locations() {
   const { t } = useIdioma();
+  const [sedesApi, setSedesApi] = useState<SedePublica[]>([]);
+  useEffect(() => {
+    sitioPublico.sedes().then(setSedesApi).catch(() => setSedesApi([]));
+  }, []);
   return (
     <section id="sedes" aria-labelledby="titulo-sedes" className="relative py-28 bg-page overflow-hidden">
       <div className="max-w-[88rem] mx-auto px-6">
@@ -115,6 +136,11 @@ export default function Locations() {
                   <ImagenSede sede={loc} />
                   {loc.photo && <div className="absolute inset-0 bg-purple-900/40 mix-blend-multiply" aria-hidden="true" />}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" aria-hidden="true" />
+                  {loc.photo && loc.photoReferencia && (
+                    <span className="absolute right-4 top-4 bg-black/45 px-2 py-0.5 font-condensed text-[11px] uppercase tracking-widest text-white/85">
+                      {t('Foto de referencia')}
+                    </span>
+                  )}
                   <div className="absolute top-4 left-4 flex items-center gap-3">
                     <span className="font-condensed text-sm text-white/80" aria-hidden="true">({String(i + 1).padStart(2, '0')})</span>
                     <span className="bg-white/15 backdrop-blur border border-white/25 font-condensed text-xs uppercase tracking-widest text-white px-3 py-1">
@@ -138,7 +164,7 @@ export default function Locations() {
                       <dt className="flex w-28 shrink-0 items-center gap-2 font-condensed uppercase tracking-wider text-accent">
                         <IconoReloj className="h-4 w-4" /> {t('Horario')}
                       </dt>
-                      <dd>{t(loc.schedule)}</dd>
+                      <dd>{t(horarioDe(sedesApi.find((s) => s.nombre.toLowerCase() === loc.name.toLowerCase())) ?? loc.schedule)}</dd>
                     </div>
                   </dl>
                   <p className="font-body text-sm text-text-soft leading-relaxed mb-5">{t(loc.description)}</p>

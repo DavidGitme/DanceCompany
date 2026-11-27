@@ -6,7 +6,7 @@ import { mensajeError } from "@/compartido/api/recursos"
 import type { ErrorApi } from "@/nucleo/http/clienteHttp"
 import type { AcudienteSolicitudDto, PersonaEncontradaDto } from "../dtos/inscripcionDto"
 import { inscripcionServicio } from "../servicios/inscripcionServicio"
-import { Campo, correoValido, errorDocumento, errorTelefono } from "./formulario"
+import { Campo, correoValido, errorDocumento, errorNombre, errorTelefono } from "./formulario"
 
 /*
  * Un acudiente: se busca primero por documento (por ejemplo, el de un hermano ya
@@ -38,7 +38,8 @@ export function validarAcudiente(a: AcudienteFormulario, tipos: Opcion[]): Recor
   }
   if (a.nuevo) {
     const tipo = tipos.find((t) => t.valor === a.nuevo!.idTipoDocumento)?.etiqueta ?? ""
-    if (a.nuevo.nombre.trim().length < 2) errores.nombre = "Escribe el nombre completo."
+    const errorNom = errorNombre(a.nuevo.nombre)
+    if (errorNom) errores.nombre = errorNom
     if (!a.nuevo.idTipoDocumento) errores.idTipoDocumento = "Elige el tipo de documento."
     const errorDoc = errorDocumento(tipo, a.nuevo.documento)
     if (errorDoc) errores.documento = errorDoc

@@ -60,8 +60,9 @@ class RecuperarClave:
         return MENSAJE_SOLICITUD
 
     # ---------- Invitación al inscribir (el estudiante crea su contraseña) ----------
-    def invitar(self, documento: str, nombre: str, email: str) -> bool:
-        """Lo llama la inscripción después de guardar. Devuelve si el correo salió."""
+    def invitar(self, documento: str, nombre: str, email: str, motivo: str = "Tu sede te inscribió en F&A Dance Company.") -> bool:
+        """Lo llama la inscripción (o la contratación de un instructor) después de guardar.
+        Devuelve si el correo salió."""
         try:
             enlace = self._enlace(documento, MINUTOS_INVITACION)
             self.repositorio.confirmar()
@@ -72,7 +73,7 @@ class RecuperarClave:
             email,
             "Bienvenido a F&A Dance Company · crea tu contraseña",
             f"Hola {nombre}:\n\n"
-            "Tu sede te inscribió en F&A Dance Company.\n"
+            f"{motivo}\n"
             f"Para entrar al portal usa tu número de documento ({documento}) como usuario.\n"
             "Crea tu contraseña con este enlace (vence en 48 horas):\n\n"
             f"{enlace}\n\n"
@@ -85,7 +86,7 @@ class RecuperarClave:
             email,
             "Bienvenido a F&A Dance Company",
             f"Hola {nombre}:\n\n"
-            "Tu sede te inscribió en F&A Dance Company.\n"
+            f"{motivo}\n"
             f"Para entrar al portal usa tu número de documento ({documento}) como usuario y la "
             "contraseña que te entregaron en la sede.\n"
             f"Puedes cambiarla cuando quieras desde {self.frontend_url} con \"¿Olvidaste tu contraseña?\".\n",

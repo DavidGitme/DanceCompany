@@ -19,6 +19,7 @@ import {
   correoValido,
   edadEn,
   errorDocumento,
+  errorNombre,
   errorTelefono,
   errorTipoParaEdad,
   EDAD_ADULTO,
@@ -107,9 +108,18 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
   const tipoNombre = tipos.find((t) => t.valor === datos.idTipoDocumento)?.etiqueta ?? ""
   const avisoTipo = useMemo(() => errorTipoParaEdad(tipoNombre, edad), [tipoNombre, edad])
 
+  // Validación en vivo: el formato de cada campo se revisa al escribir y, después del
+  // primer intento de guardar, el formulario completo se revisa en cada cambio
+  const [intento, setIntento] = useState(false)
   const cambiar = (campo: keyof typeof datosVacios, valor: string) => {
     setDatos((prev) => ({ ...prev, [campo]: valor }))
-    setErrores((prev) => ({ ...prev, [campo]: "" }))
+    const formato =
+      campo === "nombre" ? (valor.trim() ? errorNombre(valor) : undefined)
+      : campo === "documento" ? errorDocumento(tipoNombre, valor)
+      : campo === "telefono" ? (valor ? errorTelefono(valor) : undefined)
+      : campo === "email" ? (valor && !correoValido(valor) ? "Escribe un correo válido." : undefined)
+      : undefined
+    setErrores((prev) => ({ ...prev, [campo]: formato ?? "" }))
   }
 
   // Si es menor de edad, el bloque del acudiente aparece de una vez (es obligatorio)
@@ -119,7 +129,8 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
 
   const validar = () => {
     const e: Record<string, string> = {}
-    if (datos.nombre.trim().length < 2) e.nombre = "Escribe el nombre completo."
+    const errorNom = errorNombre(datos.nombre)
+    if (errorNom) e.nombre = errorNom
     if (!datos.idTipoDocumento) e.idTipoDocumento = "Elige el tipo de documento."
     const errorDoc = errorDocumento(tipoNombre, datos.documento)
     if (errorDoc) e.documento = errorDoc
@@ -163,8 +174,14 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
     return { valido: !Object.keys(e).length && !Object.keys(porAcudiente).length, conDatos }
   }
 
+  useEffect(() => {
+    if (intento) validar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intento, datos, acudientes, cuenta, matricular])
+
   const enviar = async () => {
     setErrorGeneral(null)
+    setIntento(true)
     const { valido, conDatos } = validar()
     if (!valido) {
       setErrorGeneral(menor && !conDatos.length

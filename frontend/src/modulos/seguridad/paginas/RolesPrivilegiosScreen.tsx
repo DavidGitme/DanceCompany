@@ -1,11 +1,14 @@
 import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { clienteHttp } from "@/nucleo/http/clienteHttp"
+import { useAuth } from "@/nucleo/auth/useAuth"
+import ConfirmDialog from "@/compartido/ui/ConfirmDialog"
 import { mensajeError } from "@/compartido/api/recursos"
 import {
   Icono,
   claseBotonPrincipal,
   claseBotonSecundario,
+  claseEntrada,
 } from "@/compartido/ui/PantallaRecurso"
 import type { RespuestaLista } from "@/compartido/tipos/entities"
 
@@ -25,7 +28,7 @@ const ACCIONES: { clave: Accion; etiqueta: string; ayuda: string }[] = [
 
 // Nombres legibles de los módulos (tabla permisos)
 const NOMBRES: Record<string, string> = {
-  dashboard: "Inicio (resumen)",
+  dashboard: "Dashboard",
   estudiantes: "Estudiantes e inscripción",
   instructores: "Instructores",
   pagos: "Pagos y mensualidades",
@@ -66,7 +69,18 @@ interface Matriz {
   privilegios: FilaPrivilegio[]
 }
 
+
+/*
+ * Superadministrador = cuenta Administrador sin sede (cuenta técnica): crea roles, los
+ * activa o inactiva y ajusta privilegios. Administrador de sede: solo ajusta los privilegios
+ * de los roles que no son Administrador (el backend aplica las mismas reglas).
+ */
 export default function RolesPrivilegiosScreen() {
+  const { usuario } = useAuth()
+  const superadmin = Boolean(usuario && usuario.idSede == null && usuario.roles.includes("administrador"))
+  const [nuevoRol, setNuevoRol] = useState<string | null>(null)
+  const [errorNuevo, setErrorNuevo] = useState<string | null>(null)
+  const [cambioEstado, setCambioEstado] = useState<Rol | null>(null)
   const [roles, setRoles] = useState<Rol[]>([])
   const [rolActivo, setRolActivo] = useState<number | null>(null)
   const [matriz, setMatriz] = useState<Matriz | null>(null)
@@ -76,18 +90,69 @@ export default function RolesPrivilegiosScreen() {
   const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
 
-  useEffect(() => {
-    clienteHttp
+  const cargarRoles = useCallback((seleccionar?: number) => {
+    return clienteHttp
       .get<RespuestaLista<Rol>>("/roles?pagina=1&tamano=100")
       .then((r) => {
         setRoles(r.datos)
         // Empieza por el primer rol que se puede ajustar (no el Administrador)
         const primero = r.datos.find((rol) => rol.nombre.toLowerCase() !== "administrador") ?? r.datos[0]
-        setRolActivo(primero?.idRol ?? null)
+        setRolActivo((actual) => seleccionar ?? actual ?? primero?.idRol ?? null)
       })
       .catch((e) => setError(mensajeError(e)))
       .finally(() => setCargando(false))
   }, [])
+
+  useEffect(() => {
+    cargarRoles()
+  }, [cargarRoles])
+
+  // Validación en vivo del nombre del rol nuevo
+  const errorNombreRol = (nombre: string) => {
+    const limpio = nombre.trim()
+    if (limpio.length < 2) return tr("Escribe al menos 2 caracteres.")
+    if (limpio.length > 30) return tr("Máximo {max} caracteres.", { max: 30 })
+    if (roles.some((r) => r.nombre.trim().toLowerCase() === limpio.toLowerCase())) return tr("Ya existe un rol con ese nombre.")
+    return null
+  }
+
+  const crearRol = async () => {
+    if (nuevoRol === null) return
+    const problema = errorNombreRol(nuevoRol)
+    setErrorNuevo(problema)
+    if (problema) return
+    setGuardando(true)
+    try {
+      const creado = await clienteHttp.post<Rol>("/roles", { nombre: nuevoRol.trim(), idEstado: 1, permisos: [] })
+      setNuevoRol(null)
+      setAviso(tr("Se creó el rol {rol}. Marca sus privilegios y guarda.", { rol: creado.nombre }))
+      await cargarRoles(creado.idRol)
+    } catch (e) {
+      setErrorNuevo(mensajeError(e))
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const confirmarEstado = async () => {
+    if (!cambioEstado) return
+    setGuardando(true)
+    try {
+      if (cambioEstado.idEstado === 1) {
+        await clienteHttp.delete(`/roles/${cambioEstado.idRol}`)
+      } else {
+        await clienteHttp.put(`/roles/${cambioEstado.idRol}`, { nombre: cambioEstado.nombre, idEstado: 1 })
+      }
+      setAviso(tr(cambioEstado.idEstado === 1 ? "El rol {rol} quedó inactivo." : "El rol {rol} quedó activo.", { rol: cambioEstado.nombre }))
+      setCambioEstado(null)
+      await cargarRoles()
+    } catch (e) {
+      setError(mensajeError(e))
+      setCambioEstado(null)
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   const cargarMatriz = useCallback(async (idRol: number) => {
     setCargando(true)
@@ -175,13 +240,48 @@ export default function RolesPrivilegiosScreen() {
         )}
       </div>
 
-      <header className="max-w-3xl">
-        <p className="font-condensed text-xs font-semibold uppercase tracking-[0.25em] text-accent">{tr("Seguridad")}</p>
-        <h1 id="roles-titulo" className="display mt-2 text-4xl text-text sm:text-5xl">{tr("Roles y privilegios")}</h1>
-        <p className="mt-2 font-body text-sm text-text-soft">
-          {tr("Elige un rol y marca qué puede hacer en cada módulo. El sistema aplica estas reglas en cada acción, no solo en los botones. El rol Administrador siempre tiene acceso completo para que nadie quede por fuera del panel.")}
-        </p>
+      {/* Mismo encabezado que los demás listados: grupo, título y una instrucción breve */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-2xl">
+          <p className="font-condensed text-xs font-semibold uppercase tracking-[0.25em] text-accent">{tr("Seguridad")}</p>
+          <h1 id="roles-titulo" className="display mt-2 text-4xl text-text sm:text-5xl">{tr("Roles y privilegios")}</h1>
+          <p className="mt-2 font-body text-sm text-text-soft">{tr("Elige un rol y marca qué puede hacer en cada módulo.")}</p>
+        </div>
+        {superadmin && (
+          <button type="button" className={claseBotonPrincipal} onClick={() => { setNuevoRol(""); setErrorNuevo(null) }} disabled={guardando}>
+            <Icono nombre="mas" /> {tr("Nuevo rol")}
+          </button>
+        )}
       </header>
+
+      {nuevoRol !== null && (
+        <form
+          noValidate
+          onSubmit={(e) => { e.preventDefault(); crearRol() }}
+          className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-start"
+        >
+          <label className="flex-1">
+            <span className="mb-1.5 block font-condensed text-xs font-semibold uppercase tracking-wider text-text-soft">
+              {tr("Nombre del rol")} <span className="text-red-500" aria-hidden="true">*</span>
+            </span>
+            <input
+              autoFocus
+              value={nuevoRol}
+              maxLength={30}
+              onChange={(e) => { setNuevoRol(e.target.value); setErrorNuevo(errorNombreRol(e.target.value)) }}
+              aria-invalid={errorNuevo ? true : undefined}
+              aria-describedby={errorNuevo ? "rol-nuevo-error" : undefined}
+              className={claseEntrada}
+              placeholder={tr("Ej. Recepción")}
+            />
+            {errorNuevo && <span id="rol-nuevo-error" className="mt-1 block font-body text-xs font-medium text-red-600 dark:text-red-300">{errorNuevo}</span>}
+          </label>
+          <div className="flex gap-2 sm:pt-6">
+            <button type="button" className={claseBotonSecundario} onClick={() => setNuevoRol(null)} disabled={guardando}>{tr("Cancelar")}</button>
+            <button type="submit" className={claseBotonPrincipal} disabled={guardando || Boolean(errorNuevo)}>{tr("Crear rol")}</button>
+          </div>
+        </form>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[16rem_1fr]">
         {/* Roles */}
@@ -232,7 +332,15 @@ export default function RolesPrivilegiosScreen() {
                   </p>
                 </div>
                 {matriz.editable && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {superadmin && (() => {
+                      const rol = roles.find((r) => r.idRol === matriz.idRol)
+                      return rol && rol.nombre.trim().toLowerCase() !== "administrador" ? (
+                        <button type="button" className={claseBotonSecundario} disabled={guardando} onClick={() => setCambioEstado(rol)}>
+                          {tr(rol.idEstado === 1 ? "Inactivar rol" : "Activar rol")}
+                        </button>
+                      ) : null
+                    })()}
                     <button type="button" className={claseBotonSecundario} disabled={!cambios || guardando} onClick={() => cargarMatriz(matriz.idRol)}>
                       {tr("Descartar")}
                     </button>
@@ -294,13 +402,30 @@ export default function RolesPrivilegiosScreen() {
                 </table>
               </div>
               <p className="border-t border-border px-5 py-3 font-body text-xs text-text-muted">
-                Las cuentas de instructor, estudiante o acudiente que reciban módulos del panel solo verán los registros
-                de la sede asignada a su cuenta. Los roles se asignan en Seguridad &gt; Usuarios.
+                {tr(superadmin
+                  ? "Superadministrador: crea roles y ajusta todos los privilegios. Los roles se asignan en Seguridad > Usuarios."
+                  : "Administrador de sede: ajusta privilegios de roles existentes; solo el superadministrador crea roles. Los roles se asignan en Seguridad > Usuarios.")}
               </p>
             </>
           ) : null}
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(cambioEstado)}
+        title={tr(cambioEstado?.idEstado === 1 ? "Inactivar rol" : "Activar rol")}
+        message={
+          cambioEstado
+            ? tr(cambioEstado.idEstado === 1
+                ? "Las cuentas con el rol {rol} pierden sus privilegios hasta que se active de nuevo."
+                : "Las cuentas con el rol {rol} recuperan sus privilegios.", { rol: cambioEstado.nombre })
+            : ""
+        }
+        confirmLabel={tr(cambioEstado?.idEstado === 1 ? "Inactivar" : "Activar")}
+        tone={cambioEstado?.idEstado === 1 ? "peligro" : "normal"}
+        loading={guardando}
+        onConfirm={confirmarEstado}
+        onClose={() => setCambioEstado(null)}
+      />
     </section>
   )
 }

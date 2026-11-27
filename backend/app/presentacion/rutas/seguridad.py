@@ -18,8 +18,13 @@ from app.aplicacion.dtos.seguridad_dto import (
     UsuarioCrearSolicitud,
     UsuarioRespuesta,
 )
-from app.dominio.excepciones.errores import DatoInvalido
-from app.dominio.reglas import ROL_ADMINISTRADOR, error_clave, normalizar_documento, normalizar_telefono, telefono_valido
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from app.dominio.excepciones.errores import Conflicto, DatoInvalido
+from app.infraestructura.bd.conexion import obtener_sesion
+from app.infraestructura.repositorios.persona_sql import condicion_persona_en_sede
+from app.dominio.reglas import ROL_ADMINISTRADOR, ROL_INSTRUCTOR, error_clave, normalizar_documento, normalizar_telefono, telefono_valido
 from app.infraestructura.seguridad.hash_claves import HasherArgon2
 from app.presentacion.dependencias.auth import requiere_permiso
 from app.presentacion.dependencias.sede import proteger_cuentas_admin, sede_de_cuenta
@@ -89,12 +94,50 @@ def inactivar_persona(identificador: int, gestor=Depends(obtener_gestor)):
 def listar_usuarios(
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=100),
+    buscar: str | None = Query(None, max_length=60, description="Nombre, documento, correo, tipo, rol, estado o sede"),
+    estado: int | None = Query(None, gt=0),
+    rol: int | None = Query(None, gt=0),
     sede: int | None = Depends(sede_de_cuenta),
     gestor=Depends(obtener_gestor),
+    repositorio=Depends(obtener_repositorio),
 ):
+    if hasattr(repositorio, "listar_usuarios"):
+        datos, total = repositorio.listar_usuarios(pagina, tamano, sede, buscar, estado, rol)
+        return {"datos": datos, "total": total, "pagina": pagina, "tamano": tamano}
     respuesta = _listar("usuarios", pagina, tamano, gestor, sede)
     respuesta["datos"] = [_sin_hash(registro) for registro in respuesta["datos"]]
     return respuesta
+
+
+# Personas que pueden recibir una cuenta desde aquí: activas, sin cuenta y que no son
+# instructores (los instructores reciben la invitación desde Instructores)
+@router.get("/usuarios/candidatos")
+def candidatos_usuario(
+    buscar: str | None = Query(None, max_length=60),
+    sede: int | None = Depends(sede_de_cuenta),
+    sesion: Session = Depends(obtener_sesion),
+):
+    condiciones = [
+        "p.idEstado = 1",
+        "NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.documento = p.documento)",
+        "NOT EXISTS (SELECT 1 FROM instructor i WHERE i.idPersona = p.idPersona)",
+    ]
+    parametros: dict = {}
+    if sede is not None:
+        condiciones.append(condicion_persona_en_sede("p.idPersona"))
+        parametros["sede"] = sede
+    if buscar:
+        condiciones.append("(lower(p.nombre) LIKE lower(:buscar) OR p.documento LIKE :buscar)")
+        parametros["buscar"] = f"%{buscar.strip()}%"
+    filas = sesion.execute(
+        text(
+            'SELECT p.idPersona AS "idPersona", p.nombre, p.documento, td.nombre AS "tipoDocumento" '
+            "FROM persona p LEFT JOIN tipo_documento td ON td.idTipoDocumento = p.idTipoDocumento "
+            f"WHERE {' AND '.join(condiciones)} ORDER BY p.nombre LIMIT 200"
+        ),
+        parametros,
+    ).mappings()
+    return [dict(f) for f in filas]
 
 
 @router.get("/usuarios/{identificador}", response_model=UsuarioRespuesta)
@@ -108,8 +151,16 @@ def crear_usuario(
     gestor=Depends(obtener_gestor),
     repositorio=Depends(obtener_repositorio),
     sede: int | None = Depends(sede_de_cuenta),
+    sesion: Session = Depends(obtener_sesion),
 ):
     datos = solicitud.model_dump()
+    # Empleados: primero se registran en Instructores (contratación) y desde allí se les
+    # envía la invitación; aquí no se crean cuentas de instructor con una clave escrita a mano
+    if _es_instructor(sesion, datos["documento"]) or _incluye_rol(sesion, datos.get("roles"), ROL_INSTRUCTOR):
+        raise Conflicto(
+            "Las cuentas de instructores se crean desde Instructores con «Invitar»: "
+            "el instructor recibe un correo para crear su contraseña."
+        )
     if error := error_clave(datos["clave"]):
         raise DatoInvalido(error)
     datos["password_hash"] = HasherArgon2().crear_hash(datos.pop("clave"))
@@ -129,6 +180,22 @@ def actualizar_usuario(
     actualizado = _sin_hash(gestor.actualizar("usuarios", identificador, solicitud.model_dump()))
     _fijar_sede(repositorio, actualizado["documento"], sede)
     return actualizado
+
+
+def _es_instructor(sesion: Session, documento: str) -> bool:
+    return sesion.execute(
+        text("SELECT 1 FROM instructor i JOIN persona p ON p.idPersona = i.idPersona WHERE p.documento = :d"),
+        {"d": (documento or "").strip()},
+    ).first() is not None
+
+
+def _incluye_rol(sesion: Session, roles, nombre: str) -> bool:
+    if not roles:
+        return False
+    return sesion.execute(
+        text("SELECT 1 FROM roles WHERE idRol = ANY(:ids) AND lower(trim(nombre)) = :n"),
+        {"ids": [r for r in roles if isinstance(r, int)], "n": nombre},
+    ).first() is not None
 
 
 def _fijar_sede(repositorio, documento: str, sede: int | None):
@@ -158,13 +225,33 @@ def crear_rol(solicitud: RolCrearSolicitud, gestor=Depends(obtener_gestor)):
     return gestor.crear("roles", solicitud.model_dump())
 
 
+# Los roles del sistema dependen de su nombre (reglas de acceso y portales): no se renombran
+ROLES_DEL_SISTEMA = (ROL_ADMINISTRADOR, ROL_INSTRUCTOR, "estudiante", "acudiente")
+
+
+def _proteger_rol_del_sistema(gestor, identificador: int, nombre_nuevo: str | None = None):
+    actual = gestor.obtener("roles", identificador)["nombre"].strip().lower()
+    if actual == ROL_ADMINISTRADOR and nombre_nuevo is None:
+        raise DatoInvalido("El rol Administrador no se puede inactivar.")
+    if actual in ROLES_DEL_SISTEMA and nombre_nuevo is not None and nombre_nuevo.strip().lower() != actual:
+        raise DatoInvalido("Los roles del sistema (Administrador, Instructor, Estudiante y Acudiente) no se renombran.")
+
+
 @router.put("/roles/{identificador}", response_model=RolRespuesta)
 def actualizar_rol(identificador: int, solicitud: RolCrearSolicitud, gestor=Depends(obtener_gestor)):
-    return gestor.actualizar("roles", identificador, solicitud.model_dump())
+    _proteger_rol_del_sistema(gestor, identificador, solicitud.nombre)
+    datos = solicitud.model_dump()
+    # Renombrar o cambiar el estado no toca los privilegios: reemplazarlos aquí los dejaba
+    # en "todo permitido" (valores por defecto de roles_permisos). Se ajustan en /privilegios.
+    datos.pop("permisos", None)
+    if datos["idEstado"] != 1 and gestor.obtener("roles", identificador)["nombre"].strip().lower() == ROL_ADMINISTRADOR:
+        raise DatoInvalido("El rol Administrador no se puede inactivar.")
+    return gestor.actualizar("roles", identificador, datos)
 
 
 @router.delete("/roles/{identificador}", response_model=RolRespuesta)
 def inactivar_rol(identificador: int, gestor=Depends(obtener_gestor)):
+    _proteger_rol_del_sistema(gestor, identificador)
     return gestor.inactivar("roles", identificador)
 
 

@@ -60,6 +60,11 @@ export default function Paginacion({
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-3">
+      {/* La página actual siempre visible, aunque solo haya una */}
+      <span className="font-condensed text-xs font-semibold uppercase tracking-wider text-text" aria-live="polite">
+        {tr("Página {pagina} de {paginas}", { pagina: Math.min(pagina, Math.max(1, totalPaginas)), paginas: Math.max(1, totalPaginas) })}
+      </span>
       {totalPaginas > 1 && (
         <nav aria-label={tr("Paginación")} className="flex items-center gap-1.5">
           <button
@@ -101,6 +106,7 @@ export default function Paginacion({
           </button>
         </nav>
       )}
+      </div>
     </div>
   )
 }

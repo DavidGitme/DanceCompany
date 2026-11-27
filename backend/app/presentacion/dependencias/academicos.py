@@ -69,3 +69,18 @@ def gestor_inscripciones(sesion: Session = Depends(obtener_sesion)):
             CorreoSmtp(obtener_configuracion()), obtener_configuracion().frontend_url,
         ),
     )
+
+
+class _Invitaciones(RecuperarClave):
+    """RecuperarClave que también dice si el correo está configurado."""
+
+    @property
+    def configurado(self) -> bool:
+        return self.correo.configurado
+
+
+def recuperacion(sesion: Session = Depends(obtener_sesion)):
+    configuracion = obtener_configuracion()
+    return _Invitaciones(
+        RepositorioRecuperacionSql(sesion), HasherArgon2(), CorreoSmtp(configuracion), configuracion.frontend_url
+    )
