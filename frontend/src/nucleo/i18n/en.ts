@@ -896,7 +896,7 @@ export const en: Record<string, string> = {
   "Inactivas": "Inactive",
   "Sin aprobar": "Not approved",
   "Aprobación": "Approval",
-  "Matrícula de cada estudiante en su grupo. Valor único de $60.000; se activa al aprobar sus requisitos.": "Each student's enrollment in their group. Single fee of $60,000; it becomes active once its requirements are approved.",
+  "Primero se matricula: así se registra al estudiante. La matrícula queda pendiente hasta cumplir los requisitos y la aprueba el administrador o el instructor del grupo.": "Enroll first: that is how the student is registered. The enrollment stays pending until the requirements are met and the administrator or the group's instructor approves it.",
   "Crea la primera matrícula: al hacerlo se registra al estudiante con su grupo.": "Create the first enrollment: doing so registers the student with their group.",
   "Solo grupos activos de la sede. Se validan el cupo y la edad del nivel.": "Only active groups at the location. Seats and the level's age range are checked.",
   "Solo grupos activos de la sede del estudiante. Se validan el cupo y la edad del nivel.": "Only active groups at the student's location. Seats and the level's age range are checked.",
