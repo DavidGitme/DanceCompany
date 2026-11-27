@@ -11,6 +11,7 @@ import { useAuth } from "@/nucleo/auth/useAuth"
 import { puede } from "@/nucleo/auth/requierePermiso"
 import { recursoApi, mensajeError } from "@/compartido/api/recursos"
 import { EdicionEstudiante, FichaEstudiante, InscripcionEstudiante, type EstudianteFicha } from "@/modulos/estudiantes"
+import { MatriculasScreen } from "@/modulos/matriculas"
 import HorariosGrupoScreen from "@/modulos/grupos/paginas/HorariosGrupoScreen"
 import NoticiasScreen from "@/modulos/landing/paginas/NoticiasScreen"
 import { AdministrationProvider } from "@/modulos/pagos"
@@ -32,7 +33,6 @@ const PANTALLAS_API: Record<string, DefinicionRecurso<any>> = {
   estilos: recursos.estilos,
   talleres: recursos.talleres,
   "adm-metodos-pago": recursos.metodosPago,
-  "adm-matriculas": recursos.matriculas,
   "adm-convocatorias": recursos.convocatorias,
   "adm-postulaciones": recursos.postulaciones,
   "adm-grupos-competencia": recursos.gruposCompetencia,
@@ -261,6 +261,21 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
         )}
       />
     )
+  } else if (activeModule === "adm-matriculas") {
+    // Matrículas: «Nueva» registra al estudiante con su matrícula; requisitos, aprobación e interruptor de estado
+    contenido = (
+      <MatriculasScreen
+        key={activeModule}
+        definicion={recursos.matriculas}
+        privilegios={privilegiosModulo}
+        sedeFija={sedeFija}
+        nombreSede={usuario?.sede}
+        abrirCrear={crearAlEntrar}
+        onCrearAbierto={terminarCrear}
+        cargarCatalogo={recursos.opcionesCatalogo}
+        onAviso={setAviso}
+      />
+    )
   } else if (PANTALLAS_API[activeModule]) {
     contenido = (
       <PantallaRecurso
@@ -370,7 +385,7 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
           onInscrito={(r) => {
             setInscribiendo(false)
             setRecargarEstudiantes((n) => n + 1)
-            const extras = [r.idMatricula ? tr("matriculado") : "", r.cuentaCreada ? tr("con cuenta del portal") : ""].filter(Boolean)
+            const extras = [r.idMatricula ? tr("con matrícula pendiente de aprobación") : "", r.cuentaCreada ? tr("con cuenta del portal") : ""].filter(Boolean)
             const correo = r.correoEnviado ? ` ${tr("Le enviamos un correo con su acceso.")}` : r.aviso ? ` ${tr(r.aviso)}` : ""
             setAviso(`${tr("{nombre} quedó inscrito", { nombre: r.estudiante.nombre })}${extras.length ? ` (${extras.join(tr(" y "))})` : ""}.${correo}`)
           }}
