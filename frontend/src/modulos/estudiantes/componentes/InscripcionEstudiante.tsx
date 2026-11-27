@@ -1,5 +1,5 @@
 import { tr } from "@/nucleo/i18n/IdiomaContext"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import type { Opcion } from "@/compartido/ui/PantallaRecurso"
 import { claseBotonPrincipal, claseBotonSecundario, claseEntrada } from "@/compartido/ui/PantallaRecurso"
 import { erroresDeCampo, mensajeError, recursoApi } from "@/compartido/api/recursos"
@@ -22,6 +22,7 @@ import {
   errorNombre,
   errorTelefono,
   errorTipoParaEdad,
+  textoValorMatricula,
   EDAD_ADULTO,
   TELEFONO_DIGITOS,
 } from "./formulario"
@@ -30,6 +31,9 @@ import {
  * Inscripción presencial: el administrador registra al estudiante en la sede, con sus
  * acudientes y, si ya se definió, la matrícula en un grupo y la cuenta del portal.
  * La API guarda todo junto o nada (POST /inscripciones).
+ *
+ * Con `modoMatricula` es el formulario de «Nueva matrícula»: primero se matricula y así
+ * la persona queda registrada. La matrícula queda pendiente de aprobación.
  */
 
 const MAX_ACUDIENTES = 1
@@ -42,6 +46,10 @@ interface Props {
   cargarCatalogo: (ruta: string) => Promise<Opcion[]>
   onCerrar: () => void
   onInscrito: (respuesta: InscripcionRespuestaDto) => void
+  // Formulario de «Nueva matrícula»: el grupo es obligatorio
+  modoMatricula?: boolean
+  // Contenido arriba del formulario (selector de estudiante nuevo o registrado)
+  encabezado?: ReactNode
 }
 
 interface GrupoOpcion {
@@ -49,6 +57,31 @@ interface GrupoOpcion {
   nombre: string
   nivel: string
   estilo: string
+  // Solo vienen de /matriculas/opciones/grupos
+  edadMin?: number | null
+  edadMax?: number | null
+  capacidad?: number
+  ocupados?: number
+}
+
+const cuposLibres = (g: GrupoOpcion) =>
+  g.capacidad !== undefined && g.ocupados !== undefined ? Math.max(0, g.capacidad - g.ocupados) : null
+
+// Edad y cupo del grupo elegido (el backend repite las mismas reglas al guardar)
+function errorGrupo(grupo: GrupoOpcion | undefined, edad: number | null): string | undefined {
+  if (!grupo) return undefined
+  if (cuposLibres(grupo) === 0) return tr("El grupo no tiene cupos disponibles.")
+  if (edad === null || edad < 0) return undefined
+  const minima = grupo.edadMin ?? null
+  const maxima = grupo.edadMax ?? null
+  if ((minima !== null && edad < minima) || (maxima !== null && edad > maxima)) {
+    return tr("Con {edad} años no puede entrar a este nivel (acepta de {min} a {max} años).", {
+      edad,
+      min: minima ?? "-",
+      max: maxima ?? "-",
+    })
+  }
+  return undefined
 }
 
 const datosVacios = {
@@ -60,15 +93,22 @@ const datosVacios = {
   fecha_nacimiento: "",
   idSede: "",
   idGrupo: "",
-  valor_matricula: "",
   clave: "",
   confirmarClave: "",
 }
 
-export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCatalogo, onCerrar, onInscrito }: Props) {
+export default function InscripcionEstudiante({
+  sedeFija,
+  nombreSede,
+  cargarCatalogo,
+  onCerrar,
+  onInscrito,
+  modoMatricula = false,
+  encabezado,
+}: Props) {
   const [datos, setDatos] = useState({ ...datosVacios, idSede: sedeFija ? String(sedeFija) : "" })
   const [acudientes, setAcudientes] = useState<AcudienteFormulario[]>([])
-  const [matricular, setMatricular] = useState(false)
+  const [matricular, setMatricular] = useState(modoMatricula)
   // Acceso al portal: sin cuenta, invitación por correo o contraseña asignada por la sede
   const [cuenta, setCuenta] = useState<"ninguna" | "invitar" | "clave">("ninguna")
   const [tipos, setTipos] = useState<Opcion[]>([])
@@ -91,22 +131,30 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
     }
   }, [cargarCatalogo, sedeFija])
 
-  // Solo los grupos activos de la sede del estudiante
+  // Solo los grupos activos de la sede del estudiante, con su rango de edad y cupos.
+  // Si el rol no puede ver matrículas, se usa la lista simple de grupos.
   useEffect(() => {
     if (!matricular || !datos.idSede) {
       setGrupos([])
       return
     }
+    let vigente = true
     recursoApi
-      .opciones<GrupoOpcion>("/grupos/disponibles", { sede: datos.idSede })
-      .then(setGrupos)
-      .catch(() => setGrupos([]))
+      .opciones<GrupoOpcion>("/matriculas/opciones/grupos", { sede: datos.idSede })
+      .catch(() => recursoApi.opciones<GrupoOpcion>("/grupos/disponibles", { sede: datos.idSede }))
+      .then((lista) => vigente && setGrupos(lista))
+      .catch(() => vigente && setGrupos([]))
+    return () => {
+      vigente = false
+    }
   }, [matricular, datos.idSede])
 
   const edad = edadEn(datos.fecha_nacimiento)
   const menor = edad !== null && edad < EDAD_ADULTO
   const tipoNombre = tipos.find((t) => t.valor === datos.idTipoDocumento)?.etiqueta ?? ""
   const avisoTipo = useMemo(() => errorTipoParaEdad(tipoNombre, edad), [tipoNombre, edad])
+  const grupoElegido = grupos.find((g) => String(g.idGrupo) === datos.idGrupo)
+  const avisoGrupo = matricular ? errorGrupo(grupoElegido, edad) : undefined
 
   // Validación en vivo: el formato de cada campo se revisa al escribir y, después del
   // primer intento de guardar, el formulario completo se revisa en cada cambio
@@ -143,8 +191,7 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
     if (!datos.idSede) e.idSede = "Elige la sede."
     if (matricular) {
       if (!datos.idGrupo) e.idGrupo = "Elige el grupo."
-      const valor = Number(datos.valor_matricula)
-      if (datos.valor_matricula === "" || Number.isNaN(valor) || valor < 0) e.valor_matricula = "Escribe un valor válido."
+      else if (avisoGrupo) e.idGrupo = avisoGrupo
     }
     if (cuenta === "invitar" && !datos.email) {
       e.email = "La invitación llega a este correo: es obligatorio para enviarla."
@@ -177,7 +224,7 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
   useEffect(() => {
     if (intento) validar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [intento, datos, acudientes, cuenta, matricular])
+  }, [intento, datos, acudientes, cuenta, matricular, grupos])
 
   const enviar = async () => {
     setErrorGeneral(null)
@@ -198,7 +245,7 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
       fecha_nacimiento: datos.fecha_nacimiento,
       idSede: Number(datos.idSede),
       acudientes: conDatos.map(acudienteASolicitud),
-      ...(matricular ? { idGrupo: Number(datos.idGrupo), valor_matricula: Number(datos.valor_matricula) } : {}),
+      ...(matricular ? { idGrupo: Number(datos.idGrupo) } : {}),
       ...(cuenta === "invitar" ? { crearCuenta: true } : {}),
       ...(cuenta === "clave" ? { crearCuenta: true, clave: datos.clave } : {}),
     }
@@ -216,8 +263,8 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
 
   return (
     <Dialogo
-      antetitulo={nombreSede ? `${tr("Sede")} ${nombreSede}` : tr("Estudiantes")}
-      titulo={tr("Inscribir estudiante")}
+      antetitulo={nombreSede ? `${tr("Sede")} ${nombreSede}` : tr(modoMatricula ? "Matrículas" : "Estudiantes")}
+      titulo={tr(modoMatricula ? "Nueva matrícula" : "Inscribir estudiante")}
       ocupado={guardando}
       onCerrar={onCerrar}
       onEnviar={enviar}
@@ -225,14 +272,20 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
         <>
           <button type="button" onClick={onCerrar} disabled={guardando} className={claseBotonSecundario}>{tr("Cancelar")}</button>
           <button type="submit" disabled={guardando} aria-busy={guardando} className={claseBotonPrincipal}>
-            {guardando ? tr("Inscribiendo…") : tr("Inscribir estudiante")}
+            {guardando
+              ? tr(modoMatricula ? "Matriculando…" : "Inscribiendo…")
+              : tr(modoMatricula ? "Crear matrícula" : "Inscribir estudiante")}
           </button>
         </>
       }
     >
+      {encabezado}
       <MensajeError mensaje={errorGeneral} />
       <p className="mb-4 font-body text-xs text-text-muted">
-        {tr("La inscripción es presencial.")} {tr("Los campos con")} <span className="text-red-500" aria-hidden="true">*</span>
+        {tr(modoMatricula
+          ? "Se registra al estudiante con su matrícula; queda pendiente hasta cumplir los requisitos y su aprobación."
+          : "La inscripción es presencial.")}{" "}
+        {tr("Los campos con")} <span className="text-red-500" aria-hidden="true">*</span>
         <span className="sr-only">{tr("asterisco")}</span> {tr("son obligatorios.")}
       </p>
 
@@ -315,25 +368,40 @@ export default function InscripcionEstudiante({ sedeFija, nombreSede, cargarCata
           </button>
         )}
 
-        <Seccion>{tr("Matrícula y acceso")}</Seccion>
-        <label className="flex items-center gap-3 font-body text-sm text-text sm:col-span-2">
-          <input type="checkbox" checked={matricular} disabled={guardando} onChange={(e) => setMatricular(e.target.checked)} className="h-4 w-4 accent-[var(--color-accent)]" />
-          {tr("Matricular ahora en un grupo")}
-        </label>
+        <Seccion>{tr(modoMatricula ? "Matrícula" : "Matrícula y acceso")}</Seccion>
+        {!modoMatricula && (
+          <label className="flex items-center gap-3 font-body text-sm text-text sm:col-span-2">
+            <input type="checkbox" checked={matricular} disabled={guardando} onChange={(e) => setMatricular(e.target.checked)} className="h-4 w-4 accent-[var(--color-accent)]" />
+            {tr("Matricular ahora en un grupo")}
+          </label>
+        )}
         {matricular && (
           <>
-            <Campo id="insc-grupo" etiqueta="Grupo" requerido error={errores.idGrupo}
-              ayuda="Se validan el cupo y la edad del nivel al guardar.">
+            <Campo id="insc-grupo" etiqueta="Grupo" requerido error={errores.idGrupo || avisoGrupo}
+              ayuda="Solo grupos activos de la sede. Se validan el cupo y la edad del nivel.">
               {(p) => (
                 <select {...p} value={datos.idGrupo} disabled={guardando || !datos.idSede} onChange={(e) => cambiar("idGrupo", e.target.value)} className={claseEntrada}>
                   <option value="">{datos.idSede ? tr("Selecciona…") : tr("Primero elige la sede")}</option>
-                  {grupos.map((g) => <option key={g.idGrupo} value={g.idGrupo}>{g.nombre} · {g.nivel} · {g.estilo}</option>)}
+                  {grupos.map((g) => {
+                    const libres = cuposLibres(g)
+                    return (
+                      <option key={g.idGrupo} value={g.idGrupo} disabled={libres === 0}>
+                        {g.nombre} · {g.nivel} · {g.estilo}
+                        {libres !== null ? ` · ${libres === 0 ? tr("sin cupos") : tr(libres === 1 ? "{n} cupo libre" : "{n} cupos libres", { n: libres })}` : ""}
+                      </option>
+                    )
+                  })}
                 </select>
               )}
             </Campo>
-            <Campo id="insc-valor" etiqueta="Valor de la matrícula" requerido error={errores.valor_matricula}>
-              {(p) => <input {...p} type="number" inputMode="numeric" min={0} value={datos.valor_matricula} disabled={guardando} onChange={(e) => cambiar("valor_matricula", e.target.value)} className={claseEntrada} />}
-            </Campo>
+            <div>
+              <p className="mb-1.5 block font-condensed text-xs font-semibold uppercase tracking-wider text-text-soft">{tr("Valor de la matrícula")}</p>
+              <p className="flex items-center justify-between gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3.5 py-2.5 font-body text-sm font-semibold text-text">
+                {textoValorMatricula()}
+                <span className="font-condensed text-[11px] font-semibold uppercase tracking-wider text-accent">{tr("Precio único")}</span>
+              </p>
+              <p className="mt-1 font-body text-xs text-text-muted">{tr("Queda pendiente de aprobación hasta cumplir los requisitos.")}</p>
+            </div>
           </>
         )}
         <fieldset className="flex flex-col gap-2 sm:col-span-2">
