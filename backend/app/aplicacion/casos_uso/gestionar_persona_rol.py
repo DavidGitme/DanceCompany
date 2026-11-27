@@ -4,6 +4,7 @@ from app.aplicacion.casos_uso.gestionar_catalogo import GestionarCatalogo
 from app.dominio.excepciones.errores import Conflicto, DatoInvalido
 from app.dominio.reglas import (
     error_documento,
+    error_nombre_persona,
     normalizar_documento,
     TELEFONO_DIGITOS,
     normalizar_telefono,
@@ -30,6 +31,10 @@ class GestionarPersonaRol(GestionarCatalogo):
         if not tipo:
             raise DatoInvalido("El tipo de documento no existe.")
 
+        if datos.get("nombre") is not None:
+            if error := error_nombre_persona(datos["nombre"]):
+                raise DatoInvalido(error)
+            datos["nombre"] = " ".join(datos["nombre"].split())
         datos["documento"] = normalizar_documento(datos["documento"])
         if len(datos["documento"]) < 5:
             raise DatoInvalido("El documento debe tener al menos 5 caracteres.")

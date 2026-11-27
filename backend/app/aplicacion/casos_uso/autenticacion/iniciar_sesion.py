@@ -5,7 +5,7 @@ from app.aplicacion.dtos.auth_dto import (
 )
 from app.aplicacion.servicios.seguridad import EmisorTokens, HasherClaves
 from app.dominio.excepciones.errores import NoAutenticado
-from app.dominio.reglas import ESTADO_ACTIVO, TERMINOS_VERSION, normalizar_documento
+from app.dominio.reglas import ESTADO_ACTIVO, MENSAJE_CUENTA_INACTIVA, TERMINOS_VERSION, normalizar_documento
 from app.dominio.repositorios.repositorio_autenticacion import RepositorioAutenticacion
 
 
@@ -32,9 +32,10 @@ class IniciarSesion:
             solicitud.clave, registro["password_hash"]
         ):
             raise NoAutenticado("Documento o clave incorrectos.")
-        # Solo entra una cuenta Activa (estados.idEstado = 1)
+        # Solo entra una cuenta Activa (estados.idEstado = 1). La clave ya se verificó, así
+        # que se puede explicar el motivo sin revelar a terceros qué documentos existen
         if registro["idEstado"] != ESTADO_ACTIVO:
-            raise NoAutenticado("Documento o clave incorrectos.")
+            raise NoAutenticado(MENSAJE_CUENTA_INACTIVA)
 
         roles, permisos = self.repositorio.permisos_de_roles(registro["roles"])
         id_sede = registro.get("idSede")

@@ -72,6 +72,11 @@ SEDE_DE = {
         "SELECT g.idSede FROM grupo_competencia gc JOIN grupo g ON g.idGrupo = gc.idGrupo "
         "WHERE gc.idgrupocompe = :id"
     ),
+    "preinscripciones": "SELECT idSede FROM preinscripcion WHERE idPreinscripcion = :id",
+    "solicitudes": (
+        "SELECT a.idSede FROM solicitud_espacio s JOIN aula a ON a.idAula = s.idAula "
+        "WHERE s.idSolicitud = :id"
+    ),
     "postulaciones": (
         "SELECT e.idSede FROM convocatoria_estudiante ce "
         "JOIN estudiante e ON e.idEstudiante = ce.idEstudiante WHERE ce.idConvocatoriaEst = :id"

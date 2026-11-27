@@ -19,6 +19,7 @@ const navLinks = [
   { label: 'Instructores', href: '#instructores' },
   { label: 'Sedes', href: '#sedes' },
   { label: 'Planes', href: '#planes' },
+  { label: 'Preinscripción', href: '#preinscripcion' },
   { label: 'Alquila un aula', href: '#alquiler' },
 ];
 
@@ -45,7 +46,7 @@ export default function Navbar({ isDark, onToggleTheme, onLoginClick, onRegister
   };
 
   // No hay autorregistro: la inscripción se hace en persona, en la sede
-  const register = () => (onRegisterClick ? onRegisterClick() : scrollTo('#sedes'));
+  const register = () => (onRegisterClick ? onRegisterClick() : scrollTo('#preinscripcion'));
 
   // Sobre el hero: texto oscuro en modo claro (hero blanco) y claro en modo oscuro (hero con foto)
   const tone = scrolled || menuOpen ? 'text-text-soft' : 'text-[#2e2240] dark:text-purple-50';

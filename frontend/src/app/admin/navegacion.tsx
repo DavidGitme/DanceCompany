@@ -30,16 +30,17 @@ const icono = (d: string) => (
 export const navegacion: NodoNavegacion[] = [
   {
     id: 'dashboard',
-    etiqueta: 'Inicio',
+    // Entrada principal del panel tras iniciar sesión
+    etiqueta: 'Dashboard',
     permiso: 'dashboard',
     icono: icono('M2.25 12l8.95-8.95a1.13 1.13 0 011.6 0L21.75 12M4.5 9.75v10.13c0 .62.5 1.12 1.13 1.12H9.75v-4.88c0-.62.5-1.12 1.13-1.12h2.25c.62 0 1.12.5 1.12 1.12V21h4.13c.62 0 1.12-.5 1.12-1.12V9.75M8.25 21h8.25'),
   },
   {
-    id: 'personas',
-    etiqueta: 'Personas',
+    // Empleados: primero se registran aquí y después reciben la invitación a su cuenta
+    id: 'gestion-humana',
+    etiqueta: 'Gestión humana',
     icono: icono('M15 19.13a9.38 9.38 0 002.63.37 9.34 9.34 0 004.12-.95 4.13 4.13 0 00-7.53-2.49M15 19.13v-.01c0-1.11-.29-2.16-.78-3.07M15 19.13v.1A12.32 12.32 0 018.62 21c-2.33 0-4.51-.64-6.37-1.77v-.11a6.38 6.38 0 0111.96-3.07M12 6.38a3.38 3.38 0 11-6.75 0 3.38 3.38 0 016.75 0zm8.25 2.25a2.63 2.63 0 11-5.25 0 2.63 2.63 0 015.25 0z'),
     hijos: [
-      { id: 'estudiantes', etiqueta: 'Estudiantes', permiso: 'estudiantes' },
       { id: 'instructores', etiqueta: 'Instructores', permiso: 'instructores' },
     ],
   },
@@ -51,6 +52,7 @@ export const navegacion: NodoNavegacion[] = [
       { id: 'grupos', etiqueta: 'Grupos', permiso: 'grupos' },
       { id: 'adm-aulas', etiqueta: 'Aulas', permiso: 'aulas' },
       { id: 'adm-agendamientos-instructores', etiqueta: 'Horarios', permiso: 'horarios', demo: true },
+      { id: 'adm-solicitudes-espacio', etiqueta: 'Solicitudes de espacio', permiso: 'aulas' },
     ],
   },
   {
@@ -58,6 +60,9 @@ export const navegacion: NodoNavegacion[] = [
     etiqueta: 'Matrícula y pagos',
     icono: icono('M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z'),
     hijos: [
+      { id: 'estudiantes', etiqueta: 'Estudiantes', permiso: 'estudiantes' },
+      { id: 'adm-preinscripciones', etiqueta: 'Preinscripciones', permiso: 'matriculas' },
+      { id: 'adm-periodos', etiqueta: 'Periodos de matrícula', permiso: 'matriculas' },
       { id: 'adm-matriculas', etiqueta: 'Matrículas', permiso: 'matriculas' },
       { id: 'adm-mensualidades', etiqueta: 'Mensualidades', permiso: 'pagos', demo: true },
       { id: 'adm-pagos', etiqueta: 'Pagos', permiso: 'pagos', demo: true },
@@ -74,6 +79,7 @@ export const navegacion: NodoNavegacion[] = [
       { id: 'niveles', etiqueta: 'Niveles', permiso: 'niveles' },
       { id: 'estilos', etiqueta: 'Estilos', permiso: 'estilos' },
       { id: 'talleres', etiqueta: 'Talleres', permiso: 'talleres' },
+      { id: 'adm-planes', etiqueta: 'Planes', permiso: 'pagos' },
       { id: 'adm-metodos-pago', etiqueta: 'Métodos de pago', permiso: 'pagos' },
     ],
   },
@@ -94,7 +100,7 @@ export const navegacion: NodoNavegacion[] = [
     icono: icono('M9 12.75L11.25 15 15 9.75m-3-7.04A11.96 11.96 0 013.6 6 11.99 11.99 0 003 9.75c0 5.59 3.82 10.29 9 11.62 5.18-1.33 9-6.03 9-11.62 0-1.31-.21-2.57-.6-3.75h-.15c-3.2 0-6.1-1.25-8.25-3.29z'),
     hijos: [
       { id: 'seg-usuarios', etiqueta: 'Usuarios', permiso: 'usuarios' },
-      { id: 'seg-personas', etiqueta: 'Personas', permiso: 'usuarios' },
+      { id: 'seg-personas', etiqueta: 'Datos personales', permiso: 'usuarios' },
       { id: 'seg-roles-permisos', etiqueta: 'Roles y privilegios', permiso: 'usuarios' },
       { id: 'seg-estados', etiqueta: 'Estados', permiso: 'usuarios' },
     ],

@@ -16,6 +16,8 @@ from app.infraestructura.bd.consultas import sin_tildes
 from app.infraestructura.repositorios.persona_sql import condicion_persona_en_sede
 from app.infraestructura.repositorios.autenticacion_sql import RepositorioAutenticacionSql
 
+SEDE_TEXTO = sin_tildes("coalesce(s.nombre, '')")
+
 # Expresión del idPersona de cada recurso, para limitar las listas a una sede
 PERSONA_DE = {
     "personas": "persona.idPersona",
@@ -96,6 +98,49 @@ class RepositorioSeguridadSql(RepositorioSeguridad):
         registros = [dict(fila) for fila in filas]
         for registro in registros:
             self._cargar_relaciones(recurso, registro)
+        return registros, total
+
+    def listar_usuarios(self, pagina, tamano, sede=None, buscar=None, estado=None, rol=None):
+        """Cuentas con los datos de su persona para el listado (búsqueda en todas las columnas)."""
+        condiciones, parametros = [], {"tamano": tamano, "inicio": (pagina - 1) * tamano}
+        if sede is not None:
+            condiciones.append(condicion_persona_en_sede("p.idPersona"))
+            parametros["sede"] = sede
+        if estado is not None:
+            condiciones.append("u.idEstado = :estado")
+            parametros["estado"] = estado
+        if rol is not None:
+            condiciones.append("EXISTS (SELECT 1 FROM usuarios_roles ur WHERE ur.documento = u.documento AND ur.idRol = :rol)")
+            parametros["rol"] = rol
+        if buscar:
+            condiciones.append(
+                f"({sin_tildes('p.nombre')} LIKE {sin_tildes(':buscar')} OR u.documento LIKE :buscar "
+                f"OR lower(coalesce(p.email, '')) LIKE lower(:buscar) OR {sin_tildes('td.nombre')} LIKE {sin_tildes(':buscar')} "
+                f"OR {sin_tildes('es.nombre')} LIKE {sin_tildes(':buscar')} OR {SEDE_TEXTO} LIKE {sin_tildes(':buscar')} "
+                "OR EXISTS (SELECT 1 FROM usuarios_roles ur JOIN roles r ON r.idRol = ur.idRol "
+                f"WHERE ur.documento = u.documento AND {sin_tildes('r.nombre')} LIKE {sin_tildes(':buscar')}))"
+            )
+            parametros["buscar"] = f"%{buscar.strip()}%"
+        origen = (
+            "FROM usuarios u JOIN persona p ON p.documento = u.documento "
+            "LEFT JOIN tipo_documento td ON td.idTipoDocumento = p.idTipoDocumento "
+            "LEFT JOIN sede s ON s.idSede = u.idSede JOIN estados es ON es.idEstado = u.idEstado"
+        )
+        donde = f"WHERE {' AND '.join(condiciones)}" if condiciones else ""
+        total = self.sesion.execute(text(f"SELECT COUNT(*) {origen} {donde}"), parametros).scalar_one()
+        filas = self.sesion.execute(
+            text(
+                'SELECT u.documento AS "documento", u.documento AS "username", u.idEstado AS "idEstado", '
+                'es.nombre AS "estado", p.nombre AS "nombre", p.email AS "email", '
+                'p.idTipoDocumento AS "idTipoDocumento", td.nombre AS "tipoDocumento", '
+                f'u.idSede AS "idSede", s.nombre AS "sede" {origen} {donde} '
+                "ORDER BY p.nombre LIMIT :tamano OFFSET :inicio"
+            ),
+            parametros,
+        ).mappings()
+        registros = [dict(fila) for fila in filas]
+        for registro in registros:
+            self._cargar_relaciones("usuarios", registro)
         return registros, total
 
     def obtener(self, recurso: str, identificador: int | str):

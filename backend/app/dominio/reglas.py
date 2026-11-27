@@ -128,7 +128,59 @@ ACCION_POR_METODO = {
     "DELETE": "eliminar",
 }
 ROL_ADMINISTRADOR = "administrador"
+ROL_INSTRUCTOR = "instructor"
 
 # ---------- Términos y condiciones ----------
 # Al cambiar el texto se sube la versión y cada cuenta los vuelve a aceptar
 TERMINOS_VERSION = "2026-11"
+
+
+# ---------- Nombre de persona ----------
+# Letras (con tildes y ñ), espacios, apóstrofo, guion y punto: "María José O'Neil-Ruiz"
+CARACTERES_NOMBRE = " '-."
+
+
+def error_nombre_persona(nombre: str) -> str | None:
+    """Mensaje de error si el nombre de una persona tiene números u otros símbolos."""
+    limpio = nombre.strip()
+    if any(c.isdigit() for c in limpio):
+        return "El nombre no puede tener números."
+    if not all(c.isalpha() or c in CARACTERES_NOMBRE for c in limpio):
+        return "El nombre solo admite letras, espacios, apóstrofo y guion."
+    if not any(c.isalpha() for c in limpio):
+        return "Escribe un nombre válido."
+    return None
+
+# Solo se muestra cuando la contraseña ya fue verificada: no revela si un documento existe
+MENSAJE_CUENTA_INACTIVA = (
+    "Tu cuenta está inactiva y por ahora no puede ingresar. "
+    "Comunícate con la administración de tu sede para revisar y reactivar tu acceso."
+)
+
+# ---------- Sitio público (bd/07_sitio_publico.sql) ----------
+CATEGORIA_PREINSCRIPCION = "preinscripcion"
+PREINSCRIPCION_POR_CONFIRMAR = "Por confirmar"
+PREINSCRIPCION_CONFIRMADA = "Confirmada"
+PREINSCRIPCION_ATENDIDA = "Atendida"
+PREINSCRIPCION_DESCARTADA = "Descartada"
+
+CATEGORIA_SOLICITUD = "solicitud"
+SOLICITUD_PENDIENTE = "Pendiente"
+SOLICITUD_APROBADA = "Aprobada"
+SOLICITUD_RECHAZADA = "Rechazada"
+
+# Días en que se puede pedir un espacio. Los horarios reales de los grupos incluyen
+# domingo y el sitio decía "disponible 7 días a la semana": se aceptan todos los días.
+# La franja de cada sede (hora_apertura / hora_cierre) está en la tabla `sede`.
+DIAS_ATENCION = DIAS_SEMANA
+HORAS_CONFIRMAR_PREINSCRIPCION = 48
+
+
+def dia_de(fecha) -> str:
+    """Nombre del día de la semana como se guarda en `horario` ("Miercoles")."""
+    return DIAS_SEMANA[fecha.weekday()]
+
+
+def se_cruzan(inicio_a, fin_a, inicio_b, fin_b) -> bool:
+    """True si dos franjas [inicio, fin) se cruzan."""
+    return inicio_a < fin_b and inicio_b < fin_a

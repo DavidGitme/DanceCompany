@@ -49,13 +49,24 @@ def test_estudiante_entra_con_correo_y_recibe_solo_rol_estudiante():
         (Cuentas(), "julian.rojas@mail.com", "mala"),
         (Cuentas(esEstudiante=False), "julian.rojas@mail.com", "Dance2026*"),
         (Cuentas(idEstudiante=None), "julian.rojas@mail.com", "Dance2026*"),
-        (Cuentas(idEstadoUsuario=ESTADO_INACTIVO), "julian.rojas@mail.com", "Dance2026*"),
-        (Cuentas(idEstadoEstudiante=ESTADO_INACTIVO), "julian.rojas@mail.com", "Dance2026*"),
     ],
 )
 def test_no_entra_con_datos_malos_o_sin_ser_estudiante_activo(cuentas, correo, clave):
     with pytest.raises(NoAutenticado) as error:
         login(cuentas, correo, clave)
+    assert error.value.mensaje == "Correo o contraseña incorrectos."
+
+
+@pytest.mark.parametrize("cuentas", [Cuentas(idEstadoUsuario=ESTADO_INACTIVO), Cuentas(idEstadoEstudiante=ESTADO_INACTIVO)])
+def test_cuenta_inactiva_con_clave_correcta_explica_que_hacer(cuentas):
+    with pytest.raises(NoAutenticado) as error:
+        login(cuentas, "julian.rojas@mail.com", "Dance2026*")
+    assert "inactiva" in error.value.mensaje and "administración de tu sede" in error.value.mensaje
+
+
+def test_cuenta_inactiva_con_clave_mala_no_revela_nada():
+    with pytest.raises(NoAutenticado) as error:
+        login(Cuentas(idEstadoUsuario=ESTADO_INACTIVO), "julian.rojas@mail.com", "mala")
     assert error.value.mensaje == "Correo o contraseña incorrectos."
 
 

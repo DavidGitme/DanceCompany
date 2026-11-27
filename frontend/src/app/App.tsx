@@ -9,6 +9,8 @@ import Plans from "@/modulos/landing/componentes/Planes"
 import Locations from "@/modulos/landing/componentes/Sedes"
 import RentalForm from "@/modulos/landing/componentes/Alquiler"
 import Footer from "@/modulos/landing/componentes/Footer"
+import Preinscripcion from "@/modulos/landing/componentes/Preinscripcion"
+import ConfirmarPreinscripcion from "@/modulos/landing/paginas/ConfirmarPreinscripcion"
 import Login from "@/modulos/autenticacion/paginas/Login"
 import AdminPanel from "@/app/paginas/AdminPanel"
 import Button from "@/compartido/ui/Button"
@@ -28,7 +30,13 @@ import { useIdioma } from "@/nucleo/i18n/useIdioma"
 const tokenDelEnlace = () =>
   window.location.pathname === "/restablecer" ? new URLSearchParams(window.location.search).get("token") : null
 
-// El instructor va a su portal; el resto de roles al panel administrativo
+// Enlace del correo de preinscripción: /confirmar-preinscripcion?token=...
+const tokenPreinscripcion = () =>
+  window.location.pathname === "/confirmar-preinscripcion" ? new URLSearchParams(window.location.search).get("token") : null
+
+// Tras iniciar sesión, cada rol entra directo a su dashboard:
+// instructor -> portal del instructor; estudiante y administración -> "admin"
+// (App muestra el portal del estudiante a la cuenta Estudiante y el panel al resto)
 function destinoSegunRol(usuario: UsuarioSesion): RutaAplicacion {
   const esInstructor = usuario.roles.includes("instructor")
   const esAdministrador = usuario.roles.includes("administrador")
@@ -58,6 +66,7 @@ export default function App() {
   const [isDark, setIsDark] = useState(true)
   const [page, setPage] = useState<RutaAplicacion>("home")
   const [token, setToken] = useState(tokenDelEnlace)
+  const [tokenPre, setTokenPre] = useState(tokenPreinscripcion)
   const { usuario, cerrarSesion, marcarTerminosAceptados } = useAuth()
   const salir = () => {
     cerrarSesion().finally(() => setPage("home"))
@@ -72,6 +81,21 @@ export default function App() {
   const rootClass = ["font-body min-h-full bg-page", isDark ? "dark" : ""].join(
     " ",
   )
+
+  if (tokenPre) {
+    return (
+      <div className={rootClass}>
+        <ConfirmarPreinscripcion
+          token={tokenPre}
+          onVolver={() => {
+            window.history.replaceState(null, "", "/")
+            setTokenPre(null)
+            setPage("home")
+          }}
+        />
+      </div>
+    )
+  }
 
   if (token) {
     return (
@@ -158,6 +182,7 @@ export default function App() {
         <Instructors />
         <DanceWellness />
         <Plans />
+        <Preinscripcion />
         <Locations />
         <RentalForm />
       </main>
@@ -171,7 +196,7 @@ export default function App() {
       <div className="fixed bottom-6 right-6 z-40 lg:hidden">
         <Button
           size="md"
-          onClick={() => document.querySelector("#sedes")?.scrollIntoView({ behavior: "smooth" })}
+          onClick={() => document.querySelector("#preinscripcion")?.scrollIntoView({ behavior: "smooth" })}
           className="shadow-2xl shadow-purple-700/40"
         >
           {t("Inscríbete")}

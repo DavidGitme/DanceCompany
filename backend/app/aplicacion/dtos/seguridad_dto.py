@@ -9,6 +9,8 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.aplicacion.dtos.comun_dto import NombrePersona
+
 T = TypeVar("T")
 
 
@@ -22,7 +24,7 @@ class ListaRespuesta(BaseModel, Generic[T]):
 # ─── Personas (tabla persona) ──────────────────────────
 
 class PersonaCrearSolicitud(BaseModel):
-    nombre: str = Field(min_length=2, max_length=100)
+    nombre: NombrePersona
     idTipoDocumento: int = Field(1, gt=0, description="1 = cédula de ciudadanía (ver tipo_documento)")
     documento: str = Field(min_length=5, max_length=20)
     telefono: str | None = Field(None, min_length=7, max_length=20)
@@ -66,6 +68,14 @@ class UsuarioRespuesta(BaseModel):
     username: str = Field(description="Igual al documento (se conserva por compatibilidad)")
     idEstado: int
     roles: list[int]
+    # Datos de la persona (solo en el listado)
+    nombre: str | None = None
+    email: str | None = None
+    idTipoDocumento: int | None = None
+    tipoDocumento: str | None = None
+    estado: str | None = None
+    idSede: int | None = None
+    sede: str | None = None
 
 
 # ─── Roles y permisos ──────────────────────────────────

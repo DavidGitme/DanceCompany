@@ -5,14 +5,14 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.aplicacion.dtos.comun_dto import Correo, Texto
+from app.aplicacion.dtos.comun_dto import Correo, NombrePersona, Texto
 from app.aplicacion.dtos.personas_rol_dto import EstudianteRespuesta
 
 DINERO = {"ge": 0, "max_digits": 10, "decimal_places": 2}
 
 
 class PersonaNueva(BaseModel):
-    nombre: Texto(100, minimo=2)
+    nombre: NombrePersona
     idTipoDocumento: int = Field(gt=0)
     documento: Texto(20, minimo=5)
     telefono: Texto(20, minimo=7)
@@ -36,7 +36,7 @@ class AcudienteInscripcion(BaseModel):
 
 class InscripcionSolicitud(BaseModel):
     # Datos del estudiante: teléfono y fecha de nacimiento son obligatorios
-    nombre: Texto(100, minimo=2)
+    nombre: NombrePersona
     idTipoDocumento: int = Field(gt=0)
     documento: Texto(20, minimo=5)
     telefono: Texto(20, minimo=7)
@@ -100,7 +100,7 @@ class VincularAcudienteSolicitud(AcudienteInscripcion):
 class EditarAcudienteSolicitud(BaseModel):
     """Datos del acudiente que se editan desde la edición del estudiante (el documento no cambia)."""
 
-    nombre: Texto(100, minimo=2)
+    nombre: NombrePersona
     telefono: Texto(20, minimo=7)
     email: Correo | None = None
     idParentesco: int = Field(gt=0)

@@ -6,6 +6,7 @@ import AvisoDemo from "@/app/admin/AvisoDemo"
 import { buscarModulo, navegacion } from "@/app/admin/navegacion"
 import * as recursos from "@/app/admin/recursos"
 import PantallaRecurso, { Icono, claseBotonIcono, hoverNeutro, type DefinicionRecurso } from "@/compartido/ui/PantallaRecurso"
+import ConfirmDialog from "@/compartido/ui/ConfirmDialog"
 import { useAuth } from "@/nucleo/auth/useAuth"
 import { puede } from "@/nucleo/auth/requierePermiso"
 import { recursoApi, mensajeError } from "@/compartido/api/recursos"
@@ -37,13 +38,22 @@ const PANTALLAS_API: Record<string, DefinicionRecurso<any>> = {
   "adm-grupos-competencia": recursos.gruposCompetencia,
   "seg-personas": recursos.personas,
   "seg-estados": recursos.estados,
+  "adm-planes": recursos.planes,
+  "adm-periodos": recursos.periodos,
+  "adm-preinscripciones": recursos.preinscripciones,
+  "adm-solicitudes-espacio": recursos.solicitudesEspacio,
 }
 
+// Módulos que solo reciben registros (del sitio público o de otros módulos): no se crean aquí
+const SIN_CREAR = ["seg-personas", "seg-estados", "adm-preinscripciones", "adm-solicitudes-espacio"]
+
 // Pantallas con API propia
-const PANTALLAS_PROPIAS: Record<string, ReactElement> = {
-  "seg-usuarios": <UsuariosScreen />,
-  "seg-roles-permisos": <RolesPrivilegiosScreen />,
+const PANTALLAS_PROPIAS: Record<string, (privilegios?: string[]) => ReactElement> = {
+  "seg-usuarios": (privilegios) => <UsuariosScreen privilegios={privilegios} />,
+  "seg-roles-permisos": () => <RolesPrivilegiosScreen />,
 }
+
+type EstadosPorNombre = Record<string, number>
 
 // Pantallas que todavía usan datos simulados: se muestran con aviso
 const PANTALLAS_DEMO: Record<string, ReactElement> = {
@@ -80,6 +90,11 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
   const [recargarEstudiantes, setRecargarEstudiantes] = useState(0)
   const [aviso, setAviso] = useState<string | null>(null)
   const [crearAlEntrar, setCrearAlEntrar] = useState(false)
+  const [invitando, setInvitando] = useState<recursos.Instructor | null>(null)
+  const [procesandoInvitacion, setProcesandoInvitacion] = useState(false)
+  const [errorInvitacion, setErrorInvitacion] = useState<string | undefined>()
+  // Ids de estados de preinscripción y de solicitud de espacio (se buscan por nombre)
+  const [estadosSitio, setEstadosSitio] = useState<{ pre: EstadosPorNombre; sol: EstadosPorNombre }>({ pre: {}, sol: {} })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [menuMovil, setMenuMovil] = useState(false)
   const contenidoRef = useRef<HTMLElement>(null)
@@ -109,6 +124,102 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
   const privilegiosModulo = actual?.permiso
     ? (["ver", "crear", "editar", "eliminar"] as const).filter((a) => puede(usuario, actual.permiso!, a))
     : undefined
+
+  useEffect(() => {
+    const ruta =
+      activeModule === "adm-preinscripciones" ? "/preinscripciones/estados"
+      : activeModule === "adm-solicitudes-espacio" ? "/solicitudes-espacio/estados"
+      : null
+    if (!ruta) return
+    recursoApi
+      .opciones<{ idEstado: number; nombre: string }>(ruta)
+      .then((lista) => {
+        const mapa = Object.fromEntries(lista.map((e) => [e.nombre, e.idEstado]))
+        setEstadosSitio((prev) => (activeModule === "adm-preinscripciones" ? { ...prev, pre: mapa } : { ...prev, sol: mapa }))
+      })
+      .catch(() => undefined)
+  }, [activeModule])
+
+  // Cambia el estado de un registro desde un botón de la fila
+  const decidir = async (ruta: string, id: number, idEstado: number, mensaje: string) => {
+    try {
+      await recursoApi.cambiarEstado(ruta, id, idEstado)
+      setAviso(mensaje)
+      setRecargarLista((n) => n + 1)
+    } catch (e) {
+      setAviso(mensajeError(e))
+    }
+  }
+
+  // Contratación: crea la cuenta del instructor y le envía el enlace para su contraseña
+  const confirmarInvitacion = async () => {
+    if (!invitando) return
+    setProcesandoInvitacion(true)
+    setErrorInvitacion(undefined)
+    try {
+      const r = await recursoApi.crear<{ invitacionEnviada: boolean; aviso: string | null }>(
+        `/instructores/${invitando.idInstructor}/invitacion`, {},
+      )
+      setAviso(r.invitacionEnviada
+        ? tr("Enviamos la invitación a {correo}. El enlace vence en 48 horas.", { correo: invitando.email ?? "" })
+        : tr(r.aviso ?? "La cuenta quedó creada, pero el correo no salió."))
+      setInvitando(null)
+      setRecargarLista((n) => n + 1)
+    } catch (e) {
+      setErrorInvitacion(mensajeError(e))
+    } finally {
+      setProcesandoInvitacion(false)
+    }
+  }
+
+  const botonFila = (etiqueta: string, nombre: string, icono: "check" | "cerrar" | "mas", tono: string, alPulsar: () => void) => (
+    <button type="button" onClick={alPulsar} className={`${claseBotonIcono} ${tono}`} aria-label={`${tr(etiqueta)}: ${nombre}`} title={tr(etiqueta)}>
+      <Icono nombre={icono} />
+    </button>
+  )
+  const exito = "hover:bg-emerald-500/10 hover:text-emerald-500"
+  const peligro = "hover:bg-red-500/10 hover:text-red-500"
+
+  // Acciones propias de algunas filas (siempre según el privilegio de editar del módulo)
+  const accionesPropias = (modulo: string): ((fila: any) => ReactElement | null) | undefined => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const editar = !privilegiosModulo || privilegiosModulo.includes("editar")
+    if (modulo === "adm-postulaciones" && editar) {
+      return (fila: recursos.Postulacion) =>
+        fila.idEstado === recursos.POSTULACION.postulado ? (
+          <>
+            {botonFila("Aceptar", fila.estudiante, "check", exito, () => decidirPostulacion(fila, recursos.POSTULACION.aceptado))}
+            {botonFila("Rechazar", fila.estudiante, "cerrar", peligro, () => decidirPostulacion(fila, recursos.POSTULACION.rechazado))}
+          </>
+        ) : null
+    }
+    if (modulo === "adm-solicitudes-espacio" && editar) {
+      const { Aprobada, Rechazada } = estadosSitio.sol
+      return (fila: recursos.SolicitudEspacio) =>
+        fila.estado === "Pendiente" && Aprobada && Rechazada ? (
+          <>
+            {botonFila("Aprobar", fila.nombre, "check", exito, () => decidir("/solicitudes-espacio", fila.idSolicitud, Aprobada, tr("La solicitud de {nombre} quedó aprobada.", { nombre: fila.nombre })))}
+            {botonFila("Rechazar", fila.nombre, "cerrar", peligro, () => decidir("/solicitudes-espacio", fila.idSolicitud, Rechazada, tr("La solicitud de {nombre} quedó rechazada.", { nombre: fila.nombre })))}
+          </>
+        ) : null
+    }
+    if (modulo === "adm-preinscripciones" && editar) {
+      const { Atendida, Descartada } = estadosSitio.pre
+      return (fila: recursos.Preinscripcion) =>
+        ["Por confirmar", "Confirmada"].includes(fila.estado) && Atendida && Descartada ? (
+          <>
+            {botonFila("Marcar como atendida", fila.nombre, "check", exito, () => decidir("/preinscripciones", fila.idPreinscripcion, Atendida, tr("La preinscripción de {nombre} quedó atendida.", { nombre: fila.nombre })))}
+            {botonFila("Descartar", fila.nombre, "cerrar", peligro, () => decidir("/preinscripciones", fila.idPreinscripcion, Descartada, tr("La preinscripción de {nombre} quedó descartada.", { nombre: fila.nombre })))}
+          </>
+        ) : null
+    }
+    if (modulo === "instructores" && (!privilegiosModulo || privilegiosModulo.includes("crear"))) {
+      return (fila: recursos.Instructor) =>
+        !fila.tieneCuenta && fila.idEstado === 1
+          ? botonFila("Invitar a crear su cuenta", fila.nombre, "mas", "hover:bg-accent/10 hover:text-accent", () => { setErrorInvitacion(undefined); setInvitando(fila) })
+          : null
+    }
+    return undefined
+  }
 
   // Aceptar o rechazar una postulación sin abrir el formulario
   const decidirPostulacion = async (fila: recursos.Postulacion, idEstado: number) => {
@@ -162,7 +273,7 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
         recargar={recargarLista}
         // Sedes: el administrador de sede consulta todas, pero solo gestiona la suya y no crea sedes.
         // Personas y estados no se crean desde aquí.
-        permiteCrear={!(activeModule === "sedes" && sedeFija) && !["seg-personas", "seg-estados"].includes(activeModule)}
+        permiteCrear={!(activeModule === "sedes" && sedeFija) && !SIN_CREAR.includes(activeModule)}
         puedeGestionar={
           activeModule === "seg-estados"
             ? () => false
@@ -176,25 +287,11 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
                   }
                 : undefined
         }
-        accionesFila={
-          activeModule === "adm-postulaciones" && privilegiosModulo?.includes("editar")
-            ? (fila: any) => // eslint-disable-line @typescript-eslint/no-explicit-any
-                fila.idEstado === recursos.POSTULACION.postulado ? (
-                  <>
-                    <button type="button" onClick={() => decidirPostulacion(fila, recursos.POSTULACION.aceptado)} className={`${claseBotonIcono} hover:bg-emerald-500/10 hover:text-emerald-500`} aria-label={`Aceptar a ${fila.estudiante}`} title={tr("Aceptar")}>
-                      <Icono nombre="check" />
-                    </button>
-                    <button type="button" onClick={() => decidirPostulacion(fila, recursos.POSTULACION.rechazado)} className={`${claseBotonIcono} hover:bg-red-500/10 hover:text-red-500`} aria-label={`Rechazar a ${fila.estudiante}`} title={tr("Rechazar")}>
-                      <Icono nombre="cerrar" />
-                    </button>
-                  </>
-                ) : null
-            : undefined
-        }
+        accionesFila={accionesPropias(activeModule)        }
       />
     )
   } else if (PANTALLAS_PROPIAS[activeModule]) {
-    contenido = PANTALLAS_PROPIAS[activeModule]
+    contenido = PANTALLAS_PROPIAS[activeModule](privilegiosModulo)
   } else if (PANTALLAS_DEMO[activeModule]) {
     contenido = (
       <div className="flex flex-col gap-6">
@@ -283,16 +380,24 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
         <FichaEstudiante
           estudiante={ficha}
           onCerrar={() => setFicha(null)}
-          onEditar={
-            privilegiosModulo && !privilegiosModulo.includes("editar")
-              ? undefined
-              : () => {
-                  setEditando(ficha as unknown as recursos.Estudiante)
-                  setFicha(null)
-                }
-          }
         />
       )}
+      <ConfirmDialog
+        open={Boolean(invitando)}
+        title={tr("Invitar a crear su cuenta")}
+        message={
+          invitando
+            ? invitando.email
+              ? tr("Se creará la cuenta de {nombre} con el rol Instructor y le enviaremos a {correo} un enlace para crear su contraseña (vence en 48 horas). Iniciará sesión con su documento.", { nombre: invitando.nombre, correo: invitando.email })
+              : tr("{nombre} no tiene correo registrado. Edita al instructor y agrega su correo para poder invitarlo.", { nombre: invitando.nombre })
+            : ""
+        }
+        confirmLabel={tr("Enviar invitación")}
+        blockedMessage={invitando && !invitando.email ? tr("Falta el correo del instructor.") : errorInvitacion}
+        loading={procesandoInvitacion}
+        onConfirm={confirmarInvitacion}
+        onClose={() => setInvitando(null)}
+      />
       {editando && (
         <EdicionEstudiante
           estudiante={editando}
