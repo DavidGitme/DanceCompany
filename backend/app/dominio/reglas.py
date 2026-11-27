@@ -1,7 +1,5 @@
 """Reglas compartidas por los módulos académicos."""
 
-from decimal import Decimal
-
 # Convención del script de base de datos: 1 = Activo, 2 = Inactivo
 ESTADO_ACTIVO = 1
 ESTADO_INACTIVO = 2
@@ -186,17 +184,3 @@ def dia_de(fecha) -> str:
 def se_cruzan(inicio_a, fin_a, inicio_b, fin_b) -> bool:
     """True si dos franjas [inicio, fin) se cruzan."""
     return inicio_a < fin_b and inicio_b < fin_a
-
-
-# ---------- Matrícula (bd/08_matricula_aprobacion.sql) ----------
-# Precio único de la matrícula. El descuento todavía no está definido.
-VALOR_MATRICULA = Decimal("60000")
-# Mientras se cumplen los requisitos la matrícula está Pendiente (categoría matricula).
-# Aprobada = Activo y dada de baja = Inactivo, como el resto del sistema.
-CATEGORIA_MATRICULA = "matricula"
-MATRICULA_PENDIENTE = "Pendiente"
-# Quién revisa cada requisito (requisito_matricula.responsable)
-REQUISITO_ADMINISTRADOR = "administrador"
-REQUISITO_INSTRUCTOR = "instructor"
-# Fecha de matrícula: como máximo un año antes o después de hoy
-DIAS_MARGEN_FECHA_MATRICULA = 366

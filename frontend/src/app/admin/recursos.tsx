@@ -1,15 +1,6 @@
 import { recursoApi } from "@/compartido/api/recursos"
 import type { DefinicionRecurso, Opcion, Valores } from "@/compartido/ui/PantallaRecurso"
 import StatusBadge from "@/compartido/ui/StatusBadge"
-import {
-  ProgresoRequisitos,
-  cuposLibres,
-  etiquetaEstado,
-  formatoFechaHora,
-  type EstadoMatriculaDto,
-  type GrupoParaMatriculaDto,
-  type MatriculaDto,
-} from "@/modulos/matriculas"
 
 /*
  * Definición de cada módulo conectado a la API. Los campos, límites y reglas
@@ -486,8 +477,23 @@ export const metodosPago: DefinicionRecurso<MetodoPago> = {
 
 /* ─── Matrículas, convocatorias, postulaciones y grupos de competencia ─── */
 
-// Contrato en modulos/matriculas/dtos (incluye requisitos y aprobación)
-export type Matricula = MatriculaDto
+export interface Matricula extends ConEstado {
+  idMatricula: number
+  idEstudiante: number
+  estudiante: string
+  documento: string
+  idGrupo: number
+  grupo: string
+  idSede: number
+  sede: string
+  nivel: string
+  estilo: string
+  fecha_matricula: string
+  valor_matricula: string | number
+  valorPagado: string | number
+  saldo: string | number
+  mensualidades: number
+}
 
 export interface Convocatoria {
   idConvocatoria: number
@@ -593,129 +599,55 @@ const fuentesAcademicas = {
     ).map((e) => ({ valor: String(e.idEstudiante), etiqueta: `${e.nombre} · ${e.documento}` })),
 }
 
-// Nombre de cada estado en el filtro de matrículas
-const FILTRO_ESTADO_MATRICULA: Record<string, string> = {
-  Pendiente: "Pendientes de aprobación",
-  Activo: "Activas",
-  Inactivo: "Inactivas",
-}
-
-// Edad cumplida en una fecha (AAAA-MM-DD)
-const edadEnFecha = (nacimiento: string, fechaRef: string) => {
-  const [an, mn, dn] = nacimiento.split("-").map(Number)
-  const [af, mf, df] = fechaRef.split("-").map(Number)
-  return af - an - (mf < mn || (mf === mn && df < dn) ? 1 : 0)
-}
-
-/*
- * Matrículas. «Nueva matrícula» abre su propio formulario (modulos/matriculas): primero se
- * matricula y así se registra la persona. El estado tiene tres valores (Pendiente, Activa e
- * Inactiva): el filtro y el interruptor de estado son propios del módulo.
- * Al editar se cambian el grupo y la fecha; el valor es el precio único de la matrícula.
- */
 export const matriculas: DefinicionRecurso<Matricula> = {
   id: "matriculas",
   titulo: "Matrículas",
   singular: "matrícula",
   genero: "f",
-  grupo: "Matrícula y pagos",
-  descripcion: "Matrícula de cada estudiante en su grupo. Valor único de $60.000; se activa al aprobar sus requisitos.",
+  grupo: "Finanzas",
+  descripcion: "Une a un estudiante con un grupo de su sede. Valida el cupo, la edad del nivel y que el grupo esté activo.",
   ruta: "/matriculas",
   idClave: "idMatricula",
   nombreFila: (m) => `${m.estudiante} en ${m.grupo}`,
+  conEstado: true,
   buscarPlaceholder: "Buscar por estudiante, documento o grupo…",
   filtros: [
-    { clave: "estado", etiqueta: "Estado", fuente: "estadosMatricula" },
     { clave: "sede", etiqueta: "Sede", fuente: "sedes" },
     { clave: "grupo", etiqueta: "Grupo", fuente: "gruposActivos" },
   ],
-  fuentes: {
-    ...fuentesAcademicas,
-    estadosMatricula: async () =>
-      (await recursoApi.opciones<EstadoMatriculaDto>("/matriculas/estados")).map((e) => ({
-        valor: String(e.idEstado),
-        etiqueta: FILTRO_ESTADO_MATRICULA[e.nombre] ?? e.nombre,
-      })),
-    // Grupos activos de la sede del estudiante, con cupos y rango de edad del nivel
-    gruposDeLaSede: async (v) =>
-      (await recursoApi.opciones<GrupoParaMatriculaDto>("/matriculas/opciones/grupos", { sede: texto(v, "idSede") })).map((g) => {
-        const actual = String(g.idGrupo) === texto(v, "grupoOriginal")
-        const libres = cuposLibres(g)
-        return {
-          valor: String(g.idGrupo),
-          etiqueta: `${g.nombre} · ${g.nivel} · ${g.estilo} · ${actual ? "grupo actual" : libres === 0 ? "sin cupos" : plural(libres, "cupo libre", "cupos libres")}`,
-          extra: { libres, edadMin: g.edadMin, edadMax: g.edadMax },
-        }
-      }),
-  },
-  textoVacio: "Crea la primera matrícula: al hacerlo se registra al estudiante con su grupo.",
+  fuentes: fuentesAcademicas,
+  valoresIniciales: { fecha_matricula: new Date().toISOString().slice(0, 10) },
   columnas: [
     { clave: "estudiante", etiqueta: "Estudiante", render: (m) => `${m.estudiante} · ${m.documento}` },
     { clave: "grupo", etiqueta: "Grupo", render: (m) => `${m.grupo} (${m.nivel} · ${m.estilo})` },
     { clave: "sede", etiqueta: "Sede" },
     { clave: "fecha_matricula", etiqueta: "Fecha", render: (m) => fecha(m.fecha_matricula) },
-    { clave: "requisitos", etiqueta: "Requisitos", render: (m) => <ProgresoRequisitos cumplidos={m.requisitosCumplidos} total={m.requisitosTotal} compacto /> },
+    { clave: "valor_matricula", etiqueta: "Valor", alinear: "derecha", render: (m) => formatoPesos(m.valor_matricula) },
     { clave: "saldo", etiqueta: "Saldo", alinear: "derecha", render: (m) => formatoPesos(m.saldo) },
-    { clave: "estado", etiqueta: "Estado", render: (m) => <StatusBadge status={etiquetaEstado(m.estado)} /> },
-  ],
-  detalle: [
-    { clave: "instructor", etiqueta: "Instructor", render: (m) => m.instructor ?? "—" },
-    { clave: "valor_matricula", etiqueta: "Valor de la matrícula", render: (m) => formatoPesos(m.valor_matricula) },
-    { clave: "valorPagado", etiqueta: "Pagado", render: (m) => formatoPesos(m.valorPagado) },
-    { clave: "mensualidades", etiqueta: "Mensualidades" },
-    {
-      clave: "fecha_aprobacion",
-      etiqueta: "Aprobación",
-      render: (m) =>
-        m.fecha_aprobacion ? `${formatoFechaHora(m.fecha_aprobacion)}${m.aprobadaPor ? ` · ${m.aprobadaPor}` : ""}` : "Sin aprobar",
-    },
   ],
   campos: [
-    { clave: "estudianteVista", etiqueta: "Estudiante", soloLectura: true, soloEditar: true },
-    {
-      clave: "idGrupo", etiqueta: "Grupo", tipo: "seleccion", fuente: "gruposDeLaSede", dependeDe: "idSede", requerido: true,
-      ayuda: "Solo grupos activos de la sede del estudiante. Se validan el cupo y la edad del nivel.",
-    },
+    { clave: "idEstudiante", etiqueta: "Estudiante", tipo: "seleccion", fuente: "estudiantesActivos", requerido: true, ayuda: "Solo estudiantes activos." },
+    { clave: "idGrupo", etiqueta: "Grupo", tipo: "seleccion", fuente: "gruposActivos", requerido: true, ayuda: "Debe ser de la misma sede del estudiante y tener cupo." },
     { clave: "fecha_matricula", etiqueta: "Fecha de matrícula", tipo: "fecha", requerido: true, ancho: "mitad" },
-    { clave: "valorVista", etiqueta: "Valor de la matrícula", soloLectura: true, soloEditar: true, ancho: "mitad", ayuda: "Precio único de la matrícula." },
+    { clave: "valor_matricula", etiqueta: "Valor de la matrícula (COP)", tipo: "numero", requerido: true, min: 0, max: 99999999, ancho: "mitad" },
   ],
-  // Los valores sin campo (sede, grupo y fecha originales, nacimiento) solo sirven para validar
   aFormulario: (m) => ({
-    estudianteVista: `${m.estudiante} · ${m.documento}`,
-    idSede: String(m.idSede),
+    idEstudiante: String(m.idEstudiante),
     idGrupo: String(m.idGrupo),
-    grupoOriginal: String(m.idGrupo),
     fecha_matricula: m.fecha_matricula,
-    fechaOriginal: m.fecha_matricula,
-    nacimiento: m.fecha_nacimiento ?? "",
-    valorVista: formatoPesos(m.valor_matricula),
+    valor_matricula: String(Number(m.valor_matricula)),
   }),
   aSolicitud: (v) => ({
+    idEstudiante: numero(v, "idEstudiante"),
     idGrupo: numero(v, "idGrupo"),
     fecha_matricula: texto(v, "fecha_matricula"),
+    valor_matricula: numero(v, "valor_matricula"),
   }),
-  // Mismas reglas del backend: fecha a máximo un año de hoy, cupo y edad del nivel
-  validar: (v, opciones): Record<string, string> => {
-    const errores: Record<string, string> = {}
-    const fechaMatricula = texto(v, "fecha_matricula")
-    if (fechaMatricula && fechaMatricula !== texto(v, "fechaOriginal")) {
-      const dias = (new Date(`${fechaMatricula}T00:00:00`).getTime() - new Date(new Date().toDateString()).getTime()) / 864e5
-      if (dias > 366) errores.fecha_matricula = "La fecha no puede ser de más de un año en el futuro."
-      else if (dias < -366) errores.fecha_matricula = "La fecha no puede ser de hace más de un año."
-    }
-    const idGrupo = texto(v, "idGrupo")
-    const grupo = opciones.gruposDeLaSede?.find((o) => o.valor === idGrupo)
-    if (grupo && idGrupo !== texto(v, "grupoOriginal")) {
-      const { libres, edadMin, edadMax } = (grupo.extra ?? {}) as { libres?: number; edadMin?: number | null; edadMax?: number | null }
-      const nacimiento = texto(v, "nacimiento")
-      const edad = nacimiento && fechaMatricula ? edadEnFecha(nacimiento, fechaMatricula) : null
-      if (libres === 0) errores.idGrupo = "El grupo no tiene cupos disponibles."
-      else if (edad !== null && ((edadMin != null && edad < edadMin) || (edadMax != null && edad > edadMax))) {
-        errores.idGrupo = `Con ${edad} años no puede entrar a este nivel (acepta de ${edadMin ?? "-"} a ${edadMax ?? "-"} años).`
-      }
-    }
-    return errores
-  },
+  validar: (v): Record<string, string> =>
+    texto(v, "fecha_matricula") && new Date(texto(v, "fecha_matricula")) > new Date(Date.now() + 366 * 864e5)
+      ? { fecha_matricula: "La fecha no puede ser de más de un año en el futuro." }
+      : {},
+  avisoInactivar: (m) => (m.mensualidades > 0 ? `Tiene ${plural(m.mensualidades, "mensualidad", "mensualidades")} registradas.` : undefined),
 }
 
 export const convocatorias: DefinicionRecurso<Convocatoria> = {
