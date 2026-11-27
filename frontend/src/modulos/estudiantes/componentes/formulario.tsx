@@ -58,6 +58,10 @@ export function errorNombre(nombre: string): string | undefined {
 }
 
 export const TELEFONO_DIGITOS = 10
+// Precio único de la matrícula (dominio/reglas.py: VALOR_MATRICULA). El descuento aún no existe.
+export const VALOR_MATRICULA = 60000
+export const textoValorMatricula = () =>
+  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(VALOR_MATRICULA)
 // Mayoría de edad del proyecto (dominio/reglas.py: EDAD_ADULTO)
 export const EDAD_ADULTO = 18
 export const esMenorDeEdad = (fechaNacimiento: string | null | undefined) => {

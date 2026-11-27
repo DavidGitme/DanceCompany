@@ -1,14 +1,11 @@
 """DTO de la inscripción presencial del estudiante (la hace el administrador de la sede)."""
 
 from datetime import date
-from decimal import Decimal
 
 from pydantic import BaseModel, Field, model_validator
 
 from app.aplicacion.dtos.comun_dto import Correo, NombrePersona, Texto
 from app.aplicacion.dtos.personas_rol_dto import EstudianteRespuesta
-
-DINERO = {"ge": 0, "max_digits": 10, "decimal_places": 2}
 
 
 class PersonaNueva(BaseModel):
@@ -45,21 +42,15 @@ class InscripcionSolicitud(BaseModel):
     idSede: int = Field(gt=0)
     # Acudiente opcional (uno como máximo)
     acudientes: list[AcudienteInscripcion] = Field(default_factory=list, max_length=1)
-    # Matrícula opcional en un grupo de la misma sede
+    # Matrícula opcional en un grupo de la misma sede. El valor no se envía: es el precio
+    # único (VALOR_MATRICULA) y la matrícula queda pendiente de aprobación.
     idGrupo: int | None = Field(default=None, gt=0)
-    valor_matricula: Decimal | None = Field(default=None, **DINERO)
     fecha_matricula: date | None = None
     # Cuenta para el portal del estudiante: su usuario es el número de documento.
     # Con clave, la sede se la entrega en persona; sin clave, le llega un enlace al correo
     # para que la cree él mismo.
     crearCuenta: bool = False
     clave: str | None = Field(default=None, min_length=8, max_length=128)
-
-    @model_validator(mode="after")
-    def matricula_completa(self):
-        if self.idGrupo is not None and self.valor_matricula is None:
-            raise ValueError("Indica el valor de la matrícula.")
-        return self
 
 
 class AcudienteRespuesta(BaseModel):

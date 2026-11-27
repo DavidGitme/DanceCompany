@@ -25,8 +25,8 @@ export interface InscripcionSolicitudDto {
   fecha_nacimiento: string
   idSede: number
   acudientes: AcudienteSolicitudDto[]
+  // La matrícula tiene precio único y queda pendiente de aprobación
   idGrupo?: number
-  valor_matricula?: number
   // Cuenta del portal: el usuario es el documento. Con clave la entrega la sede;
   // sin clave le llega al estudiante un enlace por correo para crearla
   crearCuenta?: boolean
