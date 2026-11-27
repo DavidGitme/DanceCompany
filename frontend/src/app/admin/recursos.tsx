@@ -619,7 +619,7 @@ export const matriculas: DefinicionRecurso<Matricula> = {
   singular: "matrícula",
   genero: "f",
   grupo: "Matrícula y pagos",
-  descripcion: "Primero se matricula: así se registra al estudiante. La matrícula queda pendiente hasta cumplir los requisitos y la aprueba el administrador o el instructor del grupo.",
+  descripcion: "Matrícula de cada estudiante en su grupo. Valor único de $60.000; se activa al aprobar sus requisitos.",
   ruta: "/matriculas",
   idClave: "idMatricula",
   nombreFila: (m) => `${m.estudiante} en ${m.grupo}`,
