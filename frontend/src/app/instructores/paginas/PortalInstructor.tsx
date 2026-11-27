@@ -19,13 +19,11 @@ import {
   type EstudianteInstructor,
   type GrupoInstructor,
 } from "@/modulos/instructores"
-import { MatriculasInstructor } from "@/modulos/matriculas"
 
 type VistaInstructor =
   | "inicio"
   | "grupos"
   | "estudiantes"
-  | "matriculas"
   | "perfil"
 
 interface PortalInstructorProps {
@@ -35,13 +33,11 @@ interface PortalInstructorProps {
 const navegacion: {
   id: VistaInstructor
   etiqueta: string
-  icono: "inicio" | "grupos" | "estudiantes" | "seguridad" | "perfil"
+  icono: "inicio" | "grupos" | "estudiantes" | "perfil"
 }[] = [
   { id: "inicio", etiqueta: "Inicio", icono: "inicio" },
   { id: "grupos", etiqueta: "Mis grupos", icono: "grupos" },
   { id: "estudiantes", etiqueta: "Mis estudiantes", icono: "estudiantes" },
-  // Visto bueno de las matrículas de sus grupos (módulo de matrículas)
-  { id: "matriculas", etiqueta: "Matrículas por aprobar", icono: "seguridad" },
   { id: "perfil", etiqueta: "Mi perfil", icono: "perfil" },
 ]
 
@@ -292,7 +288,6 @@ function ContenidoPortal({ onSalir }: PortalInstructorProps) {
                 <GruposInstructor onSeleccionar={setGrupoSeleccionado} />
               ))}
             {vista === "estudiantes" && <EstudiantesInstructor />}
-            {vista === "matriculas" && <MatriculasInstructor />}
             {vista === "perfil" && <PerfilInstructor />}
           </div>
         </main>
