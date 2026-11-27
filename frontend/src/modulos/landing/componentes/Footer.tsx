@@ -106,11 +106,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-
-      {/* Wordmark decorativo */}
-      <div aria-hidden="true" className="display stroke-text select-none text-center leading-[0.8] text-[clamp(6rem,24vw,24rem)] opacity-40 -mb-[0.12em]">
-        F&amp;A
-      </div>
     </footer>
   )
 }

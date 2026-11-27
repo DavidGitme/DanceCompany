@@ -426,37 +426,60 @@ export default function Preinscripcion() {
   const panel = () => {
     if (errorCarga) {
       return (
-        <div role="status" className="rounded-3xl border border-border bg-surface p-8">
+        <div role="status" className="flex h-full flex-col justify-center">
           <p className="font-body text-text-soft">{t('No pudimos consultar si la preinscripción está abierta. Intenta más tarde o acércate a tu sede.')}</p>
         </div>
       );
     }
-    if (!estado) return <div className="esqueleto h-[30rem] rounded-3xl" aria-label={t('Cargando')} />;
+    if (!estado) return <div className="esqueleto h-[28rem] rounded-2xl" aria-label={t('Cargando')} />;
     if (!estado.abierta) {
       return (
-        <div className="grain relative overflow-hidden rounded-3xl border border-border bg-surface-alt p-8 md:p-12">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 font-condensed text-xs font-semibold uppercase tracking-[0.2em] text-text-soft">
-            <span className="h-2 w-2 rounded-full bg-text-muted" aria-hidden="true" />
-            {t('Preinscripción cerrada')}
+        <div className="flex h-full flex-col">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
           </span>
-          <p className="display mt-6 text-[clamp(2.25rem,4.5vw,3.75rem)] text-text">{t('Vuelve en el próximo periodo')}</p>
+          <p className="display mt-6 text-[clamp(2.25rem,4vw,3.5rem)] text-text">{t('Vuelve en el próximo periodo')}</p>
           <p className="mt-3 max-w-lg font-body text-text-soft">
             {t('En este momento no hay un periodo de matrícula abierto. Puedes inscribirte en persona en cualquiera de nuestras sedes.')}
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="md" onClick={() => document.querySelector('#sedes')?.scrollIntoView({ behavior: 'smooth' })}>{t('Ver sedes')}</Button>
-            <Button size="md" variant="outline" onClick={() => document.querySelector('#planes')?.scrollIntoView({ behavior: 'smooth' })}>{t('Ver planes')}</Button>
+
+          <p className="mt-10 font-condensed text-xs font-semibold uppercase tracking-[0.25em] text-text-muted">{t('Mientras tanto')}</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {[
+              { destino: '#sedes', titulo: 'Inscríbete en tu sede', texto: 'Acércate a Bello o Copacabana con tu documento.', icono: 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z' },
+              { destino: '#planes', titulo: 'Compara los planes', texto: 'Mensual, semestral o anual: precio y duración.', icono: 'M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z M6 6h.008v.008H6V6Z' },
+            ].map((o) => (
+              <button
+                key={o.destino}
+                type="button"
+                onClick={() => document.querySelector(o.destino)?.scrollIntoView({ behavior: 'smooth' })}
+                className="group flex flex-col gap-4 rounded-2xl border border-border bg-page p-5 text-left transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <span className="flex items-center justify-between">
+                  <span className="grid h-10 w-10 place-items-center rounded-full border border-border text-accent" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d={o.icono} /></svg>
+                  </span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5 text-text-muted transition-transform duration-300 group-hover:translate-x-1 group-hover:text-accent" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  </svg>
+                </span>
+                <span>
+                  <span className="block font-condensed text-lg font-bold uppercase tracking-wider text-text">{t(o.titulo)}</span>
+                  <span className="mt-1 block font-body text-sm text-text-soft">{t(o.texto)}</span>
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       );
     }
     if (enviada) {
       return (
-        <div role="status" className="rounded-3xl border border-border bg-surface p-8 md:p-12">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-accent text-on-accent" aria-hidden="true">
+        <div role="status" className="flex h-full flex-col justify-center">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-on-accent" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>
           </span>
-          <p className="display mt-6 text-[clamp(2.25rem,4.5vw,3.75rem)] text-text">{t(enviada.correoEnviado ? 'Revisa tu correo' : 'Preinscripción recibida')}</p>
+          <p className="display mt-6 text-[clamp(2.25rem,4vw,3.5rem)] text-text">{t(enviada.correoEnviado ? 'Revisa tu correo' : 'Preinscripción recibida')}</p>
           <p className="mt-3 max-w-lg font-body text-text-soft">
             {enviada.correoEnviado
               ? t('Enviamos un enlace a {correo}. Ábrelo en las próximas 48 horas para confirmar tu correo; después la sede te contactará.', { correo: enviada.email })
@@ -486,7 +509,7 @@ export default function Preinscripcion() {
                     aria-label={`${t('Paso')} ${i + 1}: ${t(PASOS[id].titulo)}`}
                     className={`flex h-8 w-8 items-center justify-center rounded-full border font-condensed text-sm font-bold transition-all duration-300 disabled:cursor-default ${
                       hecho ? 'border-accent bg-accent text-on-accent hover:scale-105'
-                      : esActual ? 'border-accent bg-surface text-accent ring-4 ring-accent/20'
+                      : esActual ? 'border-accent bg-surface text-accent ring-4 ring-accent/15'
                       : 'border-border bg-surface text-text-muted'
                     }`}
                   >
@@ -506,7 +529,7 @@ export default function Preinscripcion() {
           tabIndex={-1}
           role="group"
           aria-labelledby={tituloPasoId}
-          className="rounded-3xl border border-border bg-surface p-6 shadow-[0_24px_60px_-30px_rgba(46,34,64,0.35)] outline-none md:p-10"
+          className="outline-none"
         >
           <div key={actual} className={direccion === 'adelante' ? 'paso-entra' : 'paso-entra-atras'}>
             <p className="font-condensed text-xs font-semibold uppercase tracking-[0.2em] text-accent">
@@ -536,67 +559,85 @@ export default function Preinscripcion() {
 
   return (
     <section id="preinscripcion" aria-labelledby="titulo-preinscripcion" className="relative py-28 bg-page overflow-hidden">
-      <div className="relative max-w-[88rem] mx-auto px-6 grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16 items-start">
-        {/* Columna izquierda: título, periodo y cómo funciona */}
-        <div className="lg:sticky lg:top-28">
-          <Reveal>
-            <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(06) {t('Matrícula')}</span>
-          </Reveal>
-          <Reveal variant="mask" as="h2" className="display text-[clamp(2.75rem,7vw,6rem)] text-text mt-3">
-            <span id="titulo-preinscripcion">
-              <MaskLine>{t('Preinscríbete')}</MaskLine>
-              <MaskLine delay={150}><span className="text-blush">{t('en línea')}</span></MaskLine>
-            </span>
-          </Reveal>
-
-          {estado?.abierta && estado.periodo && (
+      <div className="relative max-w-[88rem] mx-auto px-6">
+        {/* Encabezado: título a la izquierda, estado del periodo a la derecha */}
+        <div className="mb-12 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div>
+            <Reveal>
+              <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(06) {t('Matrícula')}</span>
+            </Reveal>
+            <Reveal variant="mask" as="h2" className="display text-[clamp(2.75rem,7vw,6rem)] text-text mt-3">
+              <span id="titulo-preinscripcion">
+                <MaskLine>{t('Preinscríbete')}</MaskLine>
+                <MaskLine delay={150}><span className="text-blush">{t('en línea')}</span></MaskLine>
+              </span>
+            </Reveal>
+          </div>
+          {estado && (
             <Reveal delay={150}>
-              <p className="mt-6 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-border bg-surface px-4 py-2 font-body text-sm text-text-soft">
-                <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-accent/50 motion-reduce:hidden" />
-                  <span className="relative h-2.5 w-2.5 rounded-full bg-accent" />
+              <p className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-border bg-surface px-4 py-2 font-body text-sm text-text-soft">
+                {estado.abierta ? (
+                  <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-accent/50 motion-reduce:hidden" />
+                    <span className="relative h-2.5 w-2.5 rounded-full bg-accent" />
+                  </span>
+                ) : (
+                  <span className="h-2.5 w-2.5 rounded-full bg-text-muted/60" aria-hidden="true" />
+                )}
+                <span className="font-condensed font-semibold uppercase tracking-wider text-text">
+                  {estado.abierta && estado.periodo ? estado.periodo.nombre : t('Preinscripción cerrada')}
                 </span>
-                <span className="font-condensed font-semibold uppercase tracking-wider text-text">{estado.periodo.nombre}</span>
-                <span>{t('abierta hasta el {fin}', { fin: fechaLarga(estado.periodo.fecha_fin) })}</span>
+                {estado.abierta && estado.periodo && <span>{t('abierta hasta el {fin}', { fin: fechaLarga(estado.periodo.fecha_fin) })}</span>}
               </p>
             </Reveal>
           )}
-
-          {/* Cómo funciona: botón visible que despliega los pasos */}
-          <Reveal delay={200} className="mt-8">
-            <button
-              type="button"
-              onClick={() => setVerPasos((v) => !v)}
-              aria-expanded={verPasos}
-              aria-controls="pre-como-funciona"
-              className="flex w-full items-center justify-between gap-4 border-y border-border py-4 text-left font-condensed text-sm font-bold uppercase tracking-[0.18em] text-text transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-            >
-              {t('¿Cómo funciona la preinscripción?')}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={`h-5 w-5 transition-transform duration-300 ${verPasos ? 'rotate-180' : ''}`} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-              </svg>
-            </button>
-            <div id="pre-como-funciona" className="acordeon-panel" data-abierto={verPasos}>
-              <div>
-                <ol className="relative mt-6 flex flex-col gap-6 pl-12">
-                  <span className="absolute left-[15px] top-2 bottom-2 w-px bg-border" aria-hidden="true" />
-                  {COMO_FUNCIONA.map(([titulo, texto], i) => (
-                    <li key={titulo} className="relative">
-                      <span className="absolute -left-12 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-page font-condensed text-sm font-bold text-accent">
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
-                      <span className="block font-condensed text-base font-bold uppercase tracking-wider text-text">{t(titulo)}</span>
-                      <span className="block font-body text-sm text-text-soft">{t(texto)}</span>
-                    </li>
-                  ))}
-                </ol>
-                <p className="mt-6 font-body text-xs text-text-muted">{t('La preinscripción no reserva cupo ni crea una cuenta: el cupo se confirma al inscribirte en la sede.')}</p>
-              </div>
-            </div>
-          </Reveal>
         </div>
 
-        <Reveal delay={100}>{panel()}</Reveal>
+        <Reveal delay={100}>
+          <div className="grid overflow-hidden rounded-[2rem] border border-border bg-surface shadow-[0_30px_70px_-45px_rgba(46,34,64,0.5)] lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+            {/* Cómo funciona: panel violeta de la marca */}
+            <aside className="tarjeta-estilo-morada grain relative flex flex-col p-7 text-white md:p-10" aria-labelledby="pre-como-titulo">
+              <button
+                type="button"
+                onClick={() => setVerPasos((v) => !v)}
+                aria-expanded={verPasos}
+                aria-controls="pre-como-funciona"
+                className="flex w-full items-center justify-between gap-4 text-left lg:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              >
+                <span id="pre-como-titulo" className="font-condensed text-sm font-bold uppercase tracking-[0.25em] text-white/80">{t('¿Cómo funciona la preinscripción?')}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={`h-5 w-5 shrink-0 transition-transform duration-300 lg:hidden ${verPasos ? 'rotate-180' : ''}`} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+              <div id="pre-como-funciona" className="acordeon-panel lg:grid-rows-[1fr]!" data-abierto={verPasos}>
+                <div>
+                  <ol className="mt-8 flex flex-col lg:mb-10">
+                    {COMO_FUNCIONA.map(([titulo, texto], i) => (
+                      <li key={titulo} className="relative grid grid-cols-[2.5rem_1fr] gap-4 pb-8 last:pb-0">
+                        {i < COMO_FUNCIONA.length - 1 && <span className="absolute left-5 top-11 bottom-1 w-px bg-white/25" aria-hidden="true" />}
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/10 font-condensed text-sm font-bold tabular-nums text-white">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+                        <span className="pt-1.5">
+                          <span className="block font-condensed text-lg font-bold uppercase tracking-wider text-white">{t(titulo)}</span>
+                          <span className="mt-1 block font-body text-sm text-white/75">{t(texto)}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+              <p className="mt-8 flex items-start gap-3 border-t border-white/20 pt-6 font-body text-xs text-white/75 lg:mt-auto">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5 shrink-0 text-white" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                {t('La preinscripción no reserva cupo ni crea una cuenta: el cupo se confirma al inscribirte en la sede.')}
+              </p>
+            </aside>
+
+            <div className="p-6 md:p-10 lg:p-12">{panel()}</div>
+          </div>
+        </Reveal>
       </div>
 
       {verTerminos && <DocumentoLegal titulo={t('Términos y condiciones')} secciones={TERMINOS} onCerrar={() => setVerTerminos(false)} />}

@@ -60,47 +60,92 @@ export default function Plans() {
         )}
 
         {estado.tipo === 'listo' && estado.planes.length > 0 && (
-          <ul className={`grid gap-5 ${estado.planes.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
-            {estado.planes.map((plan, i) => {
-              const porMes = Number(plan.valor) / plan.meses;
-              return (
-                <Reveal key={plan.idPlan} delay={i * 120} as="li">
-                  <article
-                    aria-labelledby={`plan-${plan.idPlan}`}
-                    className="relative flex h-full flex-col border border-border bg-page p-6 transition-all duration-500 hover:-translate-y-1 hover:border-accent/60 md:p-8"
-                  >
-                    <span className="font-condensed text-sm text-text-muted" aria-hidden="true">({String(i + 1).padStart(2, '0')})</span>
-                    <h3 id={`plan-${plan.idPlan}`} className="display mt-3 text-5xl text-text md:text-6xl">{t(plan.nombre)}</h3>
-                    {plan.descripcion && <p className="mt-2 font-body text-sm text-text-soft">{t(plan.descripcion)}</p>}
+          <>
+            <ul className={`grid items-stretch gap-5 ${estado.planes.length >= 3 ? 'lg:grid-cols-3' : 'md:grid-cols-2'}`}>
+              {estado.planes.map((plan, i) => {
+                const porMes = Number(plan.valor) / plan.meses;
+                // La tarjeta central usa el violeta de la marca (como .tarjeta-estilo-morada); no es una recomendación
+                const destacada = estado.planes.length >= 3 && i === 1;
+                const suave = destacada ? 'text-white/75' : 'text-text-soft';
+                const tenue = destacada ? 'text-white/60' : 'text-text-muted';
+                const linea = destacada ? 'border-white/20' : 'border-border';
+                return (
+                  <Reveal key={plan.idPlan} delay={i * 120} as="li" className="h-full">
+                    <article
+                      aria-labelledby={`plan-${plan.idPlan}`}
+                      className={`group relative flex h-full flex-col overflow-hidden rounded-[1.75rem] p-7 transition-[translate,box-shadow] duration-500 hover:-translate-y-1.5 md:p-8 ${
+                        destacada
+                          ? 'tarjeta-estilo-morada grain text-white shadow-[0_30px_60px_-30px_rgba(46,34,64,0.7)]'
+                          : 'border border-border bg-page text-text shadow-[0_1px_2px_rgba(46,34,64,0.06)] hover:shadow-[0_30px_50px_-30px_rgba(46,34,64,0.45)]'
+                      }`}
+                    >
+                      <div className="relative flex items-center justify-between gap-3">
+                        <span className={`font-condensed text-xs font-semibold uppercase tracking-[0.25em] ${tenue}`}>
+                          {t('Plan')} {String(i + 1).padStart(2, '0')}
+                        </span>
+                        <span className={`rounded-full border px-3 py-1 font-condensed text-xs font-semibold uppercase tracking-wider ${destacada ? 'border-white/30 text-white' : 'border-border text-text-soft'}`}>
+                          {plan.meses === 1 ? t('1 mes') : t('{n} meses', { n: plan.meses })}
+                        </span>
+                      </div>
 
-                    <p className="mt-6">
-                      <span className="display text-4xl text-text tabular-nums">{pesosCop(plan.valor)}</span>
-                      <span className="block font-condensed text-xs uppercase tracking-[0.2em] text-text-muted">{t('Valor total')}</span>
-                    </p>
+                      <h3 id={`plan-${plan.idPlan}`} className="display relative mt-6 text-5xl md:text-6xl">{t(plan.nombre)}</h3>
+                      {plan.descripcion && <p className={`relative mt-2 font-body text-sm ${suave}`}>{t(plan.descripcion)}</p>}
 
-                    {/* Mismas filas en todos los planes para poder compararlos */}
-                    <dl className="mt-6 flex-1 border-t border-border">
-                      {[
-                        ['Duración', plan.meses === 1 ? t('1 mes') : t('{n} meses', { n: plan.meses })],
-                        ['Equivale por mes', pesosCop(porMes)],
-                        ['Forma de pago', t(formaDePago(plan.meses))],
-                        ['Incluye', t('Clases regulares del nivel asignado')],
-                      ].map(([etiqueta, valor]) => (
-                        <div key={etiqueta} className="flex items-baseline justify-between gap-4 border-b border-border py-2.5">
-                          <dt className="font-condensed text-xs uppercase tracking-wider text-text-muted">{t(etiqueta)}</dt>
-                          <dd className="text-right font-body text-sm text-text tabular-nums">{valor}</dd>
+                      <p className="relative mt-8 flex items-end gap-2">
+                        <span className="display text-5xl leading-none tabular-nums md:text-[3.5rem]">{pesosCop(plan.valor)}</span>
+                      </p>
+                      <p className={`relative mt-2 font-body text-sm tabular-nums ${suave}`}>
+                        {plan.meses === 1 ? t('Valor total') : t('Equivale a {v} al mes', { v: pesosCop(porMes) })}
+                      </p>
+
+                      {/* Meses cubiertos sobre un año: compara los planes de un vistazo */}
+                      <div className="relative mt-7" role="img" aria-label={t('Cubre {n} de 12 meses', { n: plan.meses })}>
+                        <div className="grid grid-cols-12 gap-1">
+                          {Array.from({ length: 12 }, (_, m) => (
+                            <span
+                              key={m}
+                              className={`h-2 rounded-full transition-colors duration-500 ${
+                                m < plan.meses ? (destacada ? 'bg-white' : 'bg-accent') : destacada ? 'bg-white/20' : 'bg-border'
+                              }`}
+                            />
+                          ))}
                         </div>
-                      ))}
-                    </dl>
+                        <p className={`mt-2 font-condensed text-[11px] uppercase tracking-[0.2em] ${tenue}`}>{t('Meses cubiertos en el año')}</p>
+                      </div>
 
-                    <Button size="md" variant={i === 0 ? 'primary' : 'outline'} fullWidth className="mt-6" onClick={() => irA('#preinscripcion')}>
-                      {t('Quiero este plan')}
-                    </Button>
-                  </article>
-                </Reveal>
-              );
-            })}
-          </ul>
+                      <ul className={`relative mt-7 flex flex-1 flex-col gap-3 border-t pt-6 ${linea}`}>
+                        {[
+                          t(formaDePago(plan.meses)),
+                          t('Clases regulares del nivel asignado'),
+                          t('Inscripción y cupo confirmados en la sede'),
+                        ].map((texto) => (
+                          <li key={texto} className="flex items-start gap-3 font-body text-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={`mt-px h-5 w-5 shrink-0 ${destacada ? 'text-white' : 'text-accent'}`} aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                            <span className={destacada ? 'text-white' : 'text-text'}>{texto}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <Button
+                        size="md"
+                        variant={destacada ? 'secondary' : 'outline'}
+                        fullWidth
+                        className={`relative mt-8 ${destacada ? 'bg-white! text-purple-900! hover:bg-purple-50!' : ''}`}
+                        onClick={() => irA('#preinscripcion')}
+                      >
+                        {t('Quiero este plan')}
+                      </Button>
+                    </article>
+                  </Reveal>
+                );
+              })}
+            </ul>
+            <p className="mt-6 max-w-2xl font-body text-sm text-text-muted">
+              {t('Todos los planes tienen el mismo valor mensual; cambia cuántos meses pagas de una vez. Los precios están en pesos colombianos.')}
+            </p>
+          </>
         )}
       </div>
     </section>

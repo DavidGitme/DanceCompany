@@ -1,6 +1,7 @@
 import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react"
 import Sidebar from "@/app/admin/Sidebar"
+import SelectorIdioma from "@/compartido/ui/SelectorIdioma"
 import Dashboard from "@/app/admin/Dashboard"
 import AvisoDemo from "@/app/admin/AvisoDemo"
 import { buscarModulo, navegacion } from "@/app/admin/navegacion"
@@ -326,23 +327,34 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Barra superior en móvil */}
-          <header className="flex h-14 flex-shrink-0 items-center gap-3 border-b border-border bg-surface px-4 lg:hidden">
+          {/* Barra superior: menú (móvil), ruta del módulo e idioma */}
+          <header className="flex h-14 flex-shrink-0 items-center gap-3 border-b border-border bg-surface px-4 sm:px-6 xl:px-10">
             <button
               type="button"
               onClick={() => setMenuMovil(true)}
               aria-expanded={menuMovil}
               aria-controls="menu-admin"
-              className="grid h-10 w-10 place-items-center rounded-full text-text hover:bg-accent/10"
+              className="-ml-1 grid h-10 w-10 place-items-center rounded-full text-text hover:bg-accent/10 lg:hidden"
               aria-label={tr("Abrir menú")}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-6 w-6" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             </button>
-            <span className="truncate font-condensed text-sm font-semibold uppercase tracking-wider text-text">
-              {actual?.etiqueta ? tr(actual.etiqueta) : tr("Panel")}
-            </span>
+            <nav aria-label={tr("Ubicación")} className="min-w-0 flex-1">
+              <ol className="flex min-w-0 items-center gap-2 font-condensed text-sm font-semibold uppercase tracking-wider">
+                {actual?.grupo && (
+                  <li className="hidden shrink-0 items-center gap-2 text-text-muted sm:flex">
+                    {tr(actual.grupo)}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </li>
+                )}
+                <li className="truncate text-text" aria-current="page">{actual?.etiqueta ? tr(actual.etiqueta) : tr("Panel")}</li>
+              </ol>
+            </nav>
+            <SelectorIdioma className="h-8 text-text-soft" />
           </header>
 
           <main

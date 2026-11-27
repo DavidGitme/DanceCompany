@@ -108,11 +108,11 @@ export const navegacion: NodoNavegacion[] = [
 ];
 
 // Busca la etiqueta y el grupo de un módulo (para el encabezado móvil)
-export function buscarModulo(id: string): { etiqueta: string; demo: boolean; permiso?: string } | null {
+export function buscarModulo(id: string): { etiqueta: string; demo: boolean; permiso?: string; grupo?: string } | null {
   for (const nodo of navegacion) {
     if (nodo.id === id) return { etiqueta: nodo.etiqueta, demo: false, permiso: nodo.permiso };
     const hijo = nodo.hijos?.find((h) => h.id === id);
-    if (hijo) return { etiqueta: hijo.etiqueta, demo: Boolean(hijo.demo), permiso: hijo.permiso };
+    if (hijo) return { etiqueta: hijo.etiqueta, demo: Boolean(hijo.demo), permiso: hijo.permiso, grupo: nodo.etiqueta };
   }
   return null;
 }

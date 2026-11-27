@@ -1,4 +1,3 @@
-import SelectorIdioma from "@/compartido/ui/SelectorIdioma"
 import { tr } from "@/nucleo/i18n/IdiomaContext"
 import { useEffect, useState } from 'react';
 import logoFna from '@/recursos/logo-fna.png';
@@ -109,7 +108,18 @@ export default function Sidebar({
               <div className="mt-1 font-condensed text-[11px] uppercase leading-none tracking-[0.2em] text-text-muted">{tr("Administración")}</div>
             </div>
           )}
-          {/* Colapsar/expandir (solo escritorio): arriba y sin texto visible; la etiqueta queda para lectores de pantalla */}
+          {/* Colapsar/expandir (solo escritorio): arriba, sin texto visible; la etiqueta queda para lectores de pantalla */}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className={['hidden h-9 w-9 flex-shrink-0 place-items-center rounded-full text-text-muted transition-colors hover:bg-accent/10 hover:text-text lg:grid', compacto ? '' : 'ml-auto'].join(' ')}
+            aria-label={tr(compacto ? "Expandir menú" : "Colapsar menú")}
+            aria-expanded={!compacto}
+            aria-controls="menu-admin"
+            title={tr(compacto ? "Expandir menú" : "Colapsar menú")}
+          >
+            <span className={['transition-transform duration-300', compacto ? 'rotate-180' : ''].join(' ')}>{colapsar}</span>
+          </button>
           <button type="button" onClick={onCloseMobile} className="ml-auto grid h-9 w-9 place-items-center rounded-full text-text-muted hover:bg-accent/10 hover:text-text lg:hidden" aria-label={tr("Cerrar menú")}>
             {cerrar}
           </button>
@@ -203,7 +213,7 @@ export default function Sidebar({
           })}
         </nav>
 
-        {/* Pie: usuario, idioma y salir */}
+        {/* Pie: usuario y salir */}
         <div className="flex flex-shrink-0 flex-col gap-1 border-t border-border p-2">
           {usuario && !compacto && (
             <div className="mb-1 rounded-xl bg-surface-alt px-3 py-2.5">
@@ -214,18 +224,6 @@ export default function Sidebar({
               </p>
             </div>
           )}
-          <div className={['flex px-1 py-1 text-text-muted', compacto ? 'justify-center' : ''].join(' ')}>
-            <SelectorIdioma />
-          </div>
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className={['hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-text-muted transition-colors hover:bg-accent/10 hover:text-text lg:flex', compacto ? 'justify-center' : ''].join(' ')}
-            aria-label={tr(compacto ? "Expandir menú" : "Colapsar menú")}
-          >
-            <span className={['transition-transform duration-300', compacto ? 'rotate-180' : ''].join(' ')}>{colapsar}</span>
-            {!compacto && <span className="font-condensed text-sm font-semibold uppercase tracking-wider">{tr("Colapsar")}</span>}
-          </button>
           <button
             type="button"
             onClick={onExit}
