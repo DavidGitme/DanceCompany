@@ -31,22 +31,15 @@ export default function Plans() {
   return (
     <section id="planes" aria-labelledby="titulo-planes" className="relative py-20 bg-surface-alt overflow-hidden">
       <div className="relative max-w-[88rem] mx-auto px-6">
-        <div className="mb-10 grid lg:grid-cols-[1.4fr_1fr] gap-6 items-end">
-          <div>
-            <Reveal>
-              <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(05) {t('Planes')}</span>
-            </Reveal>
-            <Reveal variant="mask" as="h2" className="display text-[clamp(2.75rem,7vw,6rem)] text-text mt-3">
-              <span id="titulo-planes">
-                <MaskLine>{t('Elige tu')}</MaskLine>
-                <MaskLine delay={150}><span className="text-blush">{t('plan')}</span></MaskLine>
-              </span>
-            </Reveal>
-          </div>
-          <Reveal delay={200}>
-            <p className="font-body text-text-soft text-lg leading-relaxed">
-              {t('Mismas clases, distinta forma de pago. Compara el valor total y lo que equivale por mes.')}
-            </p>
+        <div className="mb-10">
+          <Reveal>
+            <span className="font-condensed text-sm uppercase tracking-[0.25em] text-accent font-semibold">(05) {t('Planes')}</span>
+          </Reveal>
+          <Reveal variant="mask" as="h2" className="display text-[clamp(2.75rem,7vw,6rem)] text-text mt-3">
+            <span id="titulo-planes">
+              <MaskLine>{t('Elige tu')}</MaskLine>
+              <MaskLine delay={150}><span className="text-blush">{t('plan')}</span></MaskLine>
+            </span>
           </Reveal>
         </div>
 
